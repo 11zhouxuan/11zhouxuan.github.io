@@ -89,8 +89,12 @@ footer:
     name: fa fa-heart
     animated: true
     color: "#ff0000"
-  copyright: Xuan Zhou
+  copyright: false
   powered: false
+
+# Custom files to inject
+custom_file_path:
+  style: source/_data/styles.styl
 
 # Post Settings
 post_meta:
