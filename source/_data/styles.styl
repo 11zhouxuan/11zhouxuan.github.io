@@ -49,11 +49,25 @@ code, pre {
   margin: 0 auto;
 }
 
+// On wide desktop, widen to accommodate sidenotes
+@media (min-width: 1200px) {
+  .main-inner {
+    max-width: 1050px;
+  }
+}
+
 // ---- Post body ----
 .post-body {
   position: relative;
   padding-right: 0;
   padding-left: 0;
+}
+
+// On wide desktop, reserve space for sidenotes on right
+@media (min-width: 1200px) {
+  .post-body {
+    padding-right: 270px;
+  }
 }
 
 // ---- Sidenote styling (always inline, no float) ----
@@ -66,7 +80,7 @@ sup.sidenote-ref {
   cursor: default;
 }
 
-// Sidenote content: always displayed as inline block below the reference
+// Sidenote content: inline block by default (mobile/tablet)
 .sidenote, .marginnote {
   display: block;
   margin: 0.6em 0;
@@ -78,6 +92,22 @@ sup.sidenote-ref {
   border-left: 3px solid #1e6e78;
   border-radius: 4px;
   font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
+}
+
+// On wide desktop (≥1200px), float sidenotes to right margin
+@media (min-width: 1200px) {
+  .sidenote, .marginnote {
+    float: right;
+    clear: right;
+    width: 240px;
+    margin-right: -270px;
+    margin-left: 12px;
+    margin-bottom: 14px;
+    margin-top: 0;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 3px;
+  }
 }
 
 // The [N] label inside the sidenote
@@ -144,10 +174,40 @@ sup.sidenote-ref {
 }
 
 // ---- Mobile-specific ----
+@media (max-width: 991px) {
+  // Prevent horizontal overflow on all non-desktop screens
+  html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+
+  .main-inner, .header-inner, .content-wrap, .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .post-body {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  // Sidenotes must not float on tablets/phones
+  .sidenote, .marginnote {
+    float: none !important;
+    width: auto !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+  }
+}
+
 @media (max-width: 767px) {
   .main-inner {
-    width: 95%;
-    max-width: 100%;
+    width: 95% !important;
+    max-width: 100% !important;
+    padding: 0 10px !important;
   }
 
   .post-body {
