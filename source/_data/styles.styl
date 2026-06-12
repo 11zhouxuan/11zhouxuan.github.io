@@ -154,6 +154,56 @@ label.sidenote-number {
   padding: 8px 0;
 }
 
+// MathJax v3 container responsive
+.post-body mjx-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+
+// ---- Mobile-specific fixes ----
+@media (max-width: 767px) {
+  // Ensure post body has no extra padding
+  .post-body {
+    padding-right: 0 !important;
+    padding-left: 0;
+  }
+
+  // Math equations scroll horizontally on small screens
+  .post-body mjx-container[display="true"] {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    padding: 8px 0;
+    font-size: 0.9em;
+  }
+
+  // Sidenotes display as compact inline blocks on mobile
+  .sidenote, .marginnote {
+    float: none !important;
+    width: auto !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    clear: both;
+  }
+
+  // Language switch centered on mobile
+  .lang-switch {
+    text-align: center;
+  }
+
+  // Note boxes: slightly smaller on mobile
+  .note {
+    padding: 10px 12px;
+    font-size: 0.88em;
+  }
+
+  // Post title: smaller on mobile
+  .post-title {
+    font-size: 1.4em !important;
+  }
+}
+
 // ---- Heading styles ----
 .post-body h2 {
   margin-top: 2em;
