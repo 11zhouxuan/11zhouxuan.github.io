@@ -40,7 +40,7 @@ social:
 # Table of Contents in sidebar
 toc:
   enable: true
-  number: true
+  number: false
   wrap: false
   expand_all: false
 
