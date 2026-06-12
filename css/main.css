@@ -1269,7 +1269,7 @@ pre code {
     vertical-align: middle;
   }
   .links-of-author a::before {
-    background: #b8d295;
+    background: #12ff9d;
     display: inline-block;
     margin-right: 3px;
     transform: translateY(-2px);
@@ -1490,20 +1490,6 @@ pre code {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.post-toc .nav .nav-child {
-  --height: 0;
-  height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition-property: height, opacity, visibility;
-  transition: 0.2s ease-in-out;
-  visibility: hidden;
-}
-.post-toc .nav .active > .nav-child {
-  height: var(--height, auto);
-  opacity: 1;
-  visibility: unset;
 }
 .post-toc .nav .active > a {
   border-bottom-color: #fc6423;
@@ -2902,31 +2888,21 @@ header.header {
   position: relative;
   padding-right: 0;
 }
-@media (min-width: 768px) {
-  .main-inner {
-    max-width: 100%;
-  }
-  .post-body {
-    padding-right: 240px;
-  }
-}
 @media (min-width: 1200px) {
-  .main-inner {
-    max-width: 100%;
-  }
   .post-body {
-    padding-right: 280px;
+    padding-right: 270px;
+  }
+  .sidenote,
+  .marginnote {
+    width: 240px;
+    margin-right: -270px;
   }
 }
-label.sidenote-number {
-  display: inline;
+sup.sidenote-ref {
   font-size: 0.75em;
   color: #1e6e78;
   font-weight: 600;
-  vertical-align: super;
-  line-height: 0;
   cursor: default;
-  margin: 0 1px;
 }
 .sidenote,
 .marginnote {
@@ -2940,37 +2916,26 @@ label.sidenote-number {
   border-left: 3px solid #1e6e78;
   border-radius: 4px;
 }
-@media (min-width: 768px) {
+@media (min-width: 1200px) {
   .sidenote,
   .marginnote {
     float: right;
     clear: right;
-    width: 220px;
-    margin-right: -240px;
+    width: 240px;
+    margin-right: -270px;
     margin-left: 12px;
     margin-bottom: 12px;
     margin-top: 0;
     padding: 8px 12px;
-    background: transparent;
+    background: #fafbfc;
     border-left: 3px solid #1e6e78;
-    border-radius: 0;
+    border-radius: 3px;
   }
 }
-@media (min-width: 1200px) {
-  .sidenote,
-  .marginnote {
-    width: 250px;
-    margin-right: -280px;
-  }
-}
-.sidenote > .sidenote-number {
-  display: inline;
+.sidenote-num {
   font-size: 0.85em;
   font-weight: bold;
   color: #1e6e78;
-  margin-right: 4px;
-  vertical-align: super;
-  line-height: 0;
 }
 .sidenote p,
 .marginnote p {
