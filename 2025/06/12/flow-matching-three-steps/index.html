@@ -27,7 +27,7 @@
 <meta property="og:description" content="English   中文      Flow Matching——连续生成模型中”无需模拟”训练目标的极简推导，三步到位。">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-06-12T10:00:00.000Z">
-<meta property="article:modified_time" content="2026-06-12T14:15:35.327Z">
+<meta property="article:modified_time" content="2026-06-12T14:41:37.393Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="flow matching">
 <meta property="article:tag" content="generative models">
@@ -260,7 +260,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-06-12 14:15:35" itemprop="dateModified" datetime="2026-06-12T14:15:35+00:00">2026-06-12</time>
+      <time title="Modified: 2026-06-12 14:41:37" itemprop="dateModified" datetime="2026-06-12T14:41:37+00:00">2026-06-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -315,7 +315,8 @@
 <ol start="3">
 <li><strong>目标</strong>：找到 $v_t$，使得 $Z_1$ 的分布逼近 $p_1$——即 $X_0$ 在 ODE 驱动下到 $t&#x3D;1$ 时的分布接近目标分布。</li>
 </ol>
-<h3 id="为什么用-ODE？——最优控制的视角"><a href="#为什么用-ODE？——最优控制的视角" class="headerlink" title="为什么用 ODE？——最优控制的视角"></a>为什么用 ODE？——最优控制的视角</h3><p>我们的核心问题是：寻找一个未知函数 $v_t$，使得它驱动的动力系统能将源分布搬运到目标分布。这本质上是一个<strong>最优控制问题</strong>——$v_t$ 是”控制量”，ODE (1) 是”状态方程”，目标是终态分布逼近 $p_1$。ODE 提供了一个连续的、可微的演化框架，使得我们可以将”搬运分布”这个困难的静态问题，转化为”学一个速度场”这个可以用梯度方法求解的优化问题。<sup class="sidenote-ref">[1]</sup><span class="sidenote"><span class="sidenote-num">[1]</span> **推理**：训练完成后，从 $X\_0 \sim p\_0$ 出发积分 ODE 到 $t=1$ 即得生成样本 $Z\_1$。此时不需要 $X\_1$。</span></p>
+<h3 id="为什么用-ODE？——最优控制的视角"><a href="#为什么用-ODE？——最优控制的视角" class="headerlink" title="为什么用 ODE？——最优控制的视角"></a>为什么用 ODE？——最优控制的视角</h3><p>我们的核心问题是：寻找一个未知函数 $v_t$，使得它驱动的动力系统能将源分布搬运到目标分布。这本质上是一个<strong>最优控制问题</strong>——$v_t$ 是”控制量”，ODE (1) 是”状态方程”，目标是终态分布逼近 $p_1$。ODE 提供了一个连续的、可微的演化框架，使得我们可以将”搬运分布”这个困难的静态问题，转化为”学一个速度场”这个可以用梯度方法求解的优化问题。<sup class="sidenote-ref">[1]</sup><span class="sidenote"><span class="sidenote-num">[1]</span> <p><strong>推理</strong>：训练完成后，从 $X_0 \sim p_0$ 出发积分 ODE 到 $t&#x3D;1$ 即得生成样本 $Z_1$。此时不需要 $X_1$。</p>
+</span></p>
 <h2 id="2-第一步：构造辅助随机过程"><a href="#2-第一步：构造辅助随机过程" class="headerlink" title="2. 第一步：构造辅助随机过程"></a>2. 第一步：构造辅助随机过程</h2><h3 id="核心假设"><a href="#核心假设" class="headerlink" title="核心假设"></a>核心假设</h3><p>为了给 $v_t$ 的学习提供”参照”，我们构造一个<strong>辅助随机过程</strong>：对独立采样的 $X_0 \sim p_0$、$X_1 \sim p_1$，定义</p>
 <p>$$X_t :&#x3D; (1-t),X_0 + t,X_1, \qquad t \in [0,1]. \tag{2}$$</p>
 <p>这个随机过程具有以下性质：</p>
@@ -325,7 +326,8 @@
 </ul>
 <h3 id="关键区分：-X-t-不能用来采样-X-1"><a href="#关键区分：-X-t-不能用来采样-X-1" class="headerlink" title="关键区分：$X_t$ 不能用来采样 $X_1$"></a>关键区分：$X_t$ 不能用来采样 $X_1$</h3><p>注意 $X_t$ 的定义<strong>本身依赖于 $X_1$</strong>——要计算 $X_t$，你必须已经知道终点 $X_1$ 是什么。因此，这个随机过程<strong>不能</strong>作为从 $p_1$ 中生成样本的方法（它是一个分析工具，不是生成工具）。</p>
 <p>真正的生成机制是 ODE (1)：它只需要初始点 $X_0 \sim p_0$ 和速度场 $v_t$，不依赖 $X_1$。我们的目标是找到 $v_t$，使得 ODE 驱动产生的随机变量 $Z_t$ 与辅助过程 $X_t$ <strong>同分布</strong>。特别地，当 $t&#x3D;1$ 时，$Z_1 \overset{d}{&#x3D;} X_1$——这才是生成。</p>
-<h3 id="为什么要构造-X-t-？"><a href="#为什么要构造-X-t-？" class="headerlink" title="为什么要构造 $X_t$？"></a>为什么要构造 $X_t$？</h3><p>$X_t$ 提供了一个”理想参照”：它的边际分布从 $p_0$ 平滑过渡到 $p_1$。如果我们能找到一个 $v_t$ 使得 $Z_t$ 在每个时刻都与 $X_t$ 同分布，那么终态自然有 $Z_1 \sim p_1$。这样，”搬运分布到 $p_1$”就转化为”让 $v_t$ 驱动出的随机变量与 $X_t$ 同分布”。<sup class="sidenote-ref">[2]</sup><span class="sidenote"><span class="sidenote-num">[2]</span> 线性插值 (2) 在 Benamou-Brenier (2000) 意义下是最优的：它在连接 $p\_0$ 到 $p\_1$ 的所有路径中最小化动能。参见 McCann (1997)。</span></p>
+<h3 id="为什么要构造-X-t-？"><a href="#为什么要构造-X-t-？" class="headerlink" title="为什么要构造 $X_t$？"></a>为什么要构造 $X_t$？</h3><p>$X_t$ 提供了一个”理想参照”：它的边际分布从 $p_0$ 平滑过渡到 $p_1$。如果我们能找到一个 $v_t$ 使得 $Z_t$ 在每个时刻都与 $X_t$ 同分布，那么终态自然有 $Z_1 \sim p_1$。这样，”搬运分布到 $p_1$”就转化为”让 $v_t$ 驱动出的随机变量与 $X_t$ 同分布”。<sup class="sidenote-ref">[2]</sup><span class="sidenote"><span class="sidenote-num">[2]</span> <p>线性插值 (2) 在 Benamou-Brenier (2000) 意义下是最优的：它在连接 $p_0$ 到 $p_1$ 的所有路径中最小化动能。参见 McCann (1997)。</p>
+</span></p>
 <h2 id="3-第二步：推出目标速度场"><a href="#3-第二步：推出目标速度场" class="headerlink" title="3. 第二步：推出目标速度场"></a>3. 第二步：推出目标速度场</h2><h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>我们已构造辅助过程 $X_t &#x3D; (1-t)X_0 + tX_1$。现在问：<strong>哪个速度场 $v_t$ 能使 $Z_t$ 与 $X_t$ 同分布？</strong></p>
 <h3 id="同分布的等价条件"><a href="#同分布的等价条件" class="headerlink" title="同分布的等价条件"></a>同分布的等价条件</h3><p>两个随机变量同分布，当且仅当它们在所有测试函数下的期望相同。即要求对任意光滑测试函数 $f$，</p>
 <p>$$\mathbb{E}[f(Z_t)] &#x3D; \mathbb{E}[f(X_t)], \qquad \forall, t \in [0,1]. \tag{3}$$</p>
@@ -342,9 +344,11 @@
 <p>$$\mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot \mathbb{E}[X_1 - X_0 \mid X_t]].$$</p>
 <p>由 $f$ 的任意性，两边的”系数”在几乎处处必须相等，得到：</p>
 <p>$$\boxed{v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x]} \tag{6}$$</p>
-<sup class="sidenote-ref">[3]</sup><span class="sidenote"><span class="sidenote-num">[3]</span> **记号**：$\mathbb{E}[\cdot \mid X\_t = x]$ 给出 $x$ 的确定性函数，而非随机变量。等式 (6) 两边都是 $x$ 的函数。</span>
+<sup class="sidenote-ref">[3]</sup><span class="sidenote"><span class="sidenote-num">[3]</span> <p><strong>记号</strong>：$\mathbb{E}[\cdot \mid X_t &#x3D; x]$ 给出 $x$ 的确定性函数，而非随机变量。等式 (6) 两边都是 $x$ 的函数。</p>
+</span>
 
-<sup class="sidenote-ref">[4]</sup><span class="sidenote"><span class="sidenote-num">[4]</span> **直觉**：多条轨迹穿过同一点 $x$，来自不同的 $(X\_0,X\_1)$ 对。目标速度取其条件平均。</span>
+<sup class="sidenote-ref">[4]</sup><span class="sidenote"><span class="sidenote-num">[4]</span> <p><strong>直觉</strong>：多条轨迹穿过同一点 $x$，来自不同的 $(X_0,X_1)$ 对。目标速度取其条件平均。</p>
+</span>
 
 <div class="note danger"><p><strong>障碍</strong>：公式 (6) 给出了 $v_t(x)$ 的解析表达，但<strong>不好直接计算</strong>——计算条件期望需要知道 $X_1$ 的密度函数 $p_1$（从而得到联合密度与 $X_t$ 的边际密度），而 $p_1$ 正是我们没有的——我们只有从 $p_1$ 中抽出的有限样本。</p>
 </div>
@@ -374,7 +378,8 @@
 <p>这就是 Flow Matching “simulation-free”（训练中无需积分 ODE）的根本原因。</p>
 </div>
 
-<sup class="sidenote-ref">[5]</sup><span class="sidenote"><span class="sidenote-num">[5]</span> Lipman et al., *Flow Matching for Generative Modeling*, ICLR 2023. Liu et al., *Flow Straight and Fast*, ICLR 2023 (Rectified Flow).</span>
+<sup class="sidenote-ref">[5]</sup><span class="sidenote"><span class="sidenote-num">[5]</span> <p>Lipman et al., <em>Flow Matching for Generative Modeling</em>, ICLR 2023. Liu et al., <em>Flow Straight and Fast</em>, ICLR 2023 (Rectified Flow).</p>
+</span>
 
 <h2 id="5-总结：三步逻辑链"><a href="#5-总结：三步逻辑链" class="headerlink" title="5. 总结：三步逻辑链"></a>5. 总结：三步逻辑链</h2><ol>
 <li><p><strong>构造辅助过程</strong>：定义 $X_t &#x3D; (1-t)X_0 + tX_1$。这个随机过程本身依赖 $X_1$，不能用于生成，但它从 $p_0$ 平滑过渡到 $p_1$，为学习 $v_t$ 提供了参照。</p>
@@ -406,7 +411,8 @@
 <ol start="3">
 <li><strong>Objective</strong>: Find $v_t$ such that $Z_1 \sim p_1$ — i.e., the distribution of the ODE endpoint approximates the target.</li>
 </ol>
-<h3 id="Why-an-ODE-—-The-Optimal-Control-Viewpoint"><a href="#Why-an-ODE-—-The-Optimal-Control-Viewpoint" class="headerlink" title="Why an ODE? — The Optimal Control Viewpoint"></a>Why an ODE? — The Optimal Control Viewpoint</h3><p>Our core problem is: find an unknown function $v_t$ such that the dynamical system it drives transports the source distribution to the target. This is essentially an <strong>optimal control problem</strong> — $v_t$ is the “control”, the ODE (1) is the “state equation”, and the goal is for the terminal distribution to approximate $p_1$. The ODE provides a continuous, differentiable evolution framework that turns the hard static problem of “transporting a distribution” into the tractable optimization problem of “learning a velocity field” via gradient methods.<sup class="sidenote-ref">[1]</sup><span class="sidenote"><span class="sidenote-num">[1]</span> **Inference**: Once trained, sample $X\_0 \sim p\_0$, integrate ODE to $t=1$, get $Z\_1$ as output. No $X\_1$ needed.</span></p>
+<h3 id="Why-an-ODE-—-The-Optimal-Control-Viewpoint"><a href="#Why-an-ODE-—-The-Optimal-Control-Viewpoint" class="headerlink" title="Why an ODE? — The Optimal Control Viewpoint"></a>Why an ODE? — The Optimal Control Viewpoint</h3><p>Our core problem is: find an unknown function $v_t$ such that the dynamical system it drives transports the source distribution to the target. This is essentially an <strong>optimal control problem</strong> — $v_t$ is the “control”, the ODE (1) is the “state equation”, and the goal is for the terminal distribution to approximate $p_1$. The ODE provides a continuous, differentiable evolution framework that turns the hard static problem of “transporting a distribution” into the tractable optimization problem of “learning a velocity field” via gradient methods.<sup class="sidenote-ref">[1]</sup><span class="sidenote"><span class="sidenote-num">[1]</span> <p><strong>Inference</strong>: Once trained, sample $X_0 \sim p_0$, integrate ODE to $t&#x3D;1$, get $Z_1$ as output. No $X_1$ needed.</p>
+</span></p>
 <h2 id="2-Step-One-Construct-the-Auxiliary-Random-Process"><a href="#2-Step-One-Construct-the-Auxiliary-Random-Process" class="headerlink" title="2. Step One: Construct the Auxiliary Random Process"></a>2. Step One: Construct the Auxiliary Random Process</h2><h3 id="Core-Assumption"><a href="#Core-Assumption" class="headerlink" title="Core Assumption"></a>Core Assumption</h3><p>To provide a “reference” for learning $v_t$, we construct an <strong>auxiliary random process</strong>: for independently sampled $X_0 \sim p_0$, $X_1 \sim p_1$, define</p>
 <p>$$X_t :&#x3D; (1-t),X_0 + t,X_1, \qquad t \in [0,1]. \tag{2}$$</p>
 <p>This process has the following properties:</p>
@@ -416,7 +422,8 @@
 </ul>
 <h3 id="Key-Distinction-X-t-Cannot-Be-Used-for-Sampling"><a href="#Key-Distinction-X-t-Cannot-Be-Used-for-Sampling" class="headerlink" title="Key Distinction: $X_t$ Cannot Be Used for Sampling"></a>Key Distinction: $X_t$ Cannot Be Used for Sampling</h3><p>Note that the definition of $X_t$ <strong>depends on $X_1$ itself</strong> — to compute $X_t$, you must already know the endpoint $X_1$. Therefore, this process <strong>cannot</strong> serve as a method for generating samples from $p_1$ (it’s an analytical tool, not a generative one).</p>
 <p>The actual generation mechanism is the ODE (1): it only needs an initial point $X_0 \sim p_0$ and the velocity field $v_t$, without depending on $X_1$. Our goal is to find $v_t$ such that the ODE-driven random variable $Z_t$ has the <strong>same distribution</strong> as $X_t$. In particular, at $t&#x3D;1$: $Z_1 \overset{d}{&#x3D;} X_1$ — that’s generation.</p>
-<h3 id="Why-Construct-X-t"><a href="#Why-Construct-X-t" class="headerlink" title="Why Construct $X_t$?"></a>Why Construct $X_t$?</h3><p>$X_t$ provides an “ideal reference”: its marginal distribution transitions smoothly from $p_0$ to $p_1$. If we can find a $v_t$ making $Z_t$ equal in distribution to $X_t$ at every time, then the endpoint automatically satisfies $Z_1 \sim p_1$. Thus, “transport the distribution to $p_1$” becomes “make the ODE-driven random variable match $X_t$ in distribution”.<sup class="sidenote-ref">[2]</sup><span class="sidenote"><span class="sidenote-num">[2]</span> The linear interpolation (2) is optimal in the sense of Benamou-Brenier (2000): it minimizes kinetic energy among all paths from $p\_0$ to $p\_1$. See also McCann (1997).</span></p>
+<h3 id="Why-Construct-X-t"><a href="#Why-Construct-X-t" class="headerlink" title="Why Construct $X_t$?"></a>Why Construct $X_t$?</h3><p>$X_t$ provides an “ideal reference”: its marginal distribution transitions smoothly from $p_0$ to $p_1$. If we can find a $v_t$ making $Z_t$ equal in distribution to $X_t$ at every time, then the endpoint automatically satisfies $Z_1 \sim p_1$. Thus, “transport the distribution to $p_1$” becomes “make the ODE-driven random variable match $X_t$ in distribution”.<sup class="sidenote-ref">[2]</sup><span class="sidenote"><span class="sidenote-num">[2]</span> <p>The linear interpolation (2) is optimal in the sense of Benamou-Brenier (2000): it minimizes kinetic energy among all paths from $p_0$ to $p_1$. See also McCann (1997).</p>
+</span></p>
 <h2 id="3-Step-Two-Derive-the-Target-Velocity-Field"><a href="#3-Step-Two-Derive-the-Target-Velocity-Field" class="headerlink" title="3. Step Two: Derive the Target Velocity Field"></a>3. Step Two: Derive the Target Velocity Field</h2><h3 id="The-Question"><a href="#The-Question" class="headerlink" title="The Question"></a>The Question</h3><p>We’ve constructed the auxiliary process $X_t &#x3D; (1-t)X_0 + tX_1$. Now ask: <strong>which velocity field $v_t$ makes $Z_t$ equal in distribution to $X_t$?</strong></p>
 <h3 id="Equivalent-Condition-for-Equal-Distribution"><a href="#Equivalent-Condition-for-Equal-Distribution" class="headerlink" title="Equivalent Condition for Equal Distribution"></a>Equivalent Condition for Equal Distribution</h3><p>Two random variables have the same distribution if and only if they yield the same expectation under all test functions. We require: for all smooth test functions $f$,</p>
 <p>$$\mathbb{E}[f(Z_t)] &#x3D; \mathbb{E}[f(X_t)], \qquad \forall, t \in [0,1]. \tag{3}$$</p>
@@ -433,9 +440,11 @@
 <p>$$\mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot \mathbb{E}[X_1 - X_0 \mid X_t]].$$</p>
 <p>By the arbitrariness of $f$, the “coefficients” must be equal almost everywhere:</p>
 <p>$$\boxed{v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x]} \tag{6}$$</p>
-<sup class="sidenote-ref">[3]</sup><span class="sidenote"><span class="sidenote-num">[3]</span> **Notation**: $\mathbb{E}[\cdot \mid X\_t = x]$ yields a deterministic function of $x$, not a random variable. Both sides of (6) are functions of $x$.</span>
+<sup class="sidenote-ref">[3]</sup><span class="sidenote"><span class="sidenote-num">[3]</span> <p><strong>Notation</strong>: $\mathbb{E}[\cdot \mid X_t &#x3D; x]$ yields a deterministic function of $x$, not a random variable. Both sides of (6) are functions of $x$.</p>
+</span>
 
-<sup class="sidenote-ref">[4]</sup><span class="sidenote"><span class="sidenote-num">[4]</span> **Intuition**: Multiple trajectories pass through the same $x$ from different $(X\_0, X\_1)$ pairs. The target velocity at $x$ is their conditional average.</span>
+<sup class="sidenote-ref">[4]</sup><span class="sidenote"><span class="sidenote-num">[4]</span> <p><strong>Intuition</strong>: Multiple trajectories pass through the same $x$ from different $(X_0, X_1)$ pairs. The target velocity at $x$ is their conditional average.</p>
+</span>
 
 <div class="note danger"><p><strong>The obstacle</strong>: Formula (6) gives an analytic expression for $v_t(x)$, but it’s <strong>hard to compute directly</strong> — evaluating the conditional expectation requires knowing $p_1$ (to obtain joint and marginal densities), and $p_1$ is precisely what we don’t have — we only have finite samples from $p_1$.</p>
 </div>
@@ -465,7 +474,8 @@
 <p>This is the fundamental reason Flow Matching is “simulation-free” (no ODE integration needed during training).</p>
 </div>
 
-<sup class="sidenote-ref">[5]</sup><span class="sidenote"><span class="sidenote-num">[5]</span> Lipman et al., *Flow Matching for Generative Modeling*, ICLR 2023. Liu et al., *Flow Straight and Fast*, ICLR 2023 (Rectified Flow).</span>
+<sup class="sidenote-ref">[5]</sup><span class="sidenote"><span class="sidenote-num">[5]</span> <p>Lipman et al., <em>Flow Matching for Generative Modeling</em>, ICLR 2023. Liu et al., <em>Flow Straight and Fast</em>, ICLR 2023 (Rectified Flow).</p>
+</span>
 
 <h2 id="5-Summary-Three-Step-Logic-Chain"><a href="#5-Summary-Three-Step-Logic-Chain" class="headerlink" title="5. Summary: Three-Step Logic Chain"></a>5. Summary: Three-Step Logic Chain</h2><ol>
 <li><p><strong>Construct auxiliary process</strong>: Define $X_t &#x3D; (1-t)X_0 + tX_1$. This process depends on $X_1$ and cannot be used for generation, but it transitions smoothly from $p_0$ to $p_1$, providing a reference for learning $v_t$.</p>

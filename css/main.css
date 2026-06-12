@@ -1268,7 +1268,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #6e2fa2;
+  background: #5eff45;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2788,8 +2788,26 @@ header.header {
 .sub-menu .menu-item {
   display: inline-block;
 }
+@import url("https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@400;600;700&family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap");
 body {
+  font-family: "Source Serif 4", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  font-size: 16px;
   background: #fff;
+}
+.post-title,
+.post-body h1,
+.post-body h2,
+.post-body h3,
+.post-body h4 {
+  font-family: "Source Sans 3", "Noto Sans SC", -apple-system, "Helvetica Neue", sans-serif;
+}
+code,
+pre {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+.site-nav,
+.menu {
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
 }
 .header-inner,
 .main-inner,
@@ -2802,25 +2820,14 @@ body {
   border: none;
 }
 .main-inner {
-  max-width: 850px;
+  max-width: 780px;
+  width: 90%;
   margin: 0 auto;
-}
-@media (min-width: 1400px) {
-  .main-inner {
-    max-width: 900px;
-  }
 }
 .post-body {
   position: relative;
   padding-right: 0;
-}
-@media (min-width: 1300px) {
-  .main-inner {
-    max-width: 1100px;
-  }
-  .post-body {
-    padding-right: 280px;
-  }
+  padding-left: 0;
 }
 sup.sidenote-ref {
   font-size: 0.75em;
@@ -2832,34 +2839,19 @@ sup.sidenote-ref {
 .marginnote {
   display: block;
   margin: 0.6em 0;
-  padding: 8px 12px;
+  padding: 8px 14px;
   font-size: 0.82em;
   line-height: 1.5;
   color: #555;
   background: #f8f9fa;
   border-left: 3px solid #1e6e78;
   border-radius: 4px;
-}
-@media (min-width: 1300px) {
-  .sidenote,
-  .marginnote {
-    float: right;
-    clear: right;
-    width: 250px;
-    margin-right: -280px;
-    margin-left: 12px;
-    margin-bottom: 14px;
-    margin-top: 0;
-    padding: 8px 12px;
-    background: #f9fafb;
-    border-left: 3px solid #1e6e78;
-    border-radius: 3px;
-  }
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
 }
 .sidenote-num {
-  font-size: 0.85em;
   font-weight: bold;
   color: #1e6e78;
+  margin-right: 4px;
 }
 .sidenote p,
 .marginnote p {
@@ -2907,21 +2899,18 @@ sup.sidenote-ref {
   margin: 1em 0;
 }
 @media (max-width: 767px) {
+  .main-inner {
+    width: 95%;
+    max-width: 100%;
+  }
   .post-body {
     padding-right: 0 !important;
-    padding-left: 0;
+    padding-left: 0 !important;
   }
   .post-body mjx-container[display="true"] {
     overflow-x: auto;
     max-width: 100%;
-    font-size: 0.9em;
-  }
-  .sidenote,
-  .marginnote {
-    float: none !important;
-    width: auto !important;
-    margin-right: 0 !important;
-    margin-left: 0 !important;
+    font-size: 0.85em;
   }
   .lang-switch {
     text-align: center;
@@ -2931,7 +2920,10 @@ sup.sidenote-ref {
     font-size: 0.88em;
   }
   .post-title {
-    font-size: 1.4em !important;
+    font-size: 1.3em !important;
+  }
+  body {
+    font-size: 15px;
   }
 }
 .post-body h2 {
@@ -2951,9 +2943,10 @@ sup.sidenote-ref {
 }
 .post-toc-wrap {
   font-size: 0.85em;
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
 }
 .post-body p {
-  line-height: 1.8;
+  line-height: 1.9;
   margin-bottom: 1em;
 }
 .post-body ol,
@@ -2981,6 +2974,7 @@ sup.sidenote-ref {
   background: #fff;
   color: #555;
   font-size: 0.85em;
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
 }
