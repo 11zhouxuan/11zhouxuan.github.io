@@ -3,7 +3,7 @@
 
 # Scheme Settings
 # Available: Muse | Mist | Pisces | Gemini
-scheme: Gemini
+scheme: Mist
 
 # Dark Mode (auto switch based on system preference)
 darkmode: false

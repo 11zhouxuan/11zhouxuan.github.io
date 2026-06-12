@@ -1,38 +1,53 @@
 // ============================================================
-// Three-column academic blog layout
-// Left: TOC (handled by Gemini scheme sidebar)
-// Center: Main content (narrower)
-// Right: Sidenotes / margin notes
+// Clean academic blog layout (Mist scheme - top nav)
+// - Unified white background
+// - Wide centered content
+// - Sidenotes float right on desktop, inline on mobile
+// - TOC in sidebar (desktop: visible, mobile: collapsible)
 // ============================================================
 
-// Hide footer
-.footer {
-  display: none;
+// ---- Unified background ----
+body {
+  background: #fff;
 }
 
-// ---- Main layout: make content narrower to leave room for sidenotes ----
-// Gemini scheme uses .main-inner with sidebar on left
-// We need the post content to be narrower so sidenotes can float right
+.header-inner, .main-inner, .footer-inner {
+  background: #fff;
+}
 
+// Remove any card shadow / background differences
 .post-block {
-  position: relative;
+  background: transparent;
+  box-shadow: none;
+  border: none;
 }
 
+// ---- Wider content area ----
+.main-inner {
+  max-width: 850px;
+  margin: 0 auto;
+}
+
+@media (min-width: 1400px) {
+  .main-inner {
+    max-width: 900px;
+  }
+}
+
+// ---- Post body ----
 .post-body {
   position: relative;
-  // Leave room on the right for sidenotes
   padding-right: 0;
 }
 
-// Only add sidenote margin space on truly wide screens (desktop with sidebar)
-@media (min-width: 1200px) {
-  .post-body {
-    padding-right: 270px;  // Reserve space for sidenotes
+// On wide desktop, reserve space for sidenotes in the right margin
+@media (min-width: 1300px) {
+  .main-inner {
+    max-width: 1100px;
   }
   
-  .sidenote, .marginnote {
-    width: 240px;
-    margin-right: -270px;
+  .post-body {
+    padding-right: 280px;
   }
 }
 
@@ -46,11 +61,11 @@ sup.sidenote-ref {
   cursor: default;
 }
 
-// Default (mobile): sidenote content is shown inline as a block
+// Default: sidenote content is shown as inline block (mobile/tablet)
 .sidenote, .marginnote {
   display: block;
-  margin: 0.8em 0;
-  padding: 10px 14px;
+  margin: 0.6em 0;
+  padding: 8px 12px;
   font-size: 0.82em;
   line-height: 1.5;
   color: #555;
@@ -59,18 +74,18 @@ sup.sidenote-ref {
   border-radius: 4px;
 }
 
-// On wide desktop screens (1200px+), float sidenotes to right margin
-@media (min-width: 1200px) {
+// On wide desktop (1300px+), float sidenotes to right margin
+@media (min-width: 1300px) {
   .sidenote, .marginnote {
     float: right;
     clear: right;
-    width: 240px;
-    margin-right: -270px;
+    width: 250px;
+    margin-right: -280px;
     margin-left: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     margin-top: 0;
     padding: 8px 12px;
-    background: #fafbfc;
+    background: #f9fafb;
     border-left: 3px solid #1e6e78;
     border-radius: 3px;
   }
@@ -88,7 +103,7 @@ sup.sidenote-ref {
   display: inline;
 }
 
-// ---- Note boxes (keep them for inline remarks) ----
+// ---- Note boxes ----
 .note {
   border-radius: 6px;
   margin: 1.2em 0;
@@ -122,58 +137,52 @@ sup.sidenote-ref {
   border-left: 4px solid #888;
 }
 
-// ---- Better math display ----
+// ---- Math display ----
 .post-body .MathJax_Display {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 8px 0;
 }
 
-// MathJax v3 container responsive
 .post-body mjx-container {
   overflow-x: auto;
   overflow-y: hidden;
   max-width: 100%;
 }
 
-// ---- Mobile-specific fixes ----
+.post-body mjx-container[display="true"] {
+  margin: 1em 0;
+}
+
+// ---- Mobile-specific ----
 @media (max-width: 767px) {
-  // Ensure post body has no extra padding
   .post-body {
     padding-right: 0 !important;
     padding-left: 0;
   }
 
-  // Math equations scroll horizontally on small screens
   .post-body mjx-container[display="true"] {
     overflow-x: auto;
-    overflow-y: hidden;
     max-width: 100%;
-    padding: 8px 0;
     font-size: 0.9em;
   }
 
-  // Sidenotes display as compact inline blocks on mobile
   .sidenote, .marginnote {
     float: none !important;
     width: auto !important;
     margin-right: 0 !important;
     margin-left: 0 !important;
-    clear: both;
   }
 
-  // Language switch centered on mobile
   .lang-switch {
     text-align: center;
   }
 
-  // Note boxes: slightly smaller on mobile
   .note {
     padding: 10px 12px;
     font-size: 0.88em;
   }
 
-  // Post title: smaller on mobile
   .post-title {
     font-size: 1.4em !important;
   }
@@ -191,8 +200,8 @@ sup.sidenote-ref {
   color: #2c3e50;
 }
 
-// ---- TOC sidebar enhancement ----
-// Hide Overview tab
+// ---- TOC ----
+// Hide the "Table of Contents" / "Overview" nav tabs
 .sidebar-nav {
   display: none !important;
 }
@@ -203,12 +212,6 @@ sup.sidenote-ref {
 
 .post-toc-wrap {
   font-size: 0.85em;
-}
-
-// Make sidebar TOC always visible for posts
-.sidebar-inner {
-  position: sticky;
-  top: 80px;
 }
 
 // ---- Typography ----
@@ -225,9 +228,9 @@ sup.sidenote-ref {
   margin-bottom: 0.3em;
 }
 
-// ---- Boxed equation styling ----
-.post-body mjx-container[display="true"] {
-  margin: 1em 0;
+// ---- Hide footer ----
+.footer {
+  display: none;
 }
 
 // ---- Language toggle button ----
