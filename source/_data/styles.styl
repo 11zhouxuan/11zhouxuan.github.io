@@ -1,57 +1,62 @@
 // ============================================================
 // Clean academic blog layout (Mist scheme - top nav)
+// - Academic fonts (serif body, sans-serif headings)
 // - Unified white background
 // - Wide centered content
-// - Sidenotes float right on desktop, inline on mobile
-// - TOC in sidebar (desktop: visible, mobile: collapsible)
+// - Sidenotes always inline (no right-float to avoid mobile issues)
 // ============================================================
 
-// ---- Unified background ----
+// ---- Google Fonts import ----
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@400;600;700&family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+// ---- Typography: Academic fonts ----
 body {
+  font-family: "Source Serif 4", "Noto Serif SC", Georgia, "Times New Roman", serif;
+  font-size: 16px;
   background: #fff;
 }
 
+// Headings: sans-serif for contrast
+.post-title, .post-body h1, .post-body h2, .post-body h3, .post-body h4 {
+  font-family: "Source Sans 3", "Noto Sans SC", -apple-system, "Helvetica Neue", sans-serif;
+}
+
+// Code
+code, pre {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+// Nav bar
+.site-nav, .menu {
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
+}
+
+// ---- Unified background ----
 .header-inner, .main-inner, .footer-inner {
   background: #fff;
 }
 
-// Remove any card shadow / background differences
 .post-block {
   background: transparent;
   box-shadow: none;
   border: none;
 }
 
-// ---- Wider content area ----
+// ---- Content width: wide and centered ----
 .main-inner {
-  max-width: 850px;
+  max-width: 780px;
+  width: 90%;
   margin: 0 auto;
-}
-
-@media (min-width: 1400px) {
-  .main-inner {
-    max-width: 900px;
-  }
 }
 
 // ---- Post body ----
 .post-body {
   position: relative;
   padding-right: 0;
+  padding-left: 0;
 }
 
-// On wide desktop, reserve space for sidenotes in the right margin
-@media (min-width: 1300px) {
-  .main-inner {
-    max-width: 1100px;
-  }
-  
-  .post-body {
-    padding-right: 280px;
-  }
-}
-
-// ---- Sidenote styling ----
+// ---- Sidenote styling (always inline, no float) ----
 
 // The inline [N] superscript in text
 sup.sidenote-ref {
@@ -61,41 +66,25 @@ sup.sidenote-ref {
   cursor: default;
 }
 
-// Default: sidenote content is shown as inline block (mobile/tablet)
+// Sidenote content: always displayed as inline block below the reference
 .sidenote, .marginnote {
   display: block;
   margin: 0.6em 0;
-  padding: 8px 12px;
+  padding: 8px 14px;
   font-size: 0.82em;
   line-height: 1.5;
   color: #555;
   background: #f8f9fa;
   border-left: 3px solid #1e6e78;
   border-radius: 4px;
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
 }
 
-// On wide desktop (1300px+), float sidenotes to right margin
-@media (min-width: 1300px) {
-  .sidenote, .marginnote {
-    float: right;
-    clear: right;
-    width: 250px;
-    margin-right: -280px;
-    margin-left: 12px;
-    margin-bottom: 14px;
-    margin-top: 0;
-    padding: 8px 12px;
-    background: #f9fafb;
-    border-left: 3px solid #1e6e78;
-    border-radius: 3px;
-  }
-}
-
-// The [N] label inside the sidenote margin box
+// The [N] label inside the sidenote
 .sidenote-num {
-  font-size: 0.85em;
   font-weight: bold;
   color: #1e6e78;
+  margin-right: 4px;
 }
 
 .sidenote p, .marginnote p {
@@ -156,22 +145,20 @@ sup.sidenote-ref {
 
 // ---- Mobile-specific ----
 @media (max-width: 767px) {
+  .main-inner {
+    width: 95%;
+    max-width: 100%;
+  }
+
   .post-body {
     padding-right: 0 !important;
-    padding-left: 0;
+    padding-left: 0 !important;
   }
 
   .post-body mjx-container[display="true"] {
     overflow-x: auto;
     max-width: 100%;
-    font-size: 0.9em;
-  }
-
-  .sidenote, .marginnote {
-    float: none !important;
-    width: auto !important;
-    margin-right: 0 !important;
-    margin-left: 0 !important;
+    font-size: 0.85em;
   }
 
   .lang-switch {
@@ -184,7 +171,11 @@ sup.sidenote-ref {
   }
 
   .post-title {
-    font-size: 1.4em !important;
+    font-size: 1.3em !important;
+  }
+
+  body {
+    font-size: 15px;
   }
 }
 
@@ -201,7 +192,6 @@ sup.sidenote-ref {
 }
 
 // ---- TOC ----
-// Hide the "Table of Contents" / "Overview" nav tabs
 .sidebar-nav {
   display: none !important;
 }
@@ -212,11 +202,12 @@ sup.sidenote-ref {
 
 .post-toc-wrap {
   font-size: 0.85em;
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
 }
 
-// ---- Typography ----
+// ---- Typography details ----
 .post-body p {
-  line-height: 1.8;
+  line-height: 1.9;
   margin-bottom: 1em;
 }
 
@@ -250,6 +241,7 @@ sup.sidenote-ref {
   background: #fff;
   color: #555;
   font-size: 0.85em;
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
 }

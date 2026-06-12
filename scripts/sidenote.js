@@ -6,28 +6,24 @@
  * 
  * Renders as:
  *   - In text: [1] as superscript
- *   - In right margin: the numbered note content
+ *   - In right margin (desktop) or inline block (mobile): numbered note content
  */
 
 'use strict';
 
 hexo.extend.tag.register('sidenote', function(args, content) {
-  // Do NOT render through markdown - let the page's own renderer handle it
-  // Just wrap in the appropriate HTML structure
+  // Render content through markdown so **bold**, $math$ etc. work
+  const rendered = hexo.render.renderSync({ text: content, engine: 'markdown' });
   const num = args[0] || '';
-  // Trim whitespace from content
-  const text = content.trim();
   
   if (num) {
-    // Inline [N] superscript + margin note with full content
-    return `<sup class="sidenote-ref">[${num}]</sup><span class="sidenote"><span class="sidenote-num">[${num}]</span> ${text}</span>`;
+    return `<sup class="sidenote-ref">[${num}]</sup><span class="sidenote"><span class="sidenote-num">[${num}]</span> ${rendered}</span>`;
   } else {
-    return `<span class="sidenote">${text}</span>`;
+    return `<span class="sidenote">${rendered}</span>`;
   }
 }, { ends: true });
 
-// Also register a simpler "marginnote" tag for inline margin notes without numbers
 hexo.extend.tag.register('marginnote', function(args, content) {
-  const text = content.trim();
-  return `<span class="marginnote">${text}</span>`;
+  const rendered = hexo.render.renderSync({ text: content, engine: 'markdown' });
+  return `<span class="marginnote">${rendered}</span>`;
 }, { ends: true });
