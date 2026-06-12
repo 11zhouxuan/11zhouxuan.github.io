@@ -12,19 +12,22 @@
 'use strict';
 
 hexo.extend.tag.register('sidenote', function(args, content) {
-  const rendered = hexo.render.renderSync({ text: content, engine: 'markdown' });
+  // Do NOT render through markdown - let the page's own renderer handle it
+  // Just wrap in the appropriate HTML structure
   const num = args[0] || '';
+  // Trim whitespace from content
+  const text = content.trim();
   
   if (num) {
     // Inline [N] superscript + margin note with full content
-    return `<sup class="sidenote-ref">[${num}]</sup><span class="sidenote"><span class="sidenote-num">[${num}]</span> ${rendered}</span>`;
+    return `<sup class="sidenote-ref">[${num}]</sup><span class="sidenote"><span class="sidenote-num">[${num}]</span> ${text}</span>`;
   } else {
-    return `<span class="sidenote">${rendered}</span>`;
+    return `<span class="sidenote">${text}</span>`;
   }
 }, { ends: true });
 
 // Also register a simpler "marginnote" tag for inline margin notes without numbers
 hexo.extend.tag.register('marginnote', function(args, content) {
-  const rendered = hexo.render.renderSync({ text: content, engine: 'markdown' });
-  return `<span class="marginnote">${rendered}</span>`;
+  const text = content.trim();
+  return `<span class="marginnote">${text}</span>`;
 }, { ends: true });
