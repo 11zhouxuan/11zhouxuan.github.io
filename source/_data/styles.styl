@@ -1,4 +1,234 @@
-// Hide footer completely
+// ============================================================
+// Three-column academic blog layout
+// Left: TOC (handled by Gemini scheme sidebar)
+// Center: Main content (narrower)
+// Right: Sidenotes / margin notes
+// ============================================================
+
+// Hide footer
 .footer {
   display: none;
+}
+
+// ---- Main layout: make content narrower to leave room for sidenotes ----
+// Gemini scheme uses .main-inner with sidebar on left
+// We need the post content to be narrower so sidenotes can float right
+
+.post-block {
+  position: relative;
+}
+
+.post-body {
+  position: relative;
+  // Leave room on the right for sidenotes
+  padding-right: 0;
+}
+
+// On wide screens, create space for margin notes
+@media (min-width: 768px) {
+  // Make the content column narrower
+  .main-inner {
+    max-width: 100%;
+  }
+  
+  .post-body {
+    padding-right: 240px;  // Reserve space for sidenotes
+  }
+}
+
+@media (min-width: 1200px) {
+  .main-inner {
+    max-width: 100%;
+  }
+  
+  .post-body {
+    padding-right: 280px;
+  }
+}
+
+// ---- Sidenote styling ----
+
+// The inline superscript number in text (the citation marker)
+label.sidenote-number {
+  display: inline;
+  font-size: 0.75em;
+  color: #1e6e78;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 0;
+  cursor: default;
+  margin: 0 1px;
+}
+
+// Default (mobile): sidenote content is shown inline as a block
+.sidenote, .marginnote {
+  display: block;
+  margin: 0.8em 0;
+  padding: 10px 14px;
+  font-size: 0.82em;
+  line-height: 1.5;
+  color: #555;
+  background: #f8f9fa;
+  border-left: 3px solid #1e6e78;
+  border-radius: 4px;
+}
+
+// On tablet+ screens (768px+), float to right margin
+@media (min-width: 768px) {
+  .sidenote, .marginnote {
+    float: right;
+    clear: right;
+    width: 220px;
+    margin-right: -240px;
+    margin-left: 12px;
+    margin-bottom: 12px;
+    margin-top: 0;
+    padding: 8px 12px;
+    background: transparent;
+    border-left: 3px solid #1e6e78;
+    border-radius: 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  .sidenote, .marginnote {
+    width: 250px;
+    margin-right: -280px;
+  }
+}
+
+// The number inside the sidenote margin box
+.sidenote > .sidenote-number {
+  display: inline;
+  font-size: 0.85em;
+  font-weight: bold;
+  color: #1e6e78;
+  margin-right: 4px;
+  vertical-align: super;
+  line-height: 0;
+}
+
+.sidenote p, .marginnote p {
+  margin: 0 0 4px 0;
+  display: inline;
+}
+
+// ---- Note boxes (keep them for inline remarks) ----
+.note {
+  border-radius: 6px;
+  margin: 1.2em 0;
+  padding: 12px 16px;
+  font-size: 0.92em;
+  line-height: 1.6;
+}
+
+.note.info {
+  background-color: #f0f9ff;
+  border-left: 4px solid #1e6e78;
+}
+
+.note.warning {
+  background-color: #fff8f0;
+  border-left: 4px solid #c07830;
+}
+
+.note.danger {
+  background-color: #fff0f0;
+  border-left: 4px solid #c03030;
+}
+
+.note.success {
+  background-color: #f0fff4;
+  border-left: 4px solid #2e8b57;
+}
+
+.note.default {
+  background-color: #f8f8fa;
+  border-left: 4px solid #888;
+}
+
+// ---- Better math display ----
+.post-body .MathJax_Display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+}
+
+// ---- Heading styles ----
+.post-body h2 {
+  margin-top: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.post-body h3 {
+  margin-top: 1.5em;
+  color: #2c3e50;
+}
+
+// ---- TOC sidebar enhancement ----
+.post-toc .nav .nav-child {
+  display: block;
+}
+
+.post-toc-wrap {
+  font-size: 0.85em;
+}
+
+// Make sidebar TOC always visible for posts
+.sidebar-inner {
+  position: sticky;
+  top: 80px;
+}
+
+// ---- Typography ----
+.post-body p {
+  line-height: 1.8;
+  margin-bottom: 1em;
+}
+
+.post-body ol, .post-body ul {
+  line-height: 1.8;
+}
+
+.post-body li {
+  margin-bottom: 0.3em;
+}
+
+// ---- Boxed equation styling ----
+.post-body mjx-container[display="true"] {
+  margin: 1em 0;
+}
+
+// ---- Language toggle button ----
+.lang-switch {
+  text-align: right;
+  margin-bottom: 1.5em;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.lang-btn {
+  display: inline-block;
+  padding: 4px 14px;
+  margin-left: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  color: #555;
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lang-btn:hover {
+  border-color: #1e6e78;
+  color: #1e6e78;
+}
+
+.lang-btn.active {
+  background: #1e6e78;
+  border-color: #1e6e78;
+  color: #fff;
+  font-weight: 600;
 }

@@ -3,7 +3,7 @@
 
 # Scheme Settings
 # Available: Muse | Mist | Pisces | Gemini
-scheme: Mist
+scheme: Gemini
 
 # Dark Mode (auto switch based on system preference)
 darkmode: false
@@ -26,11 +26,11 @@ sidebar:
   position: left
   display: post
 
-# Avatar
-avatar:
-  url: /images/avatar.png
-  rounded: true
-  rotated: false
+# Avatar (disabled - no image uploaded yet)
+#avatar:
+#  url: /images/avatar.png
+#  rounded: true
+#  rotated: false
 
 # Social Links
 social:
