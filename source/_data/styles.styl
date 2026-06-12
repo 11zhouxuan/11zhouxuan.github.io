@@ -92,19 +92,23 @@ code, pre {
 
 // ---- Math display ----
 .post-body .MathJax_Display {
-  overflow-x: auto;
+  overflow-x: auto !important;
   overflow-y: hidden;
   padding: 8px 0;
+  max-width: 100% !important;
 }
 
 .post-body mjx-container {
-  overflow-x: auto;
+  overflow-x: auto !important;
   overflow-y: hidden;
-  max-width: 100%;
+  max-width: 100% !important;
+  display: block !important;
 }
 
 .post-body mjx-container[display="true"] {
   margin: 1em 0;
+  overflow-x: auto !important;
+  max-width: 100% !important;
 }
 
 // ---- Mobile-specific ----
