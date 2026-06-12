@@ -44,6 +44,11 @@ toc:
   wrap: false
   expand_all: false
 
+# Sidebar panel
+sidebar_panel:
+  toc: true
+  overview: false
+
 # Code Block
 codeblock:
   copy_button:
