@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #ffee34;
+  background: #1aff05;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2853,17 +2853,21 @@ pre {
   border-left: 4px solid #888;
 }
 .post-body .MathJax_Display {
-  overflow-x: auto;
+  overflow-x: auto !important;
   overflow-y: hidden;
   padding: 8px 0;
+  max-width: 100% !important;
 }
 .post-body mjx-container {
-  overflow-x: auto;
+  overflow-x: auto !important;
   overflow-y: hidden;
-  max-width: 100%;
+  max-width: 100% !important;
+  display: block !important;
 }
 .post-body mjx-container[display="true"] {
   margin: 1em 0;
+  overflow-x: auto !important;
+  max-width: 100% !important;
 }
 @media (max-width: 991px) {
   html,
