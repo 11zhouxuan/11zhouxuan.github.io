@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Gemini","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"left","width_expanded":320,"width_dual_column":240,"display":"post","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English      Flow Matching——连续生成模型中”无需模拟”训练目标的极简推导，三步到位。">
+    <meta name="description" content="English   中文      Flow Matching——连续生成模型中”无需模拟”训练目标的极简推导，三步到位。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Flow Matching 的数学原理 | The Mathematics of Flow Matching">
+<meta property="og:title" content="The Mathematics of Flow Matching">
 <meta property="og:url" content="https://11zhouxuan.github.io/2025/06/12/flow-matching-three-steps/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English      Flow Matching——连续生成模型中”无需模拟”训练目标的极简推导，三步到位。">
+<meta property="og:description" content="English   中文      Flow Matching——连续生成模型中”无需模拟”训练目标的极简推导，三步到位。">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-06-12T10:00:00.000Z">
-<meta property="article:modified_time" content="2026-06-12T10:03:45.957Z">
+<meta property="article:modified_time" content="2026-06-12T12:45:27.170Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="flow matching">
 <meta property="article:tag" content="generative models">
@@ -39,10 +39,10 @@
 <link rel="canonical" href="https://11zhouxuan.github.io/2025/06/12/flow-matching-three-steps/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2025/06/12/flow-matching-three-steps/","path":"2025/06/12/flow-matching-three-steps/","title":"Flow Matching 的数学原理 | The Mathematics of Flow Matching"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2025/06/12/flow-matching-three-steps/","path":"2025/06/12/flow-matching-three-steps/","title":"The Mathematics of Flow Matching"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Flow Matching 的数学原理 | The Mathematics of Flow Matching | Xuan's Blog</title>
+<title>The Mathematics of Flow Matching | Xuan's Blog</title>
   
 
 
@@ -237,12 +237,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Flow Matching 的数学原理 | The Mathematics of Flow Matching | Xuan's Blog">
+      <meta itemprop="name" content="The Mathematics of Flow Matching | Xuan's Blog">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Flow Matching 的数学原理 | The Mathematics of Flow Matching
+          The Mathematics of Flow Matching
         </h1>
 
         <div class="post-meta-container">
@@ -260,7 +260,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-06-12 10:03:45" itemprop="dateModified" datetime="2026-06-12T10:03:45+00:00">2026-06-12</time>
+      <time title="Modified: 2026-06-12 12:45:27" itemprop="dateModified" datetime="2026-06-12T12:45:27+00:00">2026-06-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -289,12 +289,12 @@
     
     
     <div class="post-body" itemprop="articleBody"><div class="lang-switch">
-  <button id="btn-zh" class="lang-btn active" onclick="switchLang('zh')">中文</button>
-  <button id="btn-en" class="lang-btn" onclick="switchLang('en')">English</button>
+  <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
+  <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中文</button>
 </div>
 
 <!-- Chinese Version -->
-<div class="lang-content lang-zh">
+<div class="lang-content lang-zh" style="display:none;">
 
 <p>Flow Matching——连续生成模型中”无需模拟”训练目标的极简推导，三步到位。</p>
 <span id="more"></span>
@@ -330,20 +330,20 @@
 </span></p>
 <h2 id="3-第二步：推出目标速度场"><a href="#3-第二步：推出目标速度场" class="headerlink" title="3. 第二步：推出目标速度场"></a>3. 第二步：推出目标速度场</h2><h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p>我们已构造辅助过程 $X_t &#x3D; (1-t)X_0 + tX_1$。现在问：<strong>哪个速度场 $v_t$ 能使 $Z_t$ 与 $X_t$ 同分布？</strong></p>
 <h3 id="同分布的等价条件"><a href="#同分布的等价条件" class="headerlink" title="同分布的等价条件"></a>同分布的等价条件</h3><p>两个随机变量同分布，当且仅当它们在所有测试函数下的期望相同。即要求对任意光滑测试函数 $f$，</p>
-<p>$$\mathbb{E}\big[f\big(Z_t\big)\big] &#x3D; \mathbb{E}\big[f(X_t)\big], \qquad \forall, t \in [0,1]. \tag{3}$$</p>
+<p>$$\mathbb{E}[f(Z_t)] &#x3D; \mathbb{E}[f(X_t)], \qquad \forall, t \in [0,1]. \tag{3}$$</p>
 <p>对 (3) 两边关于 $t$ 求导，就能推出 $v_t$ 必须满足的条件。</p>
 <h3 id="左边对-t-求导"><a href="#左边对-t-求导" class="headerlink" title="左边对 $t$ 求导"></a>左边对 $t$ 求导</h3><p>由 ODE (1)，$\frac{\mathrm{d}}{\mathrm{d}t}Z_t &#x3D; v_t(Z_t)$。对 $f(Z_t)$ 用链式法则：</p>
-<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}\big[f\big(Z_t\big)\big] &#x3D; \mathbb{E}\big[\nabla f\big(Z_t\big) \cdot v_t\big(Z_t\big)\big].$$</p>
+<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(Z_t)] &#x3D; \mathbb{E}[\nabla f(Z_t) \cdot v_t(Z_t)].$$</p>
 <p>若 (3) 成立（即 $Z_t \overset{d}{&#x3D;} X_t$），则可将 $Z_t$ 替换为 $X_t$：</p>
-<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}\big[f(X_t)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot v_t(X_t)\big]. \tag{4}$$</p>
+<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)]. \tag{4}$$</p>
 <h3 id="右边对-t-求导"><a href="#右边对-t-求导" class="headerlink" title="右边对 $t$ 求导"></a>右边对 $t$ 求导</h3><p>由 $X_t &#x3D; (1-t)X_0 + tX_1$，直接求导得 $\frac{\mathrm{d}}{\mathrm{d}t}X_t &#x3D; X_1 - X_0$，链式法则给出：</p>
-<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}\big[f(X_t)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot (X_1 - X_0)\big]. \tag{5}$$</p>
+<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)]. \tag{5}$$</p>
 <h3 id="联立两边"><a href="#联立两边" class="headerlink" title="联立两边"></a>联立两边</h3><p>由 (4) &#x3D; (5)，得对一切 $f$ 成立：</p>
-<p>$$\mathbb{E}\big[\nabla f(X_t) \cdot v_t(X_t)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot (X_1 - X_0)\big].$$</p>
+<p>$$\mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)].$$</p>
 <p>注意 $v_t(X_t)$ 是 $X_t$ 的确定性函数，而 $X_1 - X_0$ 不仅仅依赖 $X_t$——它还依赖具体的 $(X_0, X_1)$ 对。对右边使用<strong>条件期望的塔性质</strong>（先对 $X_t$ 取条件，$\nabla f(X_t)$ 在内层可视为常数）：</p>
-<p>$$\mathbb{E}\big[\nabla f(X_t) \cdot (X_1 - X_0)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot \mathbb{E}[X_1 - X_0 \mid X_t]\big].$$</p>
+<p>$$\mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot \mathbb{E}[X_1 - X_0 \mid X_t]].$$</p>
 <p>由 $f$ 的任意性，两边的”系数”在几乎处处必须相等，得到：</p>
-<p>$$\boxed{v_t(x) &#x3D; \mathbb{E}\big[X_1 - X_0 \mid X_t &#x3D; x\big]} \tag{6}$$</p>
+<p>$$\boxed{v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x]} \tag{6}$$</p>
 <label class="sidenote-toggle sidenote-number" for="sn-3">3</label><span class="sidenote"><span class="sidenote-number">3</span><p><strong>记号</strong>：$\mathbb{E}[\cdot \mid X_t &#x3D; x]$ 给出 $x$ 的确定性函数，而非随机变量。等式 (6) 两边都是 $x$ 的函数。</p>
 </span>
 
@@ -354,21 +354,21 @@
 </div>
 
 <h2 id="4-第三步：化为可计算的损失"><a href="#4-第三步：化为可计算的损失" class="headerlink" title="4. 第三步：化为可计算的损失"></a>4. 第三步：化为可计算的损失</h2><p>$v_t$ 有解析解（公式 (6)），只是不好计算。一个自然的想法是直接用参数化的 $v_t^\theta$（如神经网络）去逼近 $v_t$，写成 <strong>Flow Matching (FM) 损失</strong>：</p>
-<p>$$\mathcal{L}<em>{\mathrm{FM}}(\theta) &#x3D; \mathbb{E}</em>{t \sim \mathcal{U}[0,1]} \int \big|v_t^\theta(x) - v_t(x)\big|^2, p_t(x),\mathrm{d}x, \tag{7}$$</p>
+<p>$$\mathcal{L}_{\mathrm{FM}}(\theta) &#x3D; \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2 , p_t(x),\mathrm{d}x \tag{7}$$</p>
 <p>其中 $p_t$ 是 $X_t$ 的边际密度。但这同样不可算——它需要 $v_t(x)$ 和 $p_t(x)$ 的值，两者都依赖于未知的 $p_1$。</p>
 <p>关键在于：我们<strong>不需要计算</strong> $v_t$ 和 $p_t$ 的值，就能得到一个与 $\mathcal{L}_{\mathrm{FM}}$ 梯度相同的可计算损失。</p>
 <h3 id="关键事实"><a href="#关键事实" class="headerlink" title="关键事实"></a>关键事实</h3><p>$v_t(X_t) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t]$ 是 $X_1 - X_0$ 在 $\sigma(X_t)$（$X_t$ 生成的 $\sigma$-代数）上的正交投影。考察以 $X_1 - X_0$ 为标签的回归损失：</p>
 <h3 id="推导"><a href="#推导" class="headerlink" title="推导"></a>推导</h3><p>将 $v_t^\theta(X_t)$ 与标签 $X_1 - X_0$ 之间的误差展开——插入 $v_t(X_t)$：</p>
-<p>$$\begin{aligned}<br>&amp;\mathbb{E}\big|v_t^\theta(X_t) - (X_1 - X_0)\big|^2 \<br>&#x3D;;&amp; \mathbb{E}\big|\big(v_t^\theta(X_t) - v_t(X_t)\big) + \big(v_t(X_t) - (X_1 - X_0)\big)\big|^2 \<br>&#x3D;;&amp; \mathbb{E}\big|v_t^\theta(X_t) - v_t(X_t)\big|^2 \<br>&amp;+ 2,\mathbb{E}\big[\big(v_t^\theta(X_t) - v_t(X_t)\big) \cdot \big(v_t(X_t) - (X_1 - X_0)\big)\big] \<br>&amp;+ \mathbb{E}\big|v_t(X_t) - (X_1 - X_0)\big|^2.<br>\end{aligned} \tag{8}$$</p>
-<p>交叉项展开：记 $h(X_t) :&#x3D; v_t^\theta(X_t) - v_t(X_t)$（$X_t$ 的函数），则</p>
-<p>$$\begin{aligned}<br>&amp;\mathbb{E}\big[h(X_t) \cdot \big(v_t(X_t) - (X_1 - X_0)\big)\big] \<br>&#x3D;;&amp; \mathbb{E}\Big[h(X_t) \cdot \mathbb{E}\big[v_t(X_t) - (X_1 - X_0) ,\big|, X_t\big]\Big] \<br>&#x3D;;&amp; \mathbb{E}\Big[h(X_t) \cdot \big(\underbrace{\mathbb{E}[X_1-X_0 \mid X_t]}_{&#x3D; v_t(X_t)} - \mathbb{E}[X_1-X_0 \mid X_t]\big)\Big] \<br>&#x3D;;&amp; 0.<br>\end{aligned} \tag{9}$$</p>
-<p>第一个等号用了塔性质（$h(X_t)$ 在给定 $X_t$ 下为常数可提出）；第二个等号用了 $v_t(X_t) &#x3D; \mathbb{E}[X_1-X_0 \mid X_t]$。</p>
+<p>$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 &#x3D; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2,\text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$</p>
+<p>交叉项为零：记 $h(X_t) :&#x3D; v_t^\theta(X_t) - v_t(X_t)$（$X_t$ 的函数），由塔性质：</p>
+<p>$$\text{Cross} &#x3D; \mathbb{E}[h(X_t) \cdot (v_t(X_t) - (X_1 - X_0))] &#x3D; \mathbb{E}[h(X_t) \cdot \mathbb{E}[v_t(X_t) - (X_1 - X_0) \mid X_t]] &#x3D; 0 \tag{9}$$</p>
+<p>因为 $v_t(X_t) &#x3D; \mathbb{E}[X_1-X_0 \mid X_t]$，条件期望内部恰好为零。</p>
 <p>因此 (8) 化简为：</p>
-<p>$$\mathbb{E}\big|v_t^\theta(X_t) - (X_1 - X_0)\big|^2 &#x3D; \underbrace{\mathbb{E}\big|v_t(X_t) - (X_1 - X_0)\big|^2}_{\text{常数，与 } \theta \text{ 无关}} + \mathbb{E}\big|v_t^\theta(X_t) - v_t(X_t)\big|^2. \tag{10}$$</p>
+<p>$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 &#x3D; \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{常数}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10}$$</p>
 <h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><p>由 (10)，最小化左边（标签为可采样的 $X_1-X_0$）等价于最小化右边第二项（逼近 $v_t$）：</p>
-<p>$$\arg\min_\theta; \mathbb{E}\big|v_t^\theta(X_t) - (X_1 - X_0)\big|^2 ;&#x3D;; \arg\min_\theta; \mathbb{E}\big|v_t^\theta(X_t) - v_t(X_t)\big|^2.$$</p>
+<p>$$\arg\min_\theta; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 &#x3D; \arg\min_\theta; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$</p>
 <h3 id="Conditional-Flow-Matching-CFM-损失"><a href="#Conditional-Flow-Matching-CFM-损失" class="headerlink" title="Conditional Flow Matching (CFM) 损失"></a>Conditional Flow Matching (CFM) 损失</h3><p>对时间也取期望，得到最终的训练目标：</p>
-<p>$$\boxed{\mathcal{L}<em>{\mathrm{CFM}}(\theta) &#x3D; \mathbb{E}</em>{t \sim \mathcal{U}[0,1]}; \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \Big|v_t^\theta\big((1-t)X_0 + tX_1\big) - (X_1 - X_0)\Big|^2} \tag{11}$$</p>
+<p>$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) &#x3D; \mathbb{E}_{t \sim \mathcal{U}[0,1]}; \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$</p>
 <div class="note success"><p><strong>为什么这个损失完全可算？</strong></p>
 <ul>
 <li>不需要 $v_t$ 的值——由正交性（公式 (10)），回归标签等价替换为可采样的 $X_1 - X_0$；</li>
@@ -384,7 +384,7 @@
 <h2 id="5-总结：三步逻辑链"><a href="#5-总结：三步逻辑链" class="headerlink" title="5. 总结：三步逻辑链"></a>5. 总结：三步逻辑链</h2><ol>
 <li><p><strong>构造辅助过程</strong>：定义 $X_t &#x3D; (1-t)X_0 + tX_1$。这个随机过程本身依赖 $X_1$，不能用于生成，但它从 $p_0$ 平滑过渡到 $p_1$，为学习 $v_t$ 提供了参照。</p>
 </li>
-<li><p><strong>推出目标速度场</strong>：要求 ODE 的流 $Z_t$ 与 $X_t$ 同分布。对”同分布”条件两边求导、用塔性质，推出：<br>$$v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x].$$</p>
+<li><p><strong>推出目标速度场</strong>：要求 ODE 的流 $Z_t$ 与 $X_t$ 同分布。对”同分布”条件两边求导、用塔性质，推出：$v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x]$。</p>
 </li>
 <li><p><strong>化为可计算的回归</strong>：由 $L^2$ 正交投影的勾股定理，回归 $v_t$（不可算）与回归 $X_1 - X_0$（可采样）等价，得到 Flow Matching 损失 (11)。</p>
 </li>
@@ -392,7 +392,7 @@
 </div>
 
 <!-- English Version -->
-<div class="lang-content lang-en" style="display:none;">
+<div class="lang-content lang-en">
 
 <p>A minimal derivation of Flow Matching — the “simulation-free” training objective for continuous generative models — in three clean steps.</p>
 <div class="note info"><p><strong>Goal</strong>: Given a source distribution $p_0$ (e.g., standard Gaussian) and a target distribution $p_1$ (e.g., real data), learn a velocity field $v_t$ so that the ODE driven by $v_t$ transports samples $X_0 \sim p_0$ to approximately follow $X_1 \sim p_1$.</p>
@@ -406,7 +406,7 @@
 <li><p><strong>An ODE</strong>: driven by a velocity field $v_t : \mathbb{R}^d \to \mathbb{R}^d$ ($t \in [0,1]$). Given an initial point $x_0 \in \mathbb{R}^d$, define the trajectory $Z: [0,1] \to \mathbb{R}^d$ by</p>
 </li>
 </ol>
-<p>$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) &#x3D; v_t\big(Z(t)\big), \qquad Z(0) &#x3D; x_0. \tag{1}$$</p>
+<p>$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) &#x3D; v_t(Z(t)), \qquad Z(0) &#x3D; x_0. \tag{1}$$</p>
 <p>That is, $Z(t)$ is the position reached at time $t$ starting from $x_0$ following the velocity field. When the initial point is the random variable $X_0$, we write $Z_t :&#x3D; Z(t)$ with $Z_0 &#x3D; X_0$, and the endpoint is $Z_1$.</p>
 <ol start="3">
 <li><strong>Objective</strong>: Find $v_t$ such that $Z_1 \sim p_1$ — i.e., the distribution of the ODE endpoint approximates the target.</li>
@@ -426,20 +426,20 @@
 </span></p>
 <h2 id="3-Step-Two-Derive-the-Target-Velocity-Field"><a href="#3-Step-Two-Derive-the-Target-Velocity-Field" class="headerlink" title="3. Step Two: Derive the Target Velocity Field"></a>3. Step Two: Derive the Target Velocity Field</h2><h3 id="The-Question"><a href="#The-Question" class="headerlink" title="The Question"></a>The Question</h3><p>We’ve constructed the auxiliary process $X_t &#x3D; (1-t)X_0 + tX_1$. Now ask: <strong>which velocity field $v_t$ makes $Z_t$ equal in distribution to $X_t$?</strong></p>
 <h3 id="Equivalent-Condition-for-Equal-Distribution"><a href="#Equivalent-Condition-for-Equal-Distribution" class="headerlink" title="Equivalent Condition for Equal Distribution"></a>Equivalent Condition for Equal Distribution</h3><p>Two random variables have the same distribution if and only if they yield the same expectation under all test functions. We require: for all smooth test functions $f$,</p>
-<p>$$\mathbb{E}\big[f\big(Z_t\big)\big] &#x3D; \mathbb{E}\big[f(X_t)\big], \qquad \forall, t \in [0,1]. \tag{3}$$</p>
+<p>$$\mathbb{E}[f(Z_t)] &#x3D; \mathbb{E}[f(X_t)], \qquad \forall, t \in [0,1]. \tag{3}$$</p>
 <p>Differentiating both sides of (3) with respect to $t$ yields the condition that $v_t$ must satisfy.</p>
 <h3 id="Differentiating-the-Left-Side"><a href="#Differentiating-the-Left-Side" class="headerlink" title="Differentiating the Left Side"></a>Differentiating the Left Side</h3><p>By ODE (1), $\frac{\mathrm{d}}{\mathrm{d}t}Z_t &#x3D; v_t(Z_t)$. Applying the chain rule to $f(Z_t)$:</p>
-<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}\big[f\big(Z_t\big)\big] &#x3D; \mathbb{E}\big[\nabla f\big(Z_t\big) \cdot v_t\big(Z_t\big)\big].$$</p>
+<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(Z_t)] &#x3D; \mathbb{E}[\nabla f(Z_t) \cdot v_t(Z_t)].$$</p>
 <p>If (3) holds (i.e., $Z_t \overset{d}{&#x3D;} X_t$), we can replace $Z_t$ with $X_t$:</p>
-<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}\big[f(X_t)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot v_t(X_t)\big]. \tag{4}$$</p>
+<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)]. \tag{4}$$</p>
 <h3 id="Differentiating-the-Right-Side"><a href="#Differentiating-the-Right-Side" class="headerlink" title="Differentiating the Right Side"></a>Differentiating the Right Side</h3><p>From $X_t &#x3D; (1-t)X_0 + tX_1$, direct differentiation gives $\frac{\mathrm{d}}{\mathrm{d}t}X_t &#x3D; X_1 - X_0$, and the chain rule yields:</p>
-<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}\big[f(X_t)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot (X_1 - X_0)\big]. \tag{5}$$</p>
+<p>$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)]. \tag{5}$$</p>
 <h3 id="Equating-Both-Sides"><a href="#Equating-Both-Sides" class="headerlink" title="Equating Both Sides"></a>Equating Both Sides</h3><p>From (4) &#x3D; (5), for all $f$:</p>
-<p>$$\mathbb{E}\big[\nabla f(X_t) \cdot v_t(X_t)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot (X_1 - X_0)\big].$$</p>
+<p>$$\mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)].$$</p>
 <p>Note that $v_t(X_t)$ is a deterministic function of $X_t$, while $X_1 - X_0$ depends on the specific $(X_0, X_1)$ pair, not just $X_t$. Applying the <strong>tower property of conditional expectation</strong> to the right side (conditioning on $X_t$, where $\nabla f(X_t)$ becomes a constant in the inner expectation):</p>
-<p>$$\mathbb{E}\big[\nabla f(X_t) \cdot (X_1 - X_0)\big] &#x3D; \mathbb{E}\big[\nabla f(X_t) \cdot \mathbb{E}[X_1 - X_0 \mid X_t]\big].$$</p>
+<p>$$\mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)] &#x3D; \mathbb{E}[\nabla f(X_t) \cdot \mathbb{E}[X_1 - X_0 \mid X_t]].$$</p>
 <p>By the arbitrariness of $f$, the “coefficients” must be equal almost everywhere:</p>
-<p>$$\boxed{v_t(x) &#x3D; \mathbb{E}\big[X_1 - X_0 \mid X_t &#x3D; x\big]} \tag{6}$$</p>
+<p>$$\boxed{v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x]} \tag{6}$$</p>
 <label class="sidenote-toggle sidenote-number" for="sn-3">3</label><span class="sidenote"><span class="sidenote-number">3</span><p><strong>Notation</strong>: $\mathbb{E}[\cdot \mid X_t &#x3D; x]$ yields a deterministic function of $x$, not a random variable. Both sides of (6) are functions of $x$.</p>
 </span>
 
@@ -450,21 +450,21 @@
 </div>
 
 <h2 id="4-Step-Three-Reduce-to-a-Computable-Loss"><a href="#4-Step-Three-Reduce-to-a-Computable-Loss" class="headerlink" title="4. Step Three: Reduce to a Computable Loss"></a>4. Step Three: Reduce to a Computable Loss</h2><p>$v_t$ has an analytic solution (formula (6)), it’s just hard to compute. A natural idea is to directly approximate $v_t$ with a parameterized $v_t^\theta$ (e.g., a neural network), writing the <strong>Flow Matching (FM) loss</strong>:</p>
-<p>$$\mathcal{L}<em>{\mathrm{FM}}(\theta) &#x3D; \mathbb{E}</em>{t \sim \mathcal{U}[0,1]} \int \big|v_t^\theta(x) - v_t(x)\big|^2, p_t(x),\mathrm{d}x, \tag{7}$$</p>
+<p>$$\mathcal{L}_{\mathrm{FM}}(\theta) &#x3D; \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2 , p_t(x),\mathrm{d}x \tag{7}$$</p>
 <p>where $p_t$ is the marginal density of $X_t$. But this is also intractable — it requires the values of $v_t(x)$ and $p_t(x)$, both depending on the unknown $p_1$.</p>
 <p>The key insight: we <strong>don’t need to compute</strong> $v_t$ or $p_t$ to obtain a loss with the same gradient as $\mathcal{L}_{\mathrm{FM}}$.</p>
 <h3 id="The-Key-Fact"><a href="#The-Key-Fact" class="headerlink" title="The Key Fact"></a>The Key Fact</h3><p>$v_t(X_t) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t]$ is the orthogonal projection of $X_1 - X_0$ onto $\sigma(X_t)$ (the $\sigma$-algebra generated by $X_t$). Consider the regression loss with $X_1 - X_0$ as the label:</p>
 <h3 id="Derivation"><a href="#Derivation" class="headerlink" title="Derivation"></a>Derivation</h3><p>Expand the error between $v_t^\theta(X_t)$ and the label $X_1 - X_0$ — inserting $v_t(X_t)$:</p>
-<p>$$\begin{aligned}<br>&amp;\mathbb{E}\big|v_t^\theta(X_t) - (X_1 - X_0)\big|^2 \<br>&#x3D;;&amp; \mathbb{E}\big|\big(v_t^\theta(X_t) - v_t(X_t)\big) + \big(v_t(X_t) - (X_1 - X_0)\big)\big|^2 \<br>&#x3D;;&amp; \mathbb{E}\big|v_t^\theta(X_t) - v_t(X_t)\big|^2 \<br>&amp;+ 2,\mathbb{E}\big[\big(v_t^\theta(X_t) - v_t(X_t)\big) \cdot \big(v_t(X_t) - (X_1 - X_0)\big)\big] \<br>&amp;+ \mathbb{E}\big|v_t(X_t) - (X_1 - X_0)\big|^2.<br>\end{aligned} \tag{8}$$</p>
-<p>The cross term vanishes: let $h(X_t) :&#x3D; v_t^\theta(X_t) - v_t(X_t)$ (a function of $X_t$), then</p>
-<p>$$\begin{aligned}<br>&amp;\mathbb{E}\big[h(X_t) \cdot \big(v_t(X_t) - (X_1 - X_0)\big)\big] \<br>&#x3D;;&amp; \mathbb{E}\Big[h(X_t) \cdot \mathbb{E}\big[v_t(X_t) - (X_1 - X_0) ,\big|, X_t\big]\Big] \<br>&#x3D;;&amp; \mathbb{E}\Big[h(X_t) \cdot \big(\underbrace{\mathbb{E}[X_1-X_0 \mid X_t]}_{&#x3D; v_t(X_t)} - \mathbb{E}[X_1-X_0 \mid X_t]\big)\Big] \<br>&#x3D;;&amp; 0.<br>\end{aligned} \tag{9}$$</p>
-<p>The first equality uses the tower property ($h(X_t)$ is constant given $X_t$ and can be pulled out); the second uses $v_t(X_t) &#x3D; \mathbb{E}[X_1-X_0 \mid X_t]$.</p>
+<p>$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 &#x3D; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2,\text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$</p>
+<p>The cross term vanishes: let $h(X_t) :&#x3D; v_t^\theta(X_t) - v_t(X_t)$ (a function of $X_t$), by tower property:</p>
+<p>$$\text{Cross} &#x3D; \mathbb{E}[h(X_t) \cdot (v_t(X_t) - (X_1 - X_0))] &#x3D; \mathbb{E}[h(X_t) \cdot \mathbb{E}[v_t(X_t) - (X_1 - X_0) \mid X_t]] &#x3D; 0 \tag{9}$$</p>
+<p>since $v_t(X_t) &#x3D; \mathbb{E}[X_1-X_0 \mid X_t]$, the conditional expectation inside is exactly zero.</p>
 <p>Therefore (8) simplifies to:</p>
-<p>$$\mathbb{E}\big|v_t^\theta(X_t) - (X_1 - X_0)\big|^2 &#x3D; \underbrace{\mathbb{E}\big|v_t(X_t) - (X_1 - X_0)\big|^2}_{\text{constant, independent of } \theta} + \mathbb{E}\big|v_t^\theta(X_t) - v_t(X_t)\big|^2. \tag{10}$$</p>
+<p>$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 &#x3D; \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{constant}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10}$$</p>
 <h3 id="Conclusion"><a href="#Conclusion" class="headerlink" title="Conclusion"></a>Conclusion</h3><p>By (10), minimizing the left side (label is the sampleable $X_1-X_0$) is equivalent to minimizing the second term on the right (approximating $v_t$):</p>
-<p>$$\arg\min_\theta; \mathbb{E}\big|v_t^\theta(X_t) - (X_1 - X_0)\big|^2 ;&#x3D;; \arg\min_\theta; \mathbb{E}\big|v_t^\theta(X_t) - v_t(X_t)\big|^2.$$</p>
+<p>$$\arg\min_\theta; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 &#x3D; \arg\min_\theta; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$</p>
 <h3 id="Conditional-Flow-Matching-CFM-Loss"><a href="#Conditional-Flow-Matching-CFM-Loss" class="headerlink" title="Conditional Flow Matching (CFM) Loss"></a>Conditional Flow Matching (CFM) Loss</h3><p>Taking expectation over time as well, we obtain the final training objective:</p>
-<p>$$\boxed{\mathcal{L}<em>{\mathrm{CFM}}(\theta) &#x3D; \mathbb{E}</em>{t \sim \mathcal{U}[0,1]}; \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \Big|v_t^\theta\big((1-t)X_0 + tX_1\big) - (X_1 - X_0)\Big|^2} \tag{11}$$</p>
+<p>$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) &#x3D; \mathbb{E}_{t \sim \mathcal{U}[0,1]}; \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$</p>
 <div class="note success"><p><strong>Why is this loss fully computable?</strong></p>
 <ul>
 <li>No need for the value of $v_t$ — by orthogonality (formula (10)), the regression label is equivalently replaced by the sampleable $X_1 - X_0$;</li>
@@ -480,7 +480,7 @@
 <h2 id="5-Summary-Three-Step-Logic-Chain"><a href="#5-Summary-Three-Step-Logic-Chain" class="headerlink" title="5. Summary: Three-Step Logic Chain"></a>5. Summary: Three-Step Logic Chain</h2><ol>
 <li><p><strong>Construct auxiliary process</strong>: Define $X_t &#x3D; (1-t)X_0 + tX_1$. This process depends on $X_1$ and cannot be used for generation, but it transitions smoothly from $p_0$ to $p_1$, providing a reference for learning $v_t$.</p>
 </li>
-<li><p><strong>Derive target velocity field</strong>: Require the ODE flow $Z_t$ to match $X_t$ in distribution. Differentiate the “equal distribution” condition, apply the tower property, and obtain:<br>$$v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x].$$</p>
+<li><p><strong>Derive target velocity field</strong>: Require the ODE flow $Z_t$ to match $X_t$ in distribution. Differentiate the “equal distribution” condition, apply the tower property, and obtain: $v_t(x) &#x3D; \mathbb{E}[X_1 - X_0 \mid X_t &#x3D; x]$.</p>
 </li>
 <li><p><strong>Reduce to computable regression</strong>: By the Pythagorean theorem of $L^2$ orthogonal projection, regressing against $v_t$ (intractable) is equivalent to regressing against $X_1 - X_0$ (sampleable), yielding the Flow Matching loss (11).</p>
 </li>
@@ -489,15 +489,46 @@
 
 <script>
 function switchLang(lang) {
-  document.querySelectorAll('.lang-content').forEach(el => {
+  // Switch content
+  document.querySelectorAll('.lang-content').forEach(function(el) {
     el.style.display = 'none';
   });
-  document.querySelectorAll('.lang-btn').forEach(el => {
+  document.querySelectorAll('.lang-btn').forEach(function(el) {
     el.classList.remove('active');
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
+
+  // Switch title
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) {
+    if (lang === 'zh') {
+      titleEl.textContent = 'Flow Matching 的数学原理：极简介绍';
+    } else {
+      titleEl.textContent = 'The Mathematics of Flow Matching: A Minimal Introduction';
+    }
+  }
+
+  // Switch TOC: hide headings from the other language
+  var tocLinks = document.querySelectorAll('.post-toc a');
+  tocLinks.forEach(function(link) {
+    var li = link.closest('li');
+    if (!li) return;
+    var href = link.getAttribute('href') || '';
+    // Chinese headings have Chinese characters or specific patterns
+    var isChinese = /[\u4e00-\u9fff]/.test(link.textContent);
+    if (lang === 'zh') {
+      li.style.display = isChinese ? '' : 'none';
+    } else {
+      li.style.display = isChinese ? 'none' : '';
+    }
+  });
 }
+
+// Run on page load to set initial TOC state
+document.addEventListener('DOMContentLoaded', function() {
+  switchLang('en');
+});
 </script>
 
     </div>
