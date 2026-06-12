@@ -24,7 +24,7 @@ menu:
 # Sidebar Settings
 sidebar:
   position: right
-  display: post
+  display: hide
 
 # Avatar (disabled - no image uploaded yet)
 #avatar:
