@@ -49,77 +49,11 @@ code, pre {
   margin: 0 auto;
 }
 
-// On wide desktop, widen to accommodate sidenotes
-@media (min-width: 1200px) {
-  .main-inner {
-    max-width: 1050px;
-  }
-}
-
 // ---- Post body ----
 .post-body {
   position: relative;
   padding-right: 0;
   padding-left: 0;
-}
-
-// On wide desktop, reserve space for sidenotes on right
-@media (min-width: 1200px) {
-  .post-body {
-    padding-right: 270px;
-  }
-}
-
-// ---- Sidenote styling (always inline, no float) ----
-
-// The inline [N] superscript in text
-sup.sidenote-ref {
-  font-size: 0.75em;
-  color: #1e6e78;
-  font-weight: 600;
-  cursor: default;
-}
-
-// Sidenote content: inline block by default (mobile/tablet)
-.sidenote, .marginnote {
-  display: block;
-  margin: 0.6em 0;
-  padding: 8px 14px;
-  font-size: 0.82em;
-  line-height: 1.5;
-  color: #555;
-  background: #f8f9fa;
-  border-left: 3px solid #1e6e78;
-  border-radius: 4px;
-  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
-}
-
-// On wide desktop (≥1200px), float sidenotes to right margin
-@media (min-width: 1200px) {
-  .sidenote, .marginnote {
-    float: right;
-    clear: right;
-    width: 240px;
-    margin-right: -270px;
-    margin-left: 12px;
-    margin-bottom: 14px;
-    margin-top: 0;
-    padding: 8px 12px;
-    background: #f9fafb;
-    border-radius: 3px;
-  }
-}
-
-// The [N] label inside the sidenote
-.sidenote-num {
-  font-weight: bold;
-  color: #1e6e78;
-  margin-right: 4px;
-}
-
-.sidenote p, .marginnote p {
-  margin: 0 0 4px 0;
-  display: inline;
 }
 
 // ---- Note boxes ----

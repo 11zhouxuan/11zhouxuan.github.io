@@ -45,7 +45,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v\_t\big(Z(t)\big), \qquad Z(0) = x\_0. \
 
 ### 为什么用 ODE？——最优控制的视角
 
-我们的核心问题是：寻找一个未知函数 $v\_t$，使得它驱动的动力系统能将源分布搬运到目标分布。这本质上是一个**最优控制问题**——$v\_t$ 是"控制量"，ODE (1) 是"状态方程"，目标是终态分布逼近 $p\_1$。ODE 提供了一个连续的、可微的演化框架，使得我们可以将"搬运分布"这个困难的静态问题，转化为"学一个速度场"这个可以用梯度方法求解的优化问题。{% sidenote 1 %}**推理**：训练完成后，从 $X\_0 \sim p\_0$ 出发积分 ODE 到 $t=1$ 即得生成样本 $Z\_1$。此时不需要 $X\_1$。{% endsidenote %}
+我们的核心问题是：寻找一个未知函数 $v\_t$，使得它驱动的动力系统能将源分布搬运到目标分布。这本质上是一个**最优控制问题**——$v\_t$ 是"控制量"，ODE (1) 是"状态方程"，目标是终态分布逼近 $p\_1$。ODE 提供了一个连续的、可微的演化框架，使得我们可以将"搬运分布"这个困难的静态问题，转化为"学一个速度场"这个可以用梯度方法求解的优化问题。<sup>[1]</sup>
 
 ## 2. 第一步：构造辅助随机过程
 
@@ -67,7 +67,7 @@ $$X\_t := (1-t)\,X\_0 + t\,X\_1, \qquad t \in [0,1]. \tag{2}$$
 
 ### 为什么要构造 $X\_t$？
 
-$X\_t$ 提供了一个"理想参照"：它的边际分布从 $p\_0$ 平滑过渡到 $p\_1$。如果我们能找到一个 $v\_t$ 使得 $Z\_t$ 在每个时刻都与 $X\_t$ 同分布，那么终态自然有 $Z\_1 \sim p\_1$。这样，"搬运分布到 $p\_1$"就转化为"让 $v\_t$ 驱动出的随机变量与 $X\_t$ 同分布"。{% sidenote 2 %}线性插值 (2) 在 Benamou-Brenier (2000) 意义下是最优的：它在连接 $p\_0$ 到 $p\_1$ 的所有路径中最小化动能。参见 McCann (1997)。{% endsidenote %}
+$X\_t$ 提供了一个"理想参照"：它的边际分布从 $p\_0$ 平滑过渡到 $p\_1$。如果我们能找到一个 $v\_t$ 使得 $Z\_t$ 在每个时刻都与 $X\_t$ 同分布，那么终态自然有 $Z\_1 \sim p\_1$。这样，"搬运分布到 $p\_1$"就转化为"让 $v\_t$ 驱动出的随机变量与 $X\_t$ 同分布"。<sup>[2]</sup>
 
 ## 3. 第二步：推出目标速度场
 
@@ -113,9 +113,9 @@ $$\mathbb{E}[\nabla f(X\_t) \cdot (X\_1 - X\_0)] = \mathbb{E}[\nabla f(X\_t) \cd
 
 $$\boxed{v\_t(x) = \mathbb{E}[X\_1 - X\_0 \mid X\_t = x]} \tag{6}$$
 
-{% sidenote 3 %}**记号**：$\mathbb{E}[\cdot \mid X\_t = x]$ 给出 $x$ 的确定性函数，而非随机变量。等式 (6) 两边都是 $x$ 的函数。{% endsidenote %}
+<sup>[3]</sup>
 
-{% sidenote 4 %}**直觉**：多条轨迹穿过同一点 $x$，来自不同的 $(X\_0,X\_1)$ 对。目标速度取其条件平均。{% endsidenote %}
+<sup>[4]</sup>
 
 {% note danger %}
 **障碍**：公式 (6) 给出了 $v\_t(x)$ 的解析表达，但**不好直接计算**——计算条件期望需要知道 $X\_1$ 的密度函数 $p\_1$（从而得到联合密度与 $X\_t$ 的边际密度），而 $p\_1$ 正是我们没有的——我们只有从 $p\_1$ 中抽出的有限样本。
@@ -172,7 +172,7 @@ $$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0
 这就是 Flow Matching "simulation-free"（训练中无需积分 ODE）的根本原因。
 {% endnote %}
 
-{% sidenote 5 %}Lipman et al., *Flow Matching for Generative Modeling*, ICLR 2023. Liu et al., *Flow Straight and Fast*, ICLR 2023 (Rectified Flow).{% endsidenote %}
+<sup>[5]</sup>
 
 ## 5. 总结：三步逻辑链
 
@@ -181,6 +181,20 @@ $$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0
 2. **推出目标速度场**：要求 ODE 的流 $Z\_t$ 与 $X\_t$ 同分布。对"同分布"条件两边求导、用塔性质，推出：$v\_t(x) = \mathbb{E}[X\_1 - X\_0 \mid X\_t = x]$。
 
 3. **化为可计算的回归**：由 $L^2$ 正交投影的勾股定理，回归 $v\_t$（不可算）与回归 $X\_1 - X\_0$（可采样）等价，得到 Flow Matching 损失 (11)。
+
+---
+
+**注释：**
+
+[1] **推理**：训练完成后，从 $X\_0 \sim p\_0$ 出发积分 ODE 到 $t=1$ 即得生成样本 $Z\_1$。此时不需要 $X\_1$。
+
+[2] 线性插值 (2) 在 Benamou-Brenier (2000) 意义下是最优的：它在连接 $p\_0$ 到 $p\_1$ 的所有路径中最小化动能。参见 McCann (1997)。
+
+[3] **记号**：$\mathbb{E}[\cdot \mid X\_t = x]$ 给出 $x$ 的确定性函数，而非随机变量。等式 (6) 两边都是 $x$ 的函数。
+
+[4] **直觉**：多条轨迹穿过同一点 $x$，来自不同的 $(X\_0,X\_1)$ 对。目标速度取其条件平均。
+
+[5] Lipman et al., *Flow Matching for Generative Modeling*, ICLR 2023. Liu et al., *Flow Straight and Fast*, ICLR 2023 (Rectified Flow).
 
 </div>
 
@@ -211,7 +225,7 @@ That is, $Z(t)$ is the position reached at time $t$ starting from $x\_0$ followi
 
 ### Why an ODE? — The Optimal Control Viewpoint
 
-Our core problem is: find an unknown function $v\_t$ such that the dynamical system it drives transports the source distribution to the target. This is essentially an **optimal control problem** — $v\_t$ is the "control", the ODE (1) is the "state equation", and the goal is for the terminal distribution to approximate $p\_1$. The ODE provides a continuous, differentiable evolution framework that turns the hard static problem of "transporting a distribution" into the tractable optimization problem of "learning a velocity field" via gradient methods.{% sidenote 1 %}**Inference**: Once trained, sample $X\_0 \sim p\_0$, integrate ODE to $t=1$, get $Z\_1$ as output. No $X\_1$ needed.{% endsidenote %}
+Our core problem is: find an unknown function $v\_t$ such that the dynamical system it drives transports the source distribution to the target. This is essentially an **optimal control problem** — $v\_t$ is the "control", the ODE (1) is the "state equation", and the goal is for the terminal distribution to approximate $p\_1$. The ODE provides a continuous, differentiable evolution framework that turns the hard static problem of "transporting a distribution" into the tractable optimization problem of "learning a velocity field" via gradient methods.<sup>[1]</sup>
 
 ## 2. Step One: Construct the Auxiliary Random Process
 
@@ -233,7 +247,7 @@ The actual generation mechanism is the ODE (1): it only needs an initial point $
 
 ### Why Construct $X\_t$?
 
-$X\_t$ provides an "ideal reference": its marginal distribution transitions smoothly from $p\_0$ to $p\_1$. If we can find a $v\_t$ making $Z\_t$ equal in distribution to $X\_t$ at every time, then the endpoint automatically satisfies $Z\_1 \sim p\_1$. Thus, "transport the distribution to $p\_1$" becomes "make the ODE-driven random variable match $X\_t$ in distribution".{% sidenote 2 %}The linear interpolation (2) is optimal in the sense of Benamou-Brenier (2000): it minimizes kinetic energy among all paths from $p\_0$ to $p\_1$. See also McCann (1997).{% endsidenote %}
+$X\_t$ provides an "ideal reference": its marginal distribution transitions smoothly from $p\_0$ to $p\_1$. If we can find a $v\_t$ making $Z\_t$ equal in distribution to $X\_t$ at every time, then the endpoint automatically satisfies $Z\_1 \sim p\_1$. Thus, "transport the distribution to $p\_1$" becomes "make the ODE-driven random variable match $X\_t$ in distribution".<sup>[2]</sup>
 
 ## 3. Step Two: Derive the Target Velocity Field
 
@@ -279,9 +293,9 @@ By the arbitrariness of $f$, the "coefficients" must be equal almost everywhere:
 
 $$\boxed{v\_t(x) = \mathbb{E}[X\_1 - X\_0 \mid X\_t = x]} \tag{6}$$
 
-{% sidenote 3 %}**Notation**: $\mathbb{E}[\cdot \mid X\_t = x]$ yields a deterministic function of $x$, not a random variable. Both sides of (6) are functions of $x$.{% endsidenote %}
+<sup>[3]</sup>
 
-{% sidenote 4 %}**Intuition**: Multiple trajectories pass through the same $x$ from different $(X\_0, X\_1)$ pairs. The target velocity at $x$ is their conditional average.{% endsidenote %}
+<sup>[4]</sup>
 
 {% note danger %}
 **The obstacle**: Formula (6) gives an analytic expression for $v\_t(x)$, but it's **hard to compute directly** — evaluating the conditional expectation requires knowing $p\_1$ (to obtain joint and marginal densities), and $p\_1$ is precisely what we don't have — we only have finite samples from $p\_1$.
@@ -338,7 +352,7 @@ $$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0
 This is the fundamental reason Flow Matching is "simulation-free" (no ODE integration needed during training).
 {% endnote %}
 
-{% sidenote 5 %}Lipman et al., *Flow Matching for Generative Modeling*, ICLR 2023. Liu et al., *Flow Straight and Fast*, ICLR 2023 (Rectified Flow).{% endsidenote %}
+<sup>[5]</sup>
 
 ## 5. Summary: Three-Step Logic Chain
 
@@ -347,6 +361,20 @@ This is the fundamental reason Flow Matching is "simulation-free" (no ODE integr
 2. **Derive target velocity field**: Require the ODE flow $Z\_t$ to match $X\_t$ in distribution. Differentiate the "equal distribution" condition, apply the tower property, and obtain: $v\_t(x) = \mathbb{E}[X\_1 - X\_0 \mid X\_t = x]$.
 
 3. **Reduce to computable regression**: By the Pythagorean theorem of $L^2$ orthogonal projection, regressing against $v\_t$ (intractable) is equivalent to regressing against $X\_1 - X\_0$ (sampleable), yielding the Flow Matching loss (11).
+
+---
+
+**Notes:**
+
+[1] **Inference**: Once trained, sample $X\_0 \sim p\_0$, integrate ODE to $t=1$, get $Z\_1$ as output. No $X\_1$ needed.
+
+[2] The linear interpolation (2) is optimal in the sense of Benamou-Brenier (2000): it minimizes kinetic energy among all paths from $p\_0$ to $p\_1$. See also McCann (1997).
+
+[3] **Notation**: $\mathbb{E}[\cdot \mid X\_t = x]$ yields a deterministic function of $x$, not a random variable. Both sides of (6) are functions of $x$.
+
+[4] **Intuition**: Multiple trajectories pass through the same $x$ from different $(X\_0, X\_1)$ pairs. The target velocity at $x$ is their conditional average.
+
+[5] Lipman et al., *Flow Matching for Generative Modeling*, ICLR 2023. Liu et al., *Flow Straight and Fast*, ICLR 2023 (Rectified Flow).
 
 </div>
 
