@@ -42,7 +42,7 @@ toc:
   enable: true
   number: false
   wrap: false
-  expand_all: false
+  expand_all: true
 
 # Sidebar panel
 sidebar_panel:

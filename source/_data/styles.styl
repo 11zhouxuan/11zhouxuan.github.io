@@ -24,40 +24,26 @@
   padding-right: 0;
 }
 
-// On wide screens, create space for margin notes
-@media (min-width: 768px) {
-  // Make the content column narrower
-  .main-inner {
-    max-width: 100%;
-  }
-  
-  .post-body {
-    padding-right: 240px;  // Reserve space for sidenotes
-  }
-}
-
+// Only add sidenote margin space on truly wide screens (desktop with sidebar)
 @media (min-width: 1200px) {
-  .main-inner {
-    max-width: 100%;
+  .post-body {
+    padding-right: 270px;  // Reserve space for sidenotes
   }
   
-  .post-body {
-    padding-right: 280px;
+  .sidenote, .marginnote {
+    width: 240px;
+    margin-right: -270px;
   }
 }
 
 // ---- Sidenote styling ----
 
-// The inline superscript number in text (the citation marker)
-label.sidenote-number {
-  display: inline;
+// The inline [N] superscript in text
+sup.sidenote-ref {
   font-size: 0.75em;
   color: #1e6e78;
   font-weight: 600;
-  vertical-align: super;
-  line-height: 0;
   cursor: default;
-  margin: 0 1px;
 }
 
 // Default (mobile): sidenote content is shown inline as a block
@@ -73,39 +59,28 @@ label.sidenote-number {
   border-radius: 4px;
 }
 
-// On tablet+ screens (768px+), float to right margin
-@media (min-width: 768px) {
+// On wide desktop screens (1200px+), float sidenotes to right margin
+@media (min-width: 1200px) {
   .sidenote, .marginnote {
     float: right;
     clear: right;
-    width: 220px;
-    margin-right: -240px;
+    width: 240px;
+    margin-right: -270px;
     margin-left: 12px;
     margin-bottom: 12px;
     margin-top: 0;
     padding: 8px 12px;
-    background: transparent;
+    background: #fafbfc;
     border-left: 3px solid #1e6e78;
-    border-radius: 0;
+    border-radius: 3px;
   }
 }
 
-@media (min-width: 1200px) {
-  .sidenote, .marginnote {
-    width: 250px;
-    margin-right: -280px;
-  }
-}
-
-// The number inside the sidenote margin box
-.sidenote > .sidenote-number {
-  display: inline;
+// The [N] label inside the sidenote margin box
+.sidenote-num {
   font-size: 0.85em;
   font-weight: bold;
   color: #1e6e78;
-  margin-right: 4px;
-  vertical-align: super;
-  line-height: 0;
 }
 
 .sidenote p, .marginnote p {

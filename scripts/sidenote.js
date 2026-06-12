@@ -5,7 +5,7 @@
  *   ...text{% sidenote 1 %}Content{% endsidenote %}more text...
  * 
  * Renders as:
- *   - In text: a small superscript number (like footnote markers)
+ *   - In text: [1] as superscript
  *   - In right margin: the numbered note content
  */
 
@@ -16,10 +16,8 @@ hexo.extend.tag.register('sidenote', function(args, content) {
   const num = args[0] || '';
   
   if (num) {
-    // Use <label> as inline element for the superscript number,
-    // and <span class="sidenote"> for the margin content.
-    // The label is inline so it stays attached to surrounding text.
-    return `<label class="sidenote-toggle sidenote-number" for="sn-${num}">${num}</label><span class="sidenote"><span class="sidenote-number">${num}</span>${rendered}</span>`;
+    // Inline [N] superscript + margin note with full content
+    return `<sup class="sidenote-ref">[${num}]</sup><span class="sidenote"><span class="sidenote-num">[${num}]</span> ${rendered}</span>`;
   } else {
     return `<span class="sidenote">${rendered}</span>`;
   }
