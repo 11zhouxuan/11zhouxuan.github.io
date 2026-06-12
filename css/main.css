@@ -1269,7 +1269,7 @@ pre code {
     vertical-align: middle;
   }
   .links-of-author a::before {
-    background: #b61cc3;
+    background: #d4ffad;
     display: inline-block;
     margin-right: 3px;
     transform: translateY(-2px);
@@ -3008,6 +3008,42 @@ label.sidenote-number {
   overflow-x: auto;
   overflow-y: hidden;
   padding: 8px 0;
+}
+.post-body mjx-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+@media (max-width: 767px) {
+  .post-body {
+    padding-right: 0 !important;
+    padding-left: 0;
+  }
+  .post-body mjx-container[display="true"] {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    padding: 8px 0;
+    font-size: 0.9em;
+  }
+  .sidenote,
+  .marginnote {
+    float: none !important;
+    width: auto !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    clear: both;
+  }
+  .lang-switch {
+    text-align: center;
+  }
+  .note {
+    padding: 10px 12px;
+    font-size: 0.88em;
+  }
+  .post-title {
+    font-size: 1.4em !important;
+  }
 }
 .post-body h2 {
   margin-top: 2em;
