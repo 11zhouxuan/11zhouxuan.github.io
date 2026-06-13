@@ -91,24 +91,25 @@ code, pre {
 }
 
 // ---- Math display ----
-.post-body .MathJax_Display {
-  overflow-x: auto !important;
-  overflow-y: hidden;
-  padding: 8px 0;
-  max-width: 100% !important;
-}
-
-.post-body mjx-container {
-  overflow-x: auto !important;
-  overflow-y: hidden;
-  max-width: 100% !important;
-}
-
+// Display math ($$...$$): block with horizontal scroll for long formulas
+.post-body mjx-container[jax="CHTML"][display="true"],
 .post-body mjx-container[display="true"] {
   display: block !important;
-  margin: 1em 0;
   overflow-x: auto !important;
+  overflow-y: hidden !important;
   max-width: 100% !important;
+  margin: 1em 0;
+  padding: 8px 0;
+}
+
+// Inline math ($...$): keep inline, no layout changes
+.post-body mjx-container:not([display="true"]) {
+  display: inline !important;
+}
+
+// Paragraphs containing display math need overflow handling
+.post-body p {
+  overflow-x: auto;
 }
 
 // ---- Mobile-specific ----
