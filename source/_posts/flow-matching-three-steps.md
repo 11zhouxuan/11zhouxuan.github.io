@@ -155,13 +155,13 @@ $$\mathbb{E}\lVert v\_t^\theta(X\_t) - (X\_1 - X\_0)\rVert^2 = \underbrace{\math
 
 由 (10)，最小化左边（标签为可采样的 $X\_1-X\_0$）等价于最小化右边第二项（逼近 $v\_t$）：
 
-$$\arg\min\_\theta\; \mathbb{E}\lVert v\_t^\theta(X\_t) - (X\_1 - X\_0)\rVert^2 = \arg\min\_\theta\; \mathbb{E}\lVert v\_t^\theta(X\_t) - v\_t(X\_t)\rVert^2$$
+$$\arg\min\_\theta \, \mathbb{E}\lVert v\_t^\theta(X\_t) - (X\_1 - X\_0)\rVert^2 = \arg\min\_\theta \, \mathbb{E}\lVert v\_t^\theta(X\_t) - v\_t(X\_t)\rVert^2$$
 
 ### Conditional Flow Matching (CFM) 损失
 
 对时间也取期望，得到最终的训练目标：
 
-$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}\; \mathbb{E}\_{X\_0 \sim p\_0,\, X\_1 \sim p\_1}\, \lVert v\_t^\theta((1-t)X\_0 + tX\_1) - (X\_1 - X\_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]} \, \mathbb{E}\_{X\_0 \sim p\_0,\, X\_1 \sim p\_1}\, \lVert v\_t^\theta((1-t)X\_0 + tX\_1) - (X\_1 - X\_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **为什么这个损失完全可算？**
@@ -335,13 +335,13 @@ $$\mathbb{E}\lVert v\_t^\theta(X\_t) - (X\_1 - X\_0)\rVert^2 = \underbrace{\math
 
 By (10), minimizing the left side (label is the sampleable $X\_1-X\_0$) is equivalent to minimizing the second term on the right (approximating $v\_t$):
 
-$$\arg\min\_\theta\; \mathbb{E}\lVert v\_t^\theta(X\_t) - (X\_1 - X\_0)\rVert^2 = \arg\min\_\theta\; \mathbb{E}\lVert v\_t^\theta(X\_t) - v\_t(X\_t)\rVert^2$$
+$$\arg\min\_\theta \, \mathbb{E}\lVert v\_t^\theta(X\_t) - (X\_1 - X\_0)\rVert^2 = \arg\min\_\theta \, \mathbb{E}\lVert v\_t^\theta(X\_t) - v\_t(X\_t)\rVert^2$$
 
 ### Conditional Flow Matching (CFM) Loss
 
 Taking expectation over time as well, we obtain the final training objective:
 
-$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}\; \mathbb{E}\_{X\_0 \sim p\_0,\, X\_1 \sim p\_1}\, \lVert v\_t^\theta((1-t)X\_0 + tX\_1) - (X\_1 - X\_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]} \, \mathbb{E}\_{X\_0 \sim p\_0,\, X\_1 \sim p\_1}\, \lVert v\_t^\theta((1-t)X\_0 + tX\_1) - (X\_1 - X\_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **Why is this loss fully computable?**
