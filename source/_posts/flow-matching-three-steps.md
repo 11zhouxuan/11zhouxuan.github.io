@@ -53,7 +53,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t\big(Z(t)\big), \qquad Z(0) = x_0. \ta
 
 为了给 $v_t$ 的学习提供"参照"，我们构造一个**辅助随机过程**：对独立采样的 $X_0 \sim p_0$、$X_1 \sim p_1$，定义
 
-$$X_t := (1-t)\,X_0 + t\,X_1, \qquad t \in [0,1]. \tag{2}$$
+$$X_t := (1-t) X_0 + t X_1, \qquad t \in [0,1]. \tag{2}$$
 
 这个随机过程具有以下性质：
 - **端点正确**：$t=0$ 时 $X_0 = X_0 \sim p_0$，$t=1$ 时 $X_1 = X_1 \sim p_1$；
@@ -79,7 +79,7 @@ $X_t$ 提供了一个"理想参照"：它的边际分布从 $p_0$ 平滑过渡�
 
 两个随机变量同分布，当且仅当它们在所有测试函数下的期望相同。即要求对任意光滑测试函数 $f$，
 
-$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall\, t \in [0,1]. \tag{3}$$
+$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall  t \in [0,1]. \tag{3}$$
 
 对 (3) 两边关于 $t$ 求导，就能推出 $v_t$ 必须满足的条件。
 
@@ -125,7 +125,7 @@ $$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6}$$
 
 $v_t$ 有解析解（公式 (6)），只是不好计算。一个自然的想法是直接用参数化的 $v_t^\theta$（如神经网络）去逼近 $v_t$，写成 **Flow Matching (FM) 损失**：
 
-$$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2 \, p_t(x)\,\mathrm{d}x \tag{7}$$
+$$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
 
 其中 $p_t$ 是 $X_t$ 的边际密度。但这同样不可算——它需要 $v_t(x)$ 和 $p_t(x)$ 的值，两者都依赖于未知的 $p_1$。
 
@@ -139,7 +139,7 @@ $v_t(X_t) = \mathbb{E}[X_1 - X_0 \mid X_t]$ 是 $X_1 - X_0$ 在 $\sigma(X_t)$（
 
 将 $v_t^\theta(X_t)$ 与标签 $X_1 - X_0$ 之间的误差展开——插入 $v_t(X_t)$：
 
-$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2\,\text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$
+$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2 \text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$
 
 交叉项为零：记 $h(X_t) := v_t^\theta(X_t) - v_t(X_t)$（$X_t$ 的函数），由塔性质：
 
@@ -155,13 +155,13 @@ $$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E
 
 由 (10)，最小化左边（标签为可采样的 $X_1-X_0$）等价于最小化右边第二项（逼近 $v_t$）：
 
-$$\arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
+$$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
 
 ### Conditional Flow Matching (CFM) 损失
 
 对时间也取期望，得到最终的训练目标：
 
-$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}\, \mathbb{E}_{X_0 \sim p_0,\, X_1 \sim p_1}\, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **为什么这个损失完全可算？**
@@ -233,7 +233,7 @@ Our core problem is: find an unknown function $v_t$ such that the dynamical syst
 
 To provide a "reference" for learning $v_t$, we construct an **auxiliary random process**: for independently sampled $X_0 \sim p_0$, $X_1 \sim p_1$, define
 
-$$X_t := (1-t)\,X_0 + t\,X_1, \qquad t \in [0,1]. \tag{2}$$
+$$X_t := (1-t) X_0 + t X_1, \qquad t \in [0,1]. \tag{2}$$
 
 This process has the following properties:
 - **Correct endpoints**: $X_0 = X_0 \sim p_0$ at $t=0$, and $X_1 = X_1 \sim p_1$ at $t=1$;
@@ -259,7 +259,7 @@ We've constructed the auxiliary process $X_t = (1-t)X_0 + tX_1$. Now ask: **whic
 
 Two random variables have the same distribution if and only if they yield the same expectation under all test functions. We require: for all smooth test functions $f$,
 
-$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall\, t \in [0,1]. \tag{3}$$
+$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall  t \in [0,1]. \tag{3}$$
 
 Differentiating both sides of (3) with respect to $t$ yields the condition that $v_t$ must satisfy.
 
@@ -305,7 +305,7 @@ $$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6}$$
 
 $v_t$ has an analytic solution (formula (6)), it's just hard to compute. A natural idea is to directly approximate $v_t$ with a parameterized $v_t^\theta$ (e.g., a neural network), writing the **Flow Matching (FM) loss**:
 
-$$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2 \, p_t(x)\,\mathrm{d}x \tag{7}$$
+$$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
 
 where $p_t$ is the marginal density of $X_t$. But this is also intractable — it requires the values of $v_t(x)$ and $p_t(x)$, both depending on the unknown $p_1$.
 
@@ -319,7 +319,7 @@ $v_t(X_t) = \mathbb{E}[X_1 - X_0 \mid X_t]$ is the orthogonal projection of $X_1
 
 Expand the error between $v_t^\theta(X_t)$ and the label $X_1 - X_0$ — inserting $v_t(X_t)$:
 
-$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2\,\text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$
+$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2 \text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$
 
 The cross term vanishes: let $h(X_t) := v_t^\theta(X_t) - v_t(X_t)$ (a function of $X_t$), by tower property:
 
@@ -335,13 +335,13 @@ $$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E
 
 By (10), minimizing the left side (label is the sampleable $X_1-X_0$) is equivalent to minimizing the second term on the right (approximating $v_t$):
 
-$$\arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
+$$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
 
 ### Conditional Flow Matching (CFM) Loss
 
 Taking expectation over time as well, we obtain the final training objective:
 
-$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}\, \mathbb{E}_{X_0 \sim p_0,\, X_1 \sim p_1}\, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **Why is this loss fully computable?**
