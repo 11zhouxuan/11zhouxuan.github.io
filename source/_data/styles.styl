@@ -217,6 +217,20 @@ code, pre {
   margin-bottom: 0.3em;
 }
 
+// ---- Footnote references - no underline ----
+.post-body a[href^="#note-"] {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  color: #1e6e78;
+}
+
+.post-body a[href^="#note-"]:hover {
+  color: #145a62;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
 // ---- Hide footer ----
 .footer {
   display: none;
