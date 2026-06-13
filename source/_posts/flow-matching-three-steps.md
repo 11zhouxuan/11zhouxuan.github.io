@@ -161,7 +161,7 @@ $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^
 
 对时间也取期望，得到最终的训练目标：
 
-$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **为什么这个损失完全可算？**
@@ -341,7 +341,7 @@ $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^
 
 Taking expectation over time as well, we obtain the final training objective:
 
-$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **Why is this loss fully computable?**
