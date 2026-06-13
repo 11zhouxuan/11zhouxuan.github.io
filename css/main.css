@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #3b6eff;
+  background: #d7ffff;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2864,6 +2864,7 @@ pre {
   max-width: 100% !important;
 }
 .post-body mjx-container[display="true"] {
+  display: block !important;
   margin: 1em 0;
   overflow-x: auto !important;
   max-width: 100% !important;
