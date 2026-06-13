@@ -125,11 +125,11 @@ $$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6}$$
 
 $v_t$ 有解析解（公式 (6)），只是不好计算。一个自然的想法是直接用参数化的 $v_t^\theta$（如神经网络）去逼近 $v_t$，写成 **Flow Matching (FM) 损失**：
 
-$$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
+$$\mathcal{L}\_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
 
 其中 $p_t$ 是 $X_t$ 的边际密度。但这同样不可算——它需要 $v_t(x)$ 和 $p_t(x)$ 的值，两者都依赖于未知的 $p_1$。
 
-关键在于：我们**不需要计算** $v_t$ 和 $p_t$ 的值，就能得到一个与 $\mathcal{L}_{\mathrm{FM}}$ 梯度相同的可计算损失。
+关键在于：我们**不需要计算** $v_t$ 和 $p_t$ 的值，就能得到一个与 $\mathcal{L}\_{\mathrm{FM}}$ 梯度相同的可计算损失。
 
 ### 关键事实
 
@@ -161,7 +161,7 @@ $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^
 
 对时间也取期望，得到最终的训练目标：
 
-$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **为什么这个损失完全可算？**
@@ -305,11 +305,11 @@ $$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6}$$
 
 $v_t$ has an analytic solution (formula (6)), it's just hard to compute. A natural idea is to directly approximate $v_t$ with a parameterized $v_t^\theta$ (e.g., a neural network), writing the **Flow Matching (FM) loss**:
 
-$$\mathcal{L}_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
+$$\mathcal{L}\_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
 
 where $p_t$ is the marginal density of $X_t$. But this is also intractable — it requires the values of $v_t(x)$ and $p_t(x)$, both depending on the unknown $p_1$.
 
-The key insight: we **don't need to compute** $v_t$ or $p_t$ to obtain a loss with the same gradient as $\mathcal{L}_{\mathrm{FM}}$.
+The key insight: we **don't need to compute** $v_t$ or $p_t$ to obtain a loss with the same gradient as $\mathcal{L}\_{\mathrm{FM}}$.
 
 ### The Key Fact
 
@@ -341,7 +341,7 @@ $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^
 
 Taking expectation over time as well, we obtain the final training objective:
 
-$$\boxed{\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
 
 {% note success %}
 **Why is this loss fully computable?**
