@@ -119,6 +119,8 @@ markdown:
     permalinkSymbol: '¶'
     case: 0
     separator: '-'
+  plugins:
+    - markdown-it-mathjax
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment

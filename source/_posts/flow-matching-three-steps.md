@@ -155,7 +155,7 @@ $$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E
 
 由 (10)，最小化左边（标签为可采样的 $X_1-X_0$）等价于最小化右边第二项（逼近 $v_t$）：
 
-$$\arg\min_\theta \, \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta \, \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
+$$\arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
 
 ### Conditional Flow Matching (CFM) 损失
 
@@ -335,7 +335,7 @@ $$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E
 
 By (10), minimizing the left side (label is the sampleable $X_1-X_0$) is equivalent to minimizing the second term on the right (approximating $v_t$):
 
-$$\arg\min_\theta \, \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta \, \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
+$$\arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta\; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
 
 ### Conditional Flow Matching (CFM) Loss
 
