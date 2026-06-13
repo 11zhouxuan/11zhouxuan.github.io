@@ -6,6 +6,7 @@ This document describes how to write blog posts for this Hexo + NexT theme blog.
 
 - **Static Site Generator**: Hexo
 - **Theme**: NexT v8.27.0, Mist scheme (top navigation bar)
+- **Markdown Renderer**: `hexo-renderer-markdown-it` (does NOT interfere with LaTeX)
 - **Math Rendering**: MathJax (enabled per-post via `mathjax: true` in front matter)
 - **Deployment**: GitHub Actions → push to `main` → auto-build → deploy to `gh-pages`
 - **Custom CSS**: `source/_data/styles.styl`
@@ -95,36 +96,37 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 ```
 
-## Math Formula Rules (CRITICAL)
+## Math Formula Rules
 
-Hexo's markdown renderer interferes with LaTeX. Follow these rules strictly:
+We use `hexo-renderer-markdown-it` which does NOT interfere with LaTeX syntax. Write standard LaTeX freely:
 
-### 1. Escape underscores
-All `_` in math must be written as `\_`:
-- CORRECT: `$X\_0$`, `$p\_1$`, `$v\_t^\theta$`
-- WRONG: `$X_0$`, `$p_1$`, `$v_t^\theta$`
+### What works directly (no escaping needed):
+- `$X_0$`, `$p_1$`, `$v_t^\theta$` — underscores work normally
+- `\;`, `\,`, `\quad` — all spacing commands work
+- `\|`, `\lVert`, `\rVert` — all norm notations work
+- `\\` in `aligned` environments — works normally
+- `\big\|`, `\Big(` etc. — all delimiter sizing works
 
-### 2. Do NOT use `\;` (medium space)
-`\;` will render as a literal semicolon `;` in the output. Use `\,` (thin space) instead:
-- CORRECT: `\arg\min\_\theta \, \mathbb{E}`
-- WRONG: `\arg\min\_\theta\; \mathbb{E}`
+### Display math
+Use `$$...$$` on its own line:
+```
+$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t(Z(t)), \qquad Z(0) = x_0. \tag{1}$$
+```
 
-### 3. Use `\lVert` / `\rVert` for norms
-Do NOT use `\|` or `\big\|` — they get mangled by the markdown renderer:
-- CORRECT: `\lVert v\_t^\theta(x) - v\_t(x)\rVert^2`
-- WRONG: `\|v_t^\theta(x) - v_t(x)\|^2`
+### Inline math
+Use `$...$` for inline math: `$X_0 \sim p_0$`
 
-### 4. Avoid multi-line `aligned` environments
-`\\` inside `\begin{aligned}...\end{aligned}` breaks rendering. Use separate `$$...$$` blocks for each equation instead.
+### Multi-line equations
+`aligned` environments with `\\` work:
+```
+$$\begin{aligned}
+a &= b + c \\
+d &= e + f
+\end{aligned}$$
+```
 
-### 5. Display math
-Use `$$...$$` on its own line for display math (not `\[...\]`).
-
-### 6. Inline math
-Use `$...$` for inline math.
-
-### 7. Comma in subscripts
-Use `\,` for thin space. Regular commas work fine in subscripts like `X\_0 \sim p\_0,\, X\_1 \sim p\_1`.
+### Equation numbering
+Use `\tag{N}` at the end of display math for manual numbering.
 
 ## Footnotes
 
@@ -190,11 +192,8 @@ No manual build steps needed. Wait ~1-2 minutes after push for deployment to com
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| Semicolons in formulas | `\;` in LaTeX | Use `\,` instead |
-| Subscripts not rendering | Bare `_` in math | Escape as `\_` |
-| Norms showing weird | `\|` or `\big\|` | Use `\lVert`/`\rVert` |
-| Multi-line equations broken | `\\` in aligned env | Use separate `$$` blocks |
 | Footnote has underline | Theme default link style | Already fixed in CSS |
 | Mobile right-half grey | `float: right` or padding | Never use side-floats |
 | `[1]` disappearing | Markdown interprets as link ref | Wrap in `<a><sup>[1]</sup></a>` |
 | Equation tag not showing | Missing `\tag{N}` | Add `\tag{N}` at end of display math |
+| Inline math on own line | CSS `display:block` on mjx-container | Fixed — only display math is block |
