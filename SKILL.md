@@ -102,14 +102,18 @@ We use `hexo-renderer-markdown-it` which does NOT interfere with LaTeX syntax. W
 
 ### What works directly (no escaping needed):
 - `$X_0$`, `$p_1$`, `$v_t^\theta$` — underscores work normally
-- `\,`, `\quad`, `\qquad` — spacing commands work
-- `\|`, `\lVert`, `\rVert` — all norm notations work
+- `\quad`, `\qquad`, `\enspace` — letter-based spacing commands work
+- `\lVert`, `\rVert` — norm notations work
 - `\\` in `aligned` environments — works normally
-- `\big\|`, `\Big(` etc. — all delimiter sizing works
+- `\big(`, `\Big(`, `\mathrm`, `\mathbb` etc. — all letter-based commands work
 
-### Still broken (markdown-it escapes backslash + punctuation):
-- `\;` — renders as literal `;`. Use `\,` instead for spacing.
-- `\!` — renders as literal `!`. Avoid.
+### BROKEN (markdown-it escapes backslash + ANY ASCII punctuation):
+- `\,` — renders as literal `,`. **Use a regular space instead.**
+- `\;` — renders as literal `;`. **Use `\enspace` or `\quad` instead.**
+- `\!` — renders as literal `!`. **Avoid.**
+- `\:` — renders as literal `:`. **Avoid.**
+
+**Rule of thumb**: Any `\` followed by a non-letter character will be escaped. Only use `\` + letters (like `\quad`, `\enspace`, `\lVert`, `\mathrm{}`).
 
 ### Display math
 Use `$$...$$` on its own line:
