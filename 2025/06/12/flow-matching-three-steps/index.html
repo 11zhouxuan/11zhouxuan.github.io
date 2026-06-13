@@ -27,7 +27,7 @@
 <meta property="og:description" content="English   中文    Flow Matching——连续生成模型中&quot;无需模拟&quot;训练目标的极简推导，三步到位。">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-06-12T10:00:00.000Z">
-<meta property="article:modified_time" content="2026-06-13T06:48:35.069Z">
+<meta property="article:modified_time" content="2026-06-13T07:39:56.986Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="flow matching">
 <meta property="article:tag" content="generative models">
@@ -260,7 +260,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-06-13 06:48:35" itemprop="dateModified" datetime="2026-06-13T06:48:35+00:00">2026-06-13</time>
+      <time title="Modified: 2026-06-13 07:39:56" itemprop="dateModified" datetime="2026-06-13T07:39:56+00:00">2026-06-13</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -373,10 +373,10 @@
 <p>$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{常数}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10}$$</p>
 <h3 id="结论">结论</h3>
 <p>由 (10)，最小化左边（标签为可采样的 $X_1-X_0$）等价于最小化右边第二项（逼近 $v_t$）：</p>
-<p>$$\arg\min_\theta ; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta ; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$</p>
+<p>$$\arg\min_\theta , \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta , \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$</p>
 <h3 id="Conditional-Flow-Matching-CFM-损失">Conditional Flow Matching (CFM) 损失</h3>
 <p>对时间也取期望，得到最终的训练目标：</p>
-<p>$$\boxed{\mathcal{L}<em>{\mathrm{CFM}}(\theta) = \mathbb{E}</em>{t \sim \mathcal{U}[0,1]}; \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$</p>
+<p>$$\boxed{\mathcal{L}<em>{\mathrm{CFM}}(\theta) = \mathbb{E}</em>{t \sim \mathcal{U}[0,1]}, \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$</p>
 <div class="note success"><p><strong>为什么这个损失完全可算？</strong></p>
 <ul>
 <li>不需要 $v_t$ 的值——由正交性（公式 (10)），回归标签等价替换为可采样的 $X_1 - X_0$；</li>
@@ -486,10 +486,10 @@
 <p>$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{constant}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10}$$</p>
 <h3 id="Conclusion">Conclusion</h3>
 <p>By (10), minimizing the left side (label is the sampleable $X_1-X_0$) is equivalent to minimizing the second term on the right (approximating $v_t$):</p>
-<p>$$\arg\min_\theta ; \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta ; \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$</p>
+<p>$$\arg\min_\theta , \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta , \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$</p>
 <h3 id="Conditional-Flow-Matching-CFM-Loss">Conditional Flow Matching (CFM) Loss</h3>
 <p>Taking expectation over time as well, we obtain the final training objective:</p>
-<p>$$\boxed{\mathcal{L}<em>{\mathrm{CFM}}(\theta) = \mathbb{E}</em>{t \sim \mathcal{U}[0,1]}; \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$</p>
+<p>$$\boxed{\mathcal{L}<em>{\mathrm{CFM}}(\theta) = \mathbb{E}</em>{t \sim \mathcal{U}[0,1]}, \mathbb{E}_{X_0 \sim p_0,, X_1 \sim p_1}, \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$</p>
 <div class="note success"><p><strong>Why is this loss fully computable?</strong></p>
 <ul>
 <li>No need for the value of $v_t$ — by orthogonality (formula (10)), the regression label is equivalently replaced by the sampleable $X_1 - X_0$;</li>
