@@ -232,6 +232,24 @@ code, pre {
   border-bottom: none !important;
 }
 
+// ---- MathJax equation references (\eqref links) ----
+.post-body a[href^="#mjx-eqn"],
+.post-body mjx-container a,
+.MathJax a {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  color: #2563eb !important;
+}
+
+.post-body a[href^="#mjx-eqn"]:hover,
+.post-body mjx-container a:hover,
+.MathJax a:hover {
+  color: #1d4ed8 !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
 // ---- Hide footer ----
 .footer {
   display: none;
