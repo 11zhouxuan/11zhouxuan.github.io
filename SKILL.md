@@ -133,8 +133,16 @@ d &= e + f
 \end{aligned}$$
 ```
 
-### Equation numbering
-Use `\tag{N}` at the end of display math for manual numbering.
+### Equation numbering and cross-references
+Use `\tag{N}` for numbering and `\label{eq:name}` for cross-referencing:
+
+```
+$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t(Z(t)) \tag{1} \label{eq:ode}$$
+```
+
+Reference equations in text with `$\eqref{eq:ode}$` — MathJax renders this as a clickable `(1)` that jumps to the equation.
+
+For bilingual posts, use language-suffixed labels: `\label{eq:ode-zh}` and `\label{eq:ode-en}` to avoid conflicts between hidden/visible sections.
 
 ## Footnotes
 
