@@ -37,7 +37,7 @@ Flow Matching——连续生成模型中"无需模拟"训练目标的极简推�
 
 2. **一个 ODE**：由速度场 $v_t : \mathbb{R}^d \to \mathbb{R}^d$（$t \in [0,1]$）驱动的常微分方程。给定初始点 $x_0 \in \mathbb{R}^d$，定义轨迹 $Z : [0,1] \to \mathbb{R}^d$ 为
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t\big(Z(t)\big), \qquad Z(0) = x_0. \tag{1}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t\big(Z(t)\big), \qquad Z(0) = x_0. \tag{1} \label{eq:ode-zh}$$
 
 即 $Z(t) \in \mathbb{R}^d$ 是从 $x_0$ 出发、沿速度场运动到时刻 $t$ 的位置。当初始点取为随机变量 $X_0$ 时，我们把对应的轨迹简记为 $Z_t$（即 $Z_t := Z(t)$，初值 $Z_0 = X_0$），终点为 $Z_1$。
 
@@ -45,7 +45,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t\big(Z(t)\big), \qquad Z(0) = x_0. \ta
 
 ### 为什么用 ODE？——最优控制的视角
 
-我们的核心问题是：寻找一个未知函数 $v_t$，使得它驱动的动力系统能将源分布搬运到目标分布。这本质上是一个**最优控制问题**——$v_t$ 是"控制量"，ODE (1) 是"状态方程"，目标是终态分布逼近 $p_1$。ODE 提供了一个连续的、可微的演化框架，使得我们可以将"搬运分布"这个困难的静态问题，转化为"学一个速度场"这个可以用梯度方法求解的优化问题。<a href="#note-1" style="text-decoration:none"><sup>[1]</sup></a>
+我们的核心问题是：寻找一个未知函数 $v_t$，使得它驱动的动力系统能将源分布搬运到目标分布。这本质上是一个**最优控制问题**——$v_t$ 是"控制量"，ODE $\eqref{eq:ode-zh}$ 是"状态方程"，目标是终态分布逼近 $p_1$。ODE 提供了一个连续的、可微的演化框架，使得我们可以将"搬运分布"这个困难的静态问题，转化为"学一个速度场"这个可以用梯度方法求解的优化问题。<a href="#note-1" style="text-decoration:none"><sup>[1]</sup></a>
 
 ## 2. 第一步：构造辅助随机过程
 
@@ -53,7 +53,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t\big(Z(t)\big), \qquad Z(0) = x_0. \ta
 
 为了给 $v_t$ 的学习提供"参照"，我们构造一个**辅助随机过程**：对独立采样的 $X_0 \sim p_0$、$X_1 \sim p_1$，定义
 
-$$X_t := (1-t) X_0 + t X_1, \qquad t \in [0,1]. \tag{2}$$
+$$X_t := (1-t) X_0 + t X_1, \qquad t \in [0,1]. \tag{2} \label{eq:xt-zh}$$
 
 这个随机过程具有以下性质：
 - **端点正确**：$t=0$ 时 $X_0 = X_0 \sim p_0$，$t=1$ 时 $X_1 = X_1 \sim p_1$；
@@ -63,7 +63,7 @@ $$X_t := (1-t) X_0 + t X_1, \qquad t \in [0,1]. \tag{2}$$
 
 注意 $X_t$ 的定义**本身依赖于 $X_1$**——要计算 $X_t$，你必须已经知道终点 $X_1$ 是什么。因此，这个随机过程**不能**作为从 $p_1$ 中生成样本的方法（它是一个分析工具，不是生成工具）。
 
-真正的生成机制是 ODE (1)：它只需要初始点 $X_0 \sim p_0$ 和速度场 $v_t$，不依赖 $X_1$。我们的目标是找到 $v_t$，使得 ODE 驱动产生的随机变量 $Z_t$ 与辅助过程 $X_t$ **同分布**。特别地，当 $t=1$ 时，$Z_1 \overset{d}{=} X_1$——这才是生成。
+真正的生成机制是 ODE $\eqref{eq:ode-zh}$：它只需要初始点 $X_0 \sim p_0$ 和速度场 $v_t$，不依赖 $X_1$。我们的目标是找到 $v_t$，使得 ODE 驱动产生的随机变量 $Z_t$ 与辅助过程 $X_t$ **同分布**。特别地，当 $t=1$ 时，$Z_1 \overset{d}{=} X_1$——这才是生成。
 
 ### 为什么要构造 $X_t$？
 
@@ -79,29 +79,29 @@ $X_t$ 提供了一个"理想参照"：它的边际分布从 $p_0$ 平滑过渡�
 
 两个随机变量同分布，当且仅当它们在所有测试函数下的期望相同。即要求对任意光滑测试函数 $f$，
 
-$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall  t \in [0,1]. \tag{3}$$
+$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall  t \in [0,1]. \tag{3} \label{eq:equaldist-zh}$$
 
-对 (3) 两边关于 $t$ 求导，就能推出 $v_t$ 必须满足的条件。
+对 $\eqref{eq:equaldist-zh}$ 两边关于 $t$ 求导，就能推出 $v_t$ 必须满足的条件。
 
 ### 左边对 $t$ 求导
 
-由 ODE (1)，$\frac{\mathrm{d}}{\mathrm{d}t}Z_t = v_t(Z_t)$。对 $f(Z_t)$ 用链式法则：
+由 ODE $\eqref{eq:ode-zh}$，$\frac{\mathrm{d}}{\mathrm{d}t}Z_t = v_t(Z_t)$。对 $f(Z_t)$ 用链式法则：
 
 $$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(Z_t)] = \mathbb{E}[\nabla f(Z_t) \cdot v_t(Z_t)].$$
 
-若 (3) 成立（即 $Z_t \overset{d}{=} X_t$），则可将 $Z_t$ 替换为 $X_t$：
+若 $\eqref{eq:equaldist-zh}$ 成立（即 $Z_t \overset{d}{=} X_t$），则可将 $Z_t$ 替换为 $X_t$：
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)]. \tag{4}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)]. \tag{4} \label{eq:lhs-zh}$$
 
 ### 右边对 $t$ 求导
 
 由 $X_t = (1-t)X_0 + tX_1$，直接求导得 $\frac{\mathrm{d}}{\mathrm{d}t}X_t = X_1 - X_0$，链式法则给出：
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)]. \tag{5}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)]. \tag{5} \label{eq:rhs-zh}$$
 
 ### 联立两边
 
-由 (4) = (5)，得对一切 $f$ 成立：
+由 $\eqref{eq:lhs-zh}$ = $\eqref{eq:rhs-zh}$，得对一切 $f$ 成立：
 
 $$\mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)].$$
 
@@ -111,21 +111,21 @@ $$\mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)] = \mathbb{E}[\nabla f(X_t) \cdot \
 
 由 $f$ 的任意性，两边的"系数"在几乎处处必须相等，得到：
 
-$$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6}$$
+$$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6} \label{eq:vt-zh}$$
 
 <a href="#note-3" style="text-decoration:none"><sup>[3]</sup></a>
 
 <a href="#note-4" style="text-decoration:none"><sup>[4]</sup></a>
 
 {% note danger %}
-**障碍**：公式 (6) 给出了 $v_t(x)$ 的解析表达，但**不好直接计算**——计算条件期望需要知道 $X_1$ 的密度函数 $p_1$（从而得到联合密度与 $X_t$ 的边际密度），而 $p_1$ 正是我们没有的——我们只有从 $p_1$ 中抽出的有限样本。
+**障碍**：公式 $\eqref{eq:vt-zh}$ 给出了 $v_t(x)$ 的解析表达，但**不好直接计算**——计算条件期望需要知道 $X_1$ 的密度函数 $p_1$（从而得到联合密度与 $X_t$ 的边际密度），而 $p_1$ 正是我们没有的——我们只有从 $p_1$ 中抽出的有限样本。
 {% endnote %}
 
 ## 4. 第三步：化为可计算的损失
 
-$v_t$ 有解析解（公式 (6)），只是不好计算。一个自然的想法是直接用参数化的 $v_t^\theta$（如神经网络）去逼近 $v_t$，写成 **Flow Matching (FM) 损失**：
+$v_t$ 有解析解（公式 $\eqref{eq:vt-zh}$），只是不好计算。一个自然的想法是直接用参数化的 $v_t^\theta$（如神经网络）去逼近 $v_t$，写成 **Flow Matching (FM) 损失**：
 
-$$\mathcal{L}\_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
+$$\mathcal{L}\_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7} \label{eq:fm-zh}$$
 
 其中 $p_t$ 是 $X_t$ 的边际密度。但这同样不可算——它需要 $v_t(x)$ 和 $p_t(x)$ 的值，两者都依赖于未知的 $p_1$。
 
@@ -139,21 +139,21 @@ $v_t(X_t) = \mathbb{E}[X_1 - X_0 \mid X_t]$ 是 $X_1 - X_0$ 在 $\sigma(X_t)$（
 
 将 $v_t^\theta(X_t)$ 与标签 $X_1 - X_0$ 之间的误差展开——插入 $v_t(X_t)$：
 
-$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2 \text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$
+$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2 \text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8} \label{eq:expand-zh}$$
 
 交叉项为零：记 $h(X_t) := v_t^\theta(X_t) - v_t(X_t)$（$X_t$ 的函数），由塔性质：
 
-$$\text{Cross} = \mathbb{E}[h(X_t) \cdot (v_t(X_t) - (X_1 - X_0))] = \mathbb{E}[h(X_t) \cdot \mathbb{E}[v_t(X_t) - (X_1 - X_0) \mid X_t]] = 0 \tag{9}$$
+$$\text{Cross} = \mathbb{E}[h(X_t) \cdot (v_t(X_t) - (X_1 - X_0))] = \mathbb{E}[h(X_t) \cdot \mathbb{E}[v_t(X_t) - (X_1 - X_0) \mid X_t]] = 0 \tag{9} \label{eq:cross-zh}$$
 
 因为 $v_t(X_t) = \mathbb{E}[X_1-X_0 \mid X_t]$，条件期望内部恰好为零。
 
-因此 (8) 化简为：
+因此 $\eqref{eq:expand-zh}$ 化简为：
 
-$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{常数}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10}$$
+$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{常数}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10} \label{eq:pythagoras-zh}$$
 
 ### 结论
 
-由 (10)，最小化左边（标签为可采样的 $X_1-X_0$）等价于最小化右边第二项（逼近 $v_t$）：
+由 $\eqref{eq:pythagoras-zh}$，最小化左边（标签为可采样的 $X_1-X_0$）等价于最小化右边第二项（逼近 $v_t$）：
 
 $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
 
@@ -161,11 +161,11 @@ $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^
 
 对时间也取期望，得到最终的训练目标：
 
-$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11} \label{eq:cfm-zh}$$
 
 {% note success %}
 **为什么这个损失完全可算？**
-- 不需要 $v_t$ 的值——由正交性（公式 (10)），回归标签等价替换为可采样的 $X_1 - X_0$；
+- 不需要 $v_t$ 的值——由正交性（公式 $\eqref{eq:pythagoras-zh}$），回归标签等价替换为可采样的 $X_1 - X_0$；
 - 不需要 $X_t$ 的边际密度公式——输入点 $(1-t)X_0 + tX_1$ 就是 $X_t$ 的一个样本；
 - 蒙特卡洛估计只需：均匀抽 $t$，抽噪声 $X_0 \sim p_0$，抽数据 $X_1 \sim p_1$。
 
@@ -180,7 +180,7 @@ $$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0
 
 2. **推出目标速度场**：要求 ODE 的流 $Z_t$ 与 $X_t$ 同分布。对"同分布"条件两边求导、用塔性质，推出：$v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]$。
 
-3. **化为可计算的回归**：由 $L^2$ 正交投影的勾股定理，回归 $v_t$（不可算）与回归 $X_1 - X_0$（可采样）等价，得到 Flow Matching 损失 (11)。
+3. **化为可计算的回归**：由 $L^2$ 正交投影的勾股定理，回归 $v_t$（不可算）与回归 $X_1 - X_0$（可采样）等价，得到 Flow Matching 损失 $\eqref{eq:cfm-zh}$。
 
 ---
 
@@ -217,7 +217,7 @@ We have three basic objects:
 
 2. **An ODE**: driven by a velocity field $v_t : \mathbb{R}^d \to \mathbb{R}^d$ ($t \in [0,1]$). Given an initial point $x_0 \in \mathbb{R}^d$, define the trajectory $Z: [0,1] \to \mathbb{R}^d$ by
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t(Z(t)), \qquad Z(0) = x_0. \tag{1}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}Z(t) = v_t(Z(t)), \qquad Z(0) = x_0. \tag{1} \label{eq:ode-en}$$
 
 That is, $Z(t)$ is the position reached at time $t$ starting from $x_0$ following the velocity field. When the initial point is the random variable $X_0$, we write $Z_t := Z(t)$ with $Z_0 = X_0$, and the endpoint is $Z_1$.
 
@@ -225,7 +225,7 @@ That is, $Z(t)$ is the position reached at time $t$ starting from $x_0$ followin
 
 ### Why an ODE? — The Optimal Control Viewpoint
 
-Our core problem is: find an unknown function $v_t$ such that the dynamical system it drives transports the source distribution to the target. This is essentially an **optimal control problem** — $v_t$ is the "control", the ODE (1) is the "state equation", and the goal is for the terminal distribution to approximate $p_1$. The ODE provides a continuous, differentiable evolution framework that turns the hard static problem of "transporting a distribution" into the tractable optimization problem of "learning a velocity field" via gradient methods.<a href="#note-1" style="text-decoration:none"><sup>[1]</sup></a>
+Our core problem is: find an unknown function $v_t$ such that the dynamical system it drives transports the source distribution to the target. This is essentially an **optimal control problem** — $v_t$ is the "control", the ODE $\eqref{eq:ode-en}$ is the "state equation", and the goal is for the terminal distribution to approximate $p_1$. The ODE provides a continuous, differentiable evolution framework that turns the hard static problem of "transporting a distribution" into the tractable optimization problem of "learning a velocity field" via gradient methods.<a href="#note-1" style="text-decoration:none"><sup>[1]</sup></a>
 
 ## 2. Step One: Construct the Auxiliary Random Process
 
@@ -233,7 +233,7 @@ Our core problem is: find an unknown function $v_t$ such that the dynamical syst
 
 To provide a "reference" for learning $v_t$, we construct an **auxiliary random process**: for independently sampled $X_0 \sim p_0$, $X_1 \sim p_1$, define
 
-$$X_t := (1-t) X_0 + t X_1, \qquad t \in [0,1]. \tag{2}$$
+$$X_t := (1-t) X_0 + t X_1, \qquad t \in [0,1]. \tag{2} \label{eq:xt-en}$$
 
 This process has the following properties:
 - **Correct endpoints**: $X_0 = X_0 \sim p_0$ at $t=0$, and $X_1 = X_1 \sim p_1$ at $t=1$;
@@ -243,7 +243,7 @@ This process has the following properties:
 
 Note that the definition of $X_t$ **depends on $X_1$ itself** — to compute $X_t$, you must already know the endpoint $X_1$. Therefore, this process **cannot** serve as a method for generating samples from $p_1$ (it's an analytical tool, not a generative one).
 
-The actual generation mechanism is the ODE (1): it only needs an initial point $X_0 \sim p_0$ and the velocity field $v_t$, without depending on $X_1$. Our goal is to find $v_t$ such that the ODE-driven random variable $Z_t$ has the **same distribution** as $X_t$. In particular, at $t=1$: $Z_1 \overset{d}{=} X_1$ — that's generation.
+The actual generation mechanism is the ODE $\eqref{eq:ode-en}$: it only needs an initial point $X_0 \sim p_0$ and the velocity field $v_t$, without depending on $X_1$. Our goal is to find $v_t$ such that the ODE-driven random variable $Z_t$ has the **same distribution** as $X_t$. In particular, at $t=1$: $Z_1 \overset{d}{=} X_1$ — that's generation.
 
 ### Why Construct $X_t$?
 
@@ -259,29 +259,29 @@ We've constructed the auxiliary process $X_t = (1-t)X_0 + tX_1$. Now ask: **whic
 
 Two random variables have the same distribution if and only if they yield the same expectation under all test functions. We require: for all smooth test functions $f$,
 
-$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall  t \in [0,1]. \tag{3}$$
+$$\mathbb{E}[f(Z_t)] = \mathbb{E}[f(X_t)], \qquad \forall  t \in [0,1]. \tag{3} \label{eq:equaldist-en}$$
 
-Differentiating both sides of (3) with respect to $t$ yields the condition that $v_t$ must satisfy.
+Differentiating both sides of $\eqref{eq:equaldist-en}$ with respect to $t$ yields the condition that $v_t$ must satisfy.
 
 ### Differentiating the Left Side
 
-By ODE (1), $\frac{\mathrm{d}}{\mathrm{d}t}Z_t = v_t(Z_t)$. Applying the chain rule to $f(Z_t)$:
+By ODE $\eqref{eq:ode-en}$, $\frac{\mathrm{d}}{\mathrm{d}t}Z_t = v_t(Z_t)$. Applying the chain rule to $f(Z_t)$:
 
 $$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(Z_t)] = \mathbb{E}[\nabla f(Z_t) \cdot v_t(Z_t)].$$
 
-If (3) holds (i.e., $Z_t \overset{d}{=} X_t$), we can replace $Z_t$ with $X_t$:
+If $\eqref{eq:equaldist-en}$ holds (i.e., $Z_t \overset{d}{=} X_t$), we can replace $Z_t$ with $X_t$:
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)]. \tag{4}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)]. \tag{4} \label{eq:lhs-en}$$
 
 ### Differentiating the Right Side
 
 From $X_t = (1-t)X_0 + tX_1$, direct differentiation gives $\frac{\mathrm{d}}{\mathrm{d}t}X_t = X_1 - X_0$, and the chain rule yields:
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)]. \tag{5}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\mathbb{E}[f(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)]. \tag{5} \label{eq:rhs-en}$$
 
 ### Equating Both Sides
 
-From (4) = (5), for all $f$:
+From $\eqref{eq:lhs-en}$ = $\eqref{eq:rhs-en}$, for all $f$:
 
 $$\mathbb{E}[\nabla f(X_t) \cdot v_t(X_t)] = \mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)].$$
 
@@ -291,7 +291,7 @@ $$\mathbb{E}[\nabla f(X_t) \cdot (X_1 - X_0)] = \mathbb{E}[\nabla f(X_t) \cdot \
 
 By the arbitrariness of $f$, the "coefficients" must be equal almost everywhere:
 
-$$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6}$$
+$$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6} \label{eq:vt-en}$$
 
 <a href="#note-3" style="text-decoration:none"><sup>[3]</sup></a>
 
@@ -303,9 +303,9 @@ $$\boxed{v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]} \tag{6}$$
 
 ## 4. Step Three: Reduce to a Computable Loss
 
-$v_t$ has an analytic solution (formula (6)), it's just hard to compute. A natural idea is to directly approximate $v_t$ with a parameterized $v_t^\theta$ (e.g., a neural network), writing the **Flow Matching (FM) loss**:
+$v_t$ has an analytic solution (formula $\eqref{eq:vt-en}$), it's just hard to compute. A natural idea is to directly approximate $v_t$ with a parameterized $v_t^\theta$ (e.g., a neural network), writing the **Flow Matching (FM) loss**:
 
-$$\mathcal{L}\_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7}$$
+$$\mathcal{L}\_{\mathrm{FM}}(\theta) = \mathbb{E}_{t \sim \mathcal{U}[0,1]} \int \lVert v_t^\theta(x) - v_t(x)\rVert^2   p_t(x) \mathrm{d}x \tag{7} \label{eq:fm-en}$$
 
 where $p_t$ is the marginal density of $X_t$. But this is also intractable — it requires the values of $v_t(x)$ and $p_t(x)$, both depending on the unknown $p_1$.
 
@@ -319,21 +319,21 @@ $v_t(X_t) = \mathbb{E}[X_1 - X_0 \mid X_t]$ is the orthogonal projection of $X_1
 
 Expand the error between $v_t^\theta(X_t)$ and the label $X_1 - X_0$ — inserting $v_t(X_t)$:
 
-$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2 \text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8}$$
+$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 + 2 \text{Cross} + \mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2 \tag{8} \label{eq:expand-en}$$
 
 The cross term vanishes: let $h(X_t) := v_t^\theta(X_t) - v_t(X_t)$ (a function of $X_t$), by tower property:
 
-$$\text{Cross} = \mathbb{E}[h(X_t) \cdot (v_t(X_t) - (X_1 - X_0))] = \mathbb{E}[h(X_t) \cdot \mathbb{E}[v_t(X_t) - (X_1 - X_0) \mid X_t]] = 0 \tag{9}$$
+$$\text{Cross} = \mathbb{E}[h(X_t) \cdot (v_t(X_t) - (X_1 - X_0))] = \mathbb{E}[h(X_t) \cdot \mathbb{E}[v_t(X_t) - (X_1 - X_0) \mid X_t]] = 0 \tag{9} \label{eq:cross-en}$$
 
 since $v_t(X_t) = \mathbb{E}[X_1-X_0 \mid X_t]$, the conditional expectation inside is exactly zero.
 
-Therefore (8) simplifies to:
+Therefore $\eqref{eq:expand-en}$ simplifies to:
 
-$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{constant}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10}$$
+$$\mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \underbrace{\mathbb{E}\lVert v_t(X_t) - (X_1 - X_0)\rVert^2}_{\text{constant}} + \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2 \tag{10} \label{eq:pythagoras-en}$$
 
 ### Conclusion
 
-By (10), minimizing the left side (label is the sampleable $X_1-X_0$) is equivalent to minimizing the second term on the right (approximating $v_t$):
+By $\eqref{eq:pythagoras-en}$, minimizing the left side (label is the sampleable $X_1-X_0$) is equivalent to minimizing the second term on the right (approximating $v_t$):
 
 $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^2 = \arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - v_t(X_t)\rVert^2$$
 
@@ -341,11 +341,11 @@ $$\arg\min_\theta \enspace \mathbb{E}\lVert v_t^\theta(X_t) - (X_1 - X_0)\rVert^
 
 Taking expectation over time as well, we obtain the final training objective:
 
-$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11}$$
+$$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0,1]}  \mathbb{E}_{X_0 \sim p_0,  X_1 \sim p_1}  \lVert v_t^\theta((1-t)X_0 + tX_1) - (X_1 - X_0)\rVert^2} \tag{11} \label{eq:cfm-en}$$
 
 {% note success %}
 **Why is this loss fully computable?**
-- No need for the value of $v_t$ — by orthogonality (formula (10)), the regression label is equivalently replaced by the sampleable $X_1 - X_0$;
+- No need for the value of $v_t$ — by orthogonality (formula $\eqref{eq:pythagoras-en}$), the regression label is equivalently replaced by the sampleable $X_1 - X_0$;
 - No need for the marginal density formula of $X_t$ — the input point $(1-t)X_0 + tX_1$ is simply a sample of $X_t$;
 - Monte Carlo estimation only requires: sample $t$ uniformly, sample noise $X_0 \sim p_0$, sample data $X_1 \sim p_1$.
 
@@ -360,7 +360,7 @@ This is the fundamental reason Flow Matching is "simulation-free" (no ODE integr
 
 2. **Derive target velocity field**: Require the ODE flow $Z_t$ to match $X_t$ in distribution. Differentiate the "equal distribution" condition, apply the tower property, and obtain: $v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]$.
 
-3. **Reduce to computable regression**: By the Pythagorean theorem of $L^2$ orthogonal projection, regressing against $v_t$ (intractable) is equivalent to regressing against $X_1 - X_0$ (sampleable), yielding the Flow Matching loss (11).
+3. **Reduce to computable regression**: By the Pythagorean theorem of $L^2$ orthogonal projection, regressing against $v_t$ (intractable) is equivalent to regressing against $X_1 - X_0$ (sampleable), yielding the Flow Matching loss $\eqref{eq:cfm-en}$.
 
 ---
 
