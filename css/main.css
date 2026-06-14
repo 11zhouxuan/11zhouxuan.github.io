@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #11c2ff;
+  background: #c7ffff;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2962,6 +2962,21 @@ pre {
 }
 .post-body a[href^="#note-"]:hover {
   color: #145a62;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+.post-body a[href^="#mjx-eqn"],
+.post-body mjx-container a,
+.MathJax a {
+  text-decoration: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  color: #2563eb !important;
+}
+.post-body a[href^="#mjx-eqn"]:hover,
+.post-body mjx-container a:hover,
+.MathJax a:hover {
+  color: #1d4ed8 !important;
   text-decoration: none !important;
   border-bottom: none !important;
 }
