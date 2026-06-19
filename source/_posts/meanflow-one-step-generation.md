@@ -62,18 +62,7 @@ $$v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]$$
 
 **核心矛盾**：Flow Matching 的**训练**是高效的（simulation-free），但**推理**是昂贵的（多步 ODE 积分）。
 
-### 2.2 已有方法的不足：Consistency Models
-
-为了实现一步生成，Consistency Models (CM) 引入了一个**一致性约束**：要求网络在同一 ODE 轨迹上的不同时间点输出相同的终点。这是一个施加在**网络行为**上的约束，而非基于底层场的数学性质。
-
-{% note warning %}
-**CM 的困难**：
-- 一致性约束对应的 ground-truth field 性质**未知**——我们不清楚满足该约束的"理想解"长什么样；
-- 训练不稳定，需要精心设计的"离散化课程"（discretization curriculum）来逐步收紧约束；
-- 依赖于网络自身的输出作为目标（self-referential），容易产生误差累积。
-{% endnote %}
-
-### 2.3 MeanFlow 的出发点
+### 2.2 MeanFlow 的出发点
 
 MeanFlow 的设计动机可以概括为一个问题：
 
@@ -152,7 +141,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t
 
 将 (6) 代入 (5)，得到完全展开的形式：
 
-$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\big[v_t(Z_t) \cdot \partial_z u + \partial_t u\big] \tag{7}$$
+$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t u\right] \tag{7}$$
 
 {% note info %}
 **MeanFlow 恒等式的本质**：它是微积分基本定理的直接推论。左边是"平均速度"，右边用"瞬时速度"加上"平均速度随时间的变化率"来表达。这个恒等式**不依赖**任何神经网络——它是 $u$ 和 $v$ 之间的内在数学关系。
@@ -164,11 +153,11 @@ $$u(Z_t, s, t) = v_t(Z_t) - (t-s)\big[v_t(Z_t) \cdot \partial_z u + \partial_t u
 
 将恒等式 (7) 视为"$u$ 等于某个目标"的形式，用神经网络 $u_\theta$ 替代右边的 $u$（的导数部分），构造**有效回归目标**：
 
-$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)\,\big[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{8}$$
+$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)\,\left[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{8}$$
 
 ### 损失函数
 
-$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\Big\|u_\theta(X_t, s, t) - \mathrm{sg}\big(u_{\mathrm{tgt}}\big)\Big\|^2} \tag{9}$$
+$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$
 
 其中 $\mathrm{sg}(\cdot)$ 表示 stop-gradient（将目标视为常数，不对其反向传播）。
 
@@ -178,7 +167,7 @@ $$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\Big\|
 
 在默认的线性插值下 $X_t = (1-t)X_0 + tX_1$，条件速度为 $X_1 - X_0$。于是最终的回归目标为：
 
-$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{10}$$
+$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{10}$$
 
 {% note success %}
 **为什么可以用条件速度代替边际速度？**
@@ -198,7 +187,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta = (X_1 - X_0) \cdot \partial_z u_\the
 
 在我们的场景中，$u_\theta$ 的输入为 $(z, s, t) \in \mathbb{R}^{d+2}$，它的 Jacobian 为
 
-$$J_{u_\theta} = \big[\,\partial_z u_\theta \;\big|\; \partial_s u_\theta \;\big|\; \partial_t u_\theta\,\big] \in \mathbb{R}^{d \times (d+2)}$$
+$$J_{u_\theta} = \left[\,\partial_z u_\theta \;\mid\; \partial_s u_\theta \;\mid\; \partial_t u_\theta\,\right] \in \mathbb{R}^{d \times (d+2)}$$
 
 我们需要计算的全导数恰好是这个 Jacobian 与切向量 $(X_1 - X_0,\; 0,\; 1) \in \mathbb{R}^{d+2}$ 的乘积：
 
@@ -232,7 +221,7 @@ $$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 
 
 因此，MeanFlow 的训练可以看作**标准 FM 加上一个 JVP 修正项**：
 
-$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM 目标}} - \underbrace{(t-s)\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big]}\_{\text{MeanFlow 修正}}$$
+$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM 目标}} - \underbrace{(t-s)\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right]}\_{\text{MeanFlow 修正}}$$
 
 实践中，训练时随机采样一定比例的 $s \neq t$ 样本（如 25%），其余 $s = t$ 的样本相当于做标准 FM 训练。
 {% endnote %}
@@ -303,18 +292,7 @@ is typically **curved**. This means coarse Euler methods — e.g., one-step esti
 
 **Core tension**: Flow Matching **training** is efficient (simulation-free), but **inference** is expensive (multi-step ODE integration).
 
-### 2.2 Limitations of Existing Approaches: Consistency Models
-
-To achieve one-step generation, Consistency Models (CM) introduce a **consistency constraint**: requiring the network to output the same endpoint for inputs at different time steps along the same ODE trajectory. This is a constraint imposed on **network behavior**, not based on mathematical properties of the underlying field.
-
-{% note warning %}
-**CM difficulties**:
-- The ground-truth field corresponding to the consistency constraint is **unknown** — we don't know what the "ideal solution" looks like;
-- Training is unstable, requiring carefully designed "discretization curriculum" to progressively tighten constraints;
-- Relies on the network's own output as target (self-referential), prone to error accumulation.
-{% endnote %}
-
-### 2.3 MeanFlow's Starting Point
+### 2.2 MeanFlow's Starting Point
 
 MeanFlow's design motivation can be summarized as one question:
 
@@ -393,7 +371,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t
 
 Substituting (6) into (5), the fully expanded form is:
 
-$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\big[v_t(Z_t) \cdot \partial_z u + \partial_t u\big] \tag{7}$$
+$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t u\right] \tag{7}$$
 
 {% note info %}
 **Essence of the MeanFlow Identity**: It's a direct consequence of the Fundamental Theorem of Calculus. The left side is "average velocity"; the right side expresses it via "instantaneous velocity" plus "rate of change of average velocity". This identity is **independent** of any neural network — it's an intrinsic mathematical relationship between $u$ and $v$.
@@ -405,11 +383,11 @@ $$u(Z_t, s, t) = v_t(Z_t) - (t-s)\big[v_t(Z_t) \cdot \partial_z u + \partial_t u
 
 Viewing identity (7) as "$u$ equals some target," we replace $u$ (its derivatives) on the right with the neural network $u_\theta$ to construct the **effective regression target**:
 
-$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)\,\big[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{8}$$
+$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)\,\left[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{8}$$
 
 ### Loss Function
 
-$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\Big\|u_\theta(X_t, s, t) - \mathrm{sg}\big(u_{\mathrm{tgt}}\big)\Big\|^2} \tag{9}$$
+$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$
 
 where $\mathrm{sg}(\cdot)$ denotes stop-gradient (treating the target as a constant, no backpropagation through it).
 
@@ -419,7 +397,7 @@ The $v_t(Z_t)$ in the identity is the **marginal velocity field** — i.e., $\ma
 
 Under linear interpolation $X_t = (1-t)X_0 + tX_1$, the conditional velocity is $X_1 - X_0$. The final regression target becomes:
 
-$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{10}$$
+$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{10}$$
 
 {% note success %}
 **Why can we replace marginal with conditional velocity?**
@@ -439,7 +417,7 @@ $$\frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta = (X_1 - X_0) \cdot \partial_z u_\the
 
 In our setting, $u_\theta$ takes input $(z, s, t) \in \mathbb{R}^{d+2}$ with Jacobian:
 
-$$J_{u_\theta} = \big[\,\partial_z u_\theta \;\big|\; \partial_s u_\theta \;\big|\; \partial_t u_\theta\,\big] \in \mathbb{R}^{d \times (d+2)}$$
+$$J_{u_\theta} = \left[\,\partial_z u_\theta \;\mid\; \partial_s u_\theta \;\mid\; \partial_t u_\theta\,\right] \in \mathbb{R}^{d \times (d+2)}$$
 
 The total derivative we need is exactly this Jacobian times tangent vector $(X_1 - X_0,\; 0,\; 1) \in \mathbb{R}^{d+2}$:
 
@@ -473,7 +451,7 @@ That's it. No ODE integration needed.
 
 Thus, MeanFlow training is **standard FM plus a JVP correction**:
 
-$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM target}} - \underbrace{(t-s)\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big]}\_{\text{MeanFlow correction}}$$
+$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM target}} - \underbrace{(t-s)\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right]}\_{\text{MeanFlow correction}}$$
 
 In practice, a fraction (e.g., 25%) of training samples use $s \neq t$; the rest use $s = t$, equivalent to standard FM training.
 {% endnote %}
