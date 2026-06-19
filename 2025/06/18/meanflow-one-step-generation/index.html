@@ -27,7 +27,7 @@
 <meta property="og:description" content="English   中文    从 Flow Matching 到 MeanFlow——用同一分析框架推导一步生成的训练目标。">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-06-18T10:00:00.000Z">
-<meta property="article:modified_time" content="2026-06-18T12:19:41.099Z">
+<meta property="article:modified_time" content="2026-06-19T01:05:27.226Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="flow matching">
 <meta property="article:tag" content="generative models">
@@ -171,7 +171,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%AE%9A%EF%BC%9A%E4%B8%8E-Flow-Matching-%E5%AE%8C%E5%85%A8%E7%9B%B8%E5%90%8C"><span class="nav-text">1. 设定：与 Flow Matching 完全相同</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8A%A8%E6%9C%BA%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81-MeanFlow%EF%BC%9F"><span class="nav-text">2. 动机：为什么需要 MeanFlow？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-Flow-Matching-%E7%9A%84%E7%93%B6%E9%A2%88%EF%BC%9A%E5%A4%9A%E6%AD%A5%E9%87%87%E6%A0%B7"><span class="nav-text">2.1 Flow Matching 的瓶颈：多步采样</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E5%B7%B2%E6%9C%89%E6%96%B9%E6%B3%95%E7%9A%84%E4%B8%8D%E8%B6%B3%EF%BC%9AConsistency-Models"><span class="nav-text">2.2 已有方法的不足：Consistency Models</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-MeanFlow-%E7%9A%84%E5%87%BA%E5%8F%91%E7%82%B9"><span class="nav-text">2.3 MeanFlow 的出发点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E5%AE%9A%E4%B9%89%E5%B9%B3%E5%9D%87%E9%80%9F%E5%BA%A6"><span class="nav-text">3. 第一步：定义平均速度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E6%8E%A8%E5%AF%BC-MeanFlow-%E6%81%92%E7%AD%89%E5%BC%8F"><span class="nav-text">4. 第二步：推导 MeanFlow 恒等式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%95%E5%BC%80%E5%85%A8%E5%AF%BC%E6%95%B0"><span class="nav-text">展开全导数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E6%9E%84%E9%80%A0%E5%8F%AF%E8%AE%AD%E7%BB%83%E7%9A%84%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0"><span class="nav-text">5. 第三步：构造可训练的损失函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E5%9B%9E%E5%BD%92%E7%9B%AE%E6%A0%87"><span class="nav-text">构造回归目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0"><span class="nav-text">损失函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%EF%BC%9A%E7%9E%AC%E6%97%B6%E9%80%9F%E5%BA%A6%E7%9A%84%E6%9B%BF%E6%8D%A2"><span class="nav-text">关键：瞬时速度的替换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JVP-%E7%9A%84%E5%90%AB%E4%B9%89%E4%B8%8E%E9%AB%98%E6%95%88%E8%AE%A1%E7%AE%97"><span class="nav-text">JVP 的含义与高效计算</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E9%87%87%E6%A0%B7%EF%BC%9A%E4%B8%80%E6%AD%A5%E7%94%9F%E6%88%90"><span class="nav-text">6. 采样：一步生成</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E4%B8%8E-Flow-Matching-%E7%9A%84%E7%BB%9F%E4%B8%80%E8%A7%86%E8%A7%92"><span class="nav-text">7. 与 Flow Matching 的统一视角</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-%E6%80%BB%E7%BB%93%EF%BC%9A%E4%B8%89%E6%AD%A5%E9%80%BB%E8%BE%91%E9%93%BE"><span class="nav-text">8. 总结：三步逻辑链</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Setting-Identical-to-Flow-Matching"><span class="nav-text">1. Setting: Identical to Flow Matching</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Motivation-Why-Do-We-Need-MeanFlow"><span class="nav-text">2. Motivation: Why Do We Need MeanFlow?</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-Flow-Matching-Bottleneck-Multi-Step-Sampling"><span class="nav-text">2.1 Flow Matching Bottleneck: Multi-Step Sampling</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Limitations-of-Existing-Approaches-Consistency-Models"><span class="nav-text">2.2 Limitations of Existing Approaches: Consistency Models</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-MeanFlow-s-Starting-Point"><span class="nav-text">2.3 MeanFlow&#39;s Starting Point</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Step-One-Define-Average-Velocity"><span class="nav-text">3. Step One: Define Average Velocity</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Step-Two-Derive-the-MeanFlow-Identity"><span class="nav-text">4. Step Two: Derive the MeanFlow Identity</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Expanding-the-Total-Derivative"><span class="nav-text">Expanding the Total Derivative</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-Step-Three-Construct-the-Trainable-Loss"><span class="nav-text">5. Step Three: Construct the Trainable Loss</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Constructing-the-Regression-Target"><span class="nav-text">Constructing the Regression Target</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Loss-Function"><span class="nav-text">Loss Function</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Key-Replacing-Instantaneous-Velocity"><span class="nav-text">Key: Replacing Instantaneous Velocity</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JVP-Meaning-and-Efficient-Computation"><span class="nav-text">JVP: Meaning and Efficient Computation</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-Sampling-One-Step-Generation"><span class="nav-text">6. Sampling: One-Step Generation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-Unified-View-with-Flow-Matching"><span class="nav-text">7. Unified View with Flow Matching</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-Summary-Three-Step-Logic-Chain"><span class="nav-text">8. Summary: Three-Step Logic Chain</span></a></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BE%E5%AE%9A%EF%BC%9A%E4%B8%8E-Flow-Matching-%E5%AE%8C%E5%85%A8%E7%9B%B8%E5%90%8C"><span class="nav-text">1. 设定：与 Flow Matching 完全相同</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%8A%A8%E6%9C%BA%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81-MeanFlow%EF%BC%9F"><span class="nav-text">2. 动机：为什么需要 MeanFlow？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-Flow-Matching-%E7%9A%84%E7%93%B6%E9%A2%88%EF%BC%9A%E5%A4%9A%E6%AD%A5%E9%87%87%E6%A0%B7"><span class="nav-text">2.1 Flow Matching 的瓶颈：多步采样</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-MeanFlow-%E7%9A%84%E5%87%BA%E5%8F%91%E7%82%B9"><span class="nav-text">2.2 MeanFlow 的出发点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E5%AE%9A%E4%B9%89%E5%B9%B3%E5%9D%87%E9%80%9F%E5%BA%A6"><span class="nav-text">3. 第一步：定义平均速度</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E6%8E%A8%E5%AF%BC-MeanFlow-%E6%81%92%E7%AD%89%E5%BC%8F"><span class="nav-text">4. 第二步：推导 MeanFlow 恒等式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%95%E5%BC%80%E5%85%A8%E5%AF%BC%E6%95%B0"><span class="nav-text">展开全导数</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E7%AC%AC%E4%B8%89%E6%AD%A5%EF%BC%9A%E6%9E%84%E9%80%A0%E5%8F%AF%E8%AE%AD%E7%BB%83%E7%9A%84%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0"><span class="nav-text">5. 第三步：构造可训练的损失函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9E%84%E9%80%A0%E5%9B%9E%E5%BD%92%E7%9B%AE%E6%A0%87"><span class="nav-text">构造回归目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8D%9F%E5%A4%B1%E5%87%BD%E6%95%B0"><span class="nav-text">损失函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%EF%BC%9A%E7%9E%AC%E6%97%B6%E9%80%9F%E5%BA%A6%E7%9A%84%E6%9B%BF%E6%8D%A2"><span class="nav-text">关键：瞬时速度的替换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JVP-%E7%9A%84%E5%90%AB%E4%B9%89%E4%B8%8E%E9%AB%98%E6%95%88%E8%AE%A1%E7%AE%97"><span class="nav-text">JVP 的含义与高效计算</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E9%87%87%E6%A0%B7%EF%BC%9A%E4%B8%80%E6%AD%A5%E7%94%9F%E6%88%90"><span class="nav-text">6. 采样：一步生成</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E4%B8%8E-Flow-Matching-%E7%9A%84%E7%BB%9F%E4%B8%80%E8%A7%86%E8%A7%92"><span class="nav-text">7. 与 Flow Matching 的统一视角</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-%E6%80%BB%E7%BB%93%EF%BC%9A%E4%B8%89%E6%AD%A5%E9%80%BB%E8%BE%91%E9%93%BE"><span class="nav-text">8. 总结：三步逻辑链</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Setting-Identical-to-Flow-Matching"><span class="nav-text">1. Setting: Identical to Flow Matching</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Motivation-Why-Do-We-Need-MeanFlow"><span class="nav-text">2. Motivation: Why Do We Need MeanFlow?</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-Flow-Matching-Bottleneck-Multi-Step-Sampling"><span class="nav-text">2.1 Flow Matching Bottleneck: Multi-Step Sampling</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-MeanFlow-s-Starting-Point"><span class="nav-text">2.2 MeanFlow&#39;s Starting Point</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Step-One-Define-Average-Velocity"><span class="nav-text">3. Step One: Define Average Velocity</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Step-Two-Derive-the-MeanFlow-Identity"><span class="nav-text">4. Step Two: Derive the MeanFlow Identity</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Expanding-the-Total-Derivative"><span class="nav-text">Expanding the Total Derivative</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-Step-Three-Construct-the-Trainable-Loss"><span class="nav-text">5. Step Three: Construct the Trainable Loss</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Constructing-the-Regression-Target"><span class="nav-text">Constructing the Regression Target</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Loss-Function"><span class="nav-text">Loss Function</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Key-Replacing-Instantaneous-Velocity"><span class="nav-text">Key: Replacing Instantaneous Velocity</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JVP-Meaning-and-Efficient-Computation"><span class="nav-text">JVP: Meaning and Efficient Computation</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-Sampling-One-Step-Generation"><span class="nav-text">6. Sampling: One-Step Generation</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-Unified-View-with-Flow-Matching"><span class="nav-text">7. Unified View with Flow Matching</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-Summary-Three-Step-Logic-Chain"><span class="nav-text">8. Summary: Three-Step Logic Chain</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -263,7 +263,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-06-18 12:19:41" itemprop="dateModified" datetime="2026-06-18T12:19:41+00:00">2026-06-18</time>
+      <time title="Modified: 2026-06-19 01:05:27" itemprop="dateModified" datetime="2026-06-19T01:05:27+00:00">2026-06-19</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -322,16 +322,7 @@
 <p>$$v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]$$</p>
 <p>（对所有可能的 $(X_0, X_1)$ 取条件平均后的速度场）通常是<strong>弯曲</strong>的。这意味着粗糙的欧拉法——比如一步估计 $Z_1 \approx Z_0 + v_0(Z_0)$——会产生很大的误差。实践中需要 100–250 步数值积分才能得到高质量的生成结果。</p>
 <p><strong>核心矛盾</strong>：Flow Matching 的<strong>训练</strong>是高效的（simulation-free），但<strong>推理</strong>是昂贵的（多步 ODE 积分）。</p>
-<h3 id="2-2-已有方法的不足：Consistency-Models">2.2 已有方法的不足：Consistency Models</h3>
-<p>为了实现一步生成，Consistency Models (CM) 引入了一个<strong>一致性约束</strong>：要求网络在同一 ODE 轨迹上的不同时间点输出相同的终点。这是一个施加在<strong>网络行为</strong>上的约束，而非基于底层场的数学性质。</p>
-<div class="note warning"><p><strong>CM 的困难</strong>：</p>
-<ul>
-<li>一致性约束对应的 ground-truth field 性质<strong>未知</strong>——我们不清楚满足该约束的&quot;理想解&quot;长什么样；</li>
-<li>训练不稳定，需要精心设计的&quot;离散化课程&quot;（discretization curriculum）来逐步收紧约束；</li>
-<li>依赖于网络自身的输出作为目标（self-referential），容易产生误差累积。</li>
-</ul>
-</div>
-<h3 id="2-3-MeanFlow-的出发点">2.3 MeanFlow 的出发点</h3>
+<h3 id="2-2-MeanFlow-的出发点">2.2 MeanFlow 的出发点</h3>
 <p>MeanFlow 的设计动机可以概括为一个问题：</p>
 <div class="note info"><p><strong>核心问题</strong>：能否找到一个有<strong>明确数学定义</strong>的 ground-truth field，使得：</p>
 <ol>
@@ -378,20 +369,20 @@
 <p>注意 $\frac{\mathrm{d}}{\mathrm{d}t}$ 是沿 ODE 轨迹的<strong>全导数</strong>（total derivative）。$u$ 的变量为 $(Z_t, s, t)$，其中 $Z_t$ 本身依赖 $t$（通过 ODE），而 $s$ 不依赖 $t$。用链式法则：</p>
 <p>$$\frac{\mathrm{d}}{\mathrm{d}t},u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t}{\mathrm{d}t}}_{= v_t(Z_t)} \cdot \partial_z u + \underbrace{\frac{\mathrm{d}s}{\mathrm{d}t}}_{= 0} \cdot \partial_s u + \underbrace{\frac{\mathrm{d}t}{\mathrm{d}t}}_{= 1} \cdot \partial_t u = v_t(Z_t) \cdot \partial_z u + \partial_t u \tag{6}$$</p>
 <p>将 (6) 代入 (5)，得到完全展开的形式：</p>
-<p>$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\big[v_t(Z_t) \cdot \partial_z u + \partial_t u\big] \tag{7}$$</p>
+<p>$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t u\right] \tag{7}$$</p>
 <div class="note info"><p><strong>MeanFlow 恒等式的本质</strong>：它是微积分基本定理的直接推论。左边是&quot;平均速度&quot;，右边用&quot;瞬时速度&quot;加上&quot;平均速度随时间的变化率&quot;来表达。这个恒等式<strong>不依赖</strong>任何神经网络——它是 $u$ 和 $v$ 之间的内在数学关系。</p>
 </div>
 <h2 id="5-第三步：构造可训练的损失函数">5. 第三步：构造可训练的损失函数</h2>
 <h3 id="构造回归目标">构造回归目标</h3>
 <p>将恒等式 (7) 视为&quot;$u$ 等于某个目标&quot;的形式，用神经网络 $u_\theta$ 替代右边的 $u$（的导数部分），构造<strong>有效回归目标</strong>：</p>
-<p>$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s),\big[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{8}$$</p>
+<p>$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s),\left[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{8}$$</p>
 <h3 id="损失函数">损失函数</h3>
-<p>$$\boxed{\mathcal{L}(\theta) = \mathbb{E}_{s,t};\mathbb{E}_{X_0, X_1};\Big|u_\theta(X_t, s, t) - \mathrm{sg}\big(u_{\mathrm{tgt}}\big)\Big|^2} \tag{9}$$</p>
+<p>$$\boxed{\mathcal{L}(\theta) = \mathbb{E}_{s,t};\mathbb{E}_{X_0, X_1};\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$</p>
 <p>其中 $\mathrm{sg}(\cdot)$ 表示 stop-gradient（将目标视为常数，不对其反向传播）。</p>
 <h3 id="关键：瞬时速度的替换">关键：瞬时速度的替换</h3>
 <p>恒等式中的 $v_t(Z_t)$ 是<strong>边际速度场</strong>——即 $\mathbb{E}[X_1 - X_0 \mid X_t = Z_t]$（回顾前文第二步的结论）。与标准 Flow Matching 完全相同的技巧：我们用<strong>条件速度</strong>（可采样的 $X_1 - X_0$，对应一个具体的 $(X_0, X_1)$ 对）代替边际速度。</p>
 <p>在默认的线性插值下 $X_t = (1-t)X_0 + tX_1$，条件速度为 $X_1 - X_0$。于是最终的回归目标为：</p>
-<p>$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s),\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{10}$$</p>
+<p>$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s),\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{10}$$</p>
 <div class="note success"><p><strong>为什么可以用条件速度代替边际速度？</strong></p>
 <p>这与前文 Flow Matching 的推导完全一致：给定 $X_t$，条件速度 $X_1 - X_0$ 的条件期望就是边际速度 $v_t(X_t) = \mathbb{E}[X_1 - X_0 \mid X_t]$。由 $L^2$ 正交性，用条件速度作为目标与用边际速度作为目标，在最小化意义下等价。</p>
 <p>更直观地说：对每个训练样本 $(X_0, X_1)$，我们知道通过 $X_t$ 的这条具体轨迹的速度是 $X_1 - X_0$。虽然每次只看到一个方向，但在大量样本上取平均后，效果等价于对边际速度做回归。</p>
@@ -401,7 +392,7 @@
 <p>$$\frac{\mathrm{d}}{\mathrm{d}t},u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$$</p>
 <p><strong>什么是 Jacobian-Vector Product (JVP)？</strong> 设 $F: \mathbb{R}^n \to \mathbb{R}^m$ 是一个可微映射，它在输入 $x$ 处的 Jacobian 矩阵为 $J_F(x) \in \mathbb{R}^{m \times n}$。给定一个&quot;切向量&quot; $v \in \mathbb{R}^n$，<strong>JVP</strong> 定义为矩阵-向量乘积 $J_F(x) \cdot v \in \mathbb{R}^m$。直观上，JVP 回答的问题是：<em>当输入沿方向 $v$ 微扰时，输出如何变化？</em></p>
 <p>在我们的场景中，$u_\theta$ 的输入为 $(z, s, t) \in \mathbb{R}^{d+2}$，它的 Jacobian 为</p>
-<p>$$J_{u_\theta} = \big[,\partial_z u_\theta ;\big|; \partial_s u_\theta ;\big|; \partial_t u_\theta,\big] \in \mathbb{R}^{d \times (d+2)}$$</p>
+<p>$$J_{u_\theta} = \left[,\partial_z u_\theta ;\mid; \partial_s u_\theta ;\mid; \partial_t u_\theta,\right] \in \mathbb{R}^{d \times (d+2)}$$</p>
 <p>我们需要计算的全导数恰好是这个 Jacobian 与切向量 $(X_1 - X_0,; 0,; 1) \in \mathbb{R}^{d+2}$ 的乘积：</p>
 <p>$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\ 0 \\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + 0 \cdot \partial_s u_\theta + 1 \cdot \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t},u_\theta$$</p>
 <p>这正是&quot;沿 ODE 轨迹方向的方向导数&quot;——切向量的三个分量分别对应 $\frac{\mathrm{d}z}{\mathrm{d}t} = v_t = X_1 - X_0$、$\frac{\mathrm{d}s}{\mathrm{d}t} = 0$、$\frac{\mathrm{d}t}{\mathrm{d}t} = 1$。</p>
@@ -423,7 +414,7 @@
 <li>当 $s \neq t$ 时：额外的 $(t-s) \cdot \frac{\mathrm{d}}{\mathrm{d}t}u$ 项提供了&quot;跨时间&quot;的信息传播，使网络学习到的不仅是局部切方向，还有全局位移方向。</li>
 </ul>
 <p>因此，MeanFlow 的训练可以看作<strong>标准 FM 加上一个 JVP 修正项</strong>：</p>
-<p>$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}_{\text{FM 目标}} - \underbrace{(t-s)\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big]}_{\text{MeanFlow 修正}}$$</p>
+<p>$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}_{\text{FM 目标}} - \underbrace{(t-s)\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right]}_{\text{MeanFlow 修正}}$$</p>
 <p>实践中，训练时随机采样一定比例的 $s \neq t$ 样本（如 25%），其余 $s = t$ 的样本相当于做标准 FM 训练。</p>
 </div>
 <h2 id="8-总结：三步逻辑链">8. 总结：三步逻辑链</h2>
@@ -471,16 +462,7 @@
 <p>$$v_t(x) = \mathbb{E}[X_1 - X_0 \mid X_t = x]$$</p>
 <p>is typically <strong>curved</strong>. This means coarse Euler methods — e.g., one-step estimate $Z_1 \approx Z_0 + v_0(Z_0)$ — incur large errors. In practice, 100–250 integration steps are needed for high-quality generation.</p>
 <p><strong>Core tension</strong>: Flow Matching <strong>training</strong> is efficient (simulation-free), but <strong>inference</strong> is expensive (multi-step ODE integration).</p>
-<h3 id="2-2-Limitations-of-Existing-Approaches-Consistency-Models">2.2 Limitations of Existing Approaches: Consistency Models</h3>
-<p>To achieve one-step generation, Consistency Models (CM) introduce a <strong>consistency constraint</strong>: requiring the network to output the same endpoint for inputs at different time steps along the same ODE trajectory. This is a constraint imposed on <strong>network behavior</strong>, not based on mathematical properties of the underlying field.</p>
-<div class="note warning"><p><strong>CM difficulties</strong>:</p>
-<ul>
-<li>The ground-truth field corresponding to the consistency constraint is <strong>unknown</strong> — we don't know what the &quot;ideal solution&quot; looks like;</li>
-<li>Training is unstable, requiring carefully designed &quot;discretization curriculum&quot; to progressively tighten constraints;</li>
-<li>Relies on the network's own output as target (self-referential), prone to error accumulation.</li>
-</ul>
-</div>
-<h3 id="2-3-MeanFlow-s-Starting-Point">2.3 MeanFlow's Starting Point</h3>
+<h3 id="2-2-MeanFlow-s-Starting-Point">2.2 MeanFlow's Starting Point</h3>
 <p>MeanFlow's design motivation can be summarized as one question:</p>
 <div class="note info"><p><strong>Core question</strong>: Can we find a ground-truth field with a <strong>clear mathematical definition</strong> such that:</p>
 <ol>
@@ -527,20 +509,20 @@
 <p>Note $\frac{\mathrm{d}}{\mathrm{d}t}$ is the <strong>total derivative</strong> along the ODE trajectory. Since $u$ depends on $(Z_t, s, t)$ where $Z_t$ itself depends on $t$ (via ODE) while $s$ doesn't, the chain rule gives:</p>
 <p>$$\frac{\mathrm{d}}{\mathrm{d}t},u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t}{\mathrm{d}t}}_{= v_t(Z_t)} \cdot \partial_z u + \underbrace{\frac{\mathrm{d}s}{\mathrm{d}t}}_{= 0} \cdot \partial_s u + \underbrace{\frac{\mathrm{d}t}{\mathrm{d}t}}_{= 1} \cdot \partial_t u = v_t(Z_t) \cdot \partial_z u + \partial_t u \tag{6}$$</p>
 <p>Substituting (6) into (5), the fully expanded form is:</p>
-<p>$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\big[v_t(Z_t) \cdot \partial_z u + \partial_t u\big] \tag{7}$$</p>
+<p>$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t u\right] \tag{7}$$</p>
 <div class="note info"><p><strong>Essence of the MeanFlow Identity</strong>: It's a direct consequence of the Fundamental Theorem of Calculus. The left side is &quot;average velocity&quot;; the right side expresses it via &quot;instantaneous velocity&quot; plus &quot;rate of change of average velocity&quot;. This identity is <strong>independent</strong> of any neural network — it's an intrinsic mathematical relationship between $u$ and $v$.</p>
 </div>
 <h2 id="5-Step-Three-Construct-the-Trainable-Loss">5. Step Three: Construct the Trainable Loss</h2>
 <h3 id="Constructing-the-Regression-Target">Constructing the Regression Target</h3>
 <p>Viewing identity (7) as &quot;$u$ equals some target,&quot; we replace $u$ (its derivatives) on the right with the neural network $u_\theta$ to construct the <strong>effective regression target</strong>:</p>
-<p>$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s),\big[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{8}$$</p>
+<p>$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s),\left[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{8}$$</p>
 <h3 id="Loss-Function">Loss Function</h3>
-<p>$$\boxed{\mathcal{L}(\theta) = \mathbb{E}_{s,t};\mathbb{E}_{X_0, X_1};\Big|u_\theta(X_t, s, t) - \mathrm{sg}\big(u_{\mathrm{tgt}}\big)\Big|^2} \tag{9}$$</p>
+<p>$$\boxed{\mathcal{L}(\theta) = \mathbb{E}_{s,t};\mathbb{E}_{X_0, X_1};\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$</p>
 <p>where $\mathrm{sg}(\cdot)$ denotes stop-gradient (treating the target as a constant, no backpropagation through it).</p>
 <h3 id="Key-Replacing-Instantaneous-Velocity">Key: Replacing Instantaneous Velocity</h3>
 <p>The $v_t(Z_t)$ in the identity is the <strong>marginal velocity field</strong> — i.e., $\mathbb{E}[X_1 - X_0 \mid X_t = Z_t]$ (from our previous derivation). Using the exact same trick as standard Flow Matching: replace <strong>marginal velocity</strong> with the sampleable <strong>conditional velocity</strong> $X_1 - X_0$.</p>
 <p>Under linear interpolation $X_t = (1-t)X_0 + tX_1$, the conditional velocity is $X_1 - X_0$. The final regression target becomes:</p>
-<p>$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s),\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big] \tag{10}$$</p>
+<p>$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s),\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{10}$$</p>
 <div class="note success"><p><strong>Why can we replace marginal with conditional velocity?</strong></p>
 <p>Exactly as in our Flow Matching derivation: given $X_t$, the conditional expectation of $X_1 - X_0$ is the marginal velocity $v_t(X_t) = \mathbb{E}[X_1 - X_0 \mid X_t]$. By $L^2$ orthogonality, using conditional velocity as target is equivalent to using marginal velocity for minimization purposes.</p>
 <p>Intuitively: for each training sample $(X_0, X_1)$, we know the velocity along this specific trajectory through $X_t$ is $X_1 - X_0$. Though we only see one direction each time, averaging over many samples is equivalent to regressing against the marginal velocity.</p>
@@ -550,7 +532,7 @@
 <p>$$\frac{\mathrm{d}}{\mathrm{d}t},u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$$</p>
 <p><strong>What is a Jacobian-Vector Product (JVP)?</strong> Given a differentiable map $F: \mathbb{R}^n \to \mathbb{R}^m$ with Jacobian $J_F(x) \in \mathbb{R}^{m \times n}$ at input $x$, and a &quot;tangent vector&quot; $v \in \mathbb{R}^n$, the <strong>JVP</strong> is the matrix-vector product $J_F(x) \cdot v \in \mathbb{R}^m$. Intuitively, JVP answers: <em>how does the output change when the input is perturbed along direction $v$?</em></p>
 <p>In our setting, $u_\theta$ takes input $(z, s, t) \in \mathbb{R}^{d+2}$ with Jacobian:</p>
-<p>$$J_{u_\theta} = \big[,\partial_z u_\theta ;\big|; \partial_s u_\theta ;\big|; \partial_t u_\theta,\big] \in \mathbb{R}^{d \times (d+2)}$$</p>
+<p>$$J_{u_\theta} = \left[,\partial_z u_\theta ;\mid; \partial_s u_\theta ;\mid; \partial_t u_\theta,\right] \in \mathbb{R}^{d \times (d+2)}$$</p>
 <p>The total derivative we need is exactly this Jacobian times tangent vector $(X_1 - X_0,; 0,; 1) \in \mathbb{R}^{d+2}$:</p>
 <p>$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\ 0 \\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + 0 \cdot \partial_s u_\theta + 1 \cdot \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t},u_\theta$$</p>
 <p>This is the &quot;directional derivative along the ODE trajectory&quot; — tangent components correspond to $\frac{\mathrm{d}z}{\mathrm{d}t} = v_t = X_1 - X_0$, $\frac{\mathrm{d}s}{\mathrm{d}t} = 0$, $\frac{\mathrm{d}t}{\mathrm{d}t} = 1$.</p>
@@ -572,7 +554,7 @@
 <li>When $s \neq t$: the extra $(t-s) \cdot \frac{\mathrm{d}}{\mathrm{d}t}u$ term provides &quot;cross-time&quot; information propagation, enabling the network to learn not just local tangent directions but global displacement directions.</li>
 </ul>
 <p>Thus, MeanFlow training is <strong>standard FM plus a JVP correction</strong>:</p>
-<p>$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}_{\text{FM target}} - \underbrace{(t-s)\big[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\big]}_{\text{MeanFlow correction}}$$</p>
+<p>$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}_{\text{FM target}} - \underbrace{(t-s)\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right]}_{\text{MeanFlow correction}}$$</p>
 <p>In practice, a fraction (e.g., 25%) of training samples use $s \neq t$; the rest use $s = t$, equivalent to standard FM training.</p>
 </div>
 <h2 id="8-Summary-Three-Step-Logic-Chain">8. Summary: Three-Step Logic Chain</h2>
