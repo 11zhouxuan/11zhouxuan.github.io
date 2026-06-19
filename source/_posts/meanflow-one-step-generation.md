@@ -105,9 +105,11 @@ $$Z_t = Z_s + (t-s)\,u(Z_s, s, t) \tag{3}$$
 - 一步生成：令 $s=0, t=1$，则 $Z_1 = Z_0 + u(Z_0, 0, 1)$。
 {% endnote %}
 
+{% note info %}
 **记号说明**：$u(Z_s, s, t)$ 中三个变量的含义为：第一个变量 $Z_s$ 是出发点（空间位置）；第二个变量 $s$ 是出发时刻；第三个变量 $t$ 是到达时刻。平均速度描述的是"从 $Z_s$ 出发，经过时段 $[s, t]$，沿 ODE 轨迹的平均运动速度"。
+{% endnote %}
 
-**问题转化**：如果我们能用神经网络 $u_\theta(z, s, t)$ 准确逼近真实的平均速度场 $u$，就能实现一步（或少步）生成。但直接计算 $u$ 需要沿轨迹做积分——这正是我们想避免的。**核心问题**：能否找到一个**不需要积分**的训练目标？
+如果我们能用神经网络 $u_\theta(z, s, t)$ 准确逼近真实的 $u$，就能实现一步生成。但直接计算 $u$ 需要沿轨迹做积分——这正是我们想避免的。**核心问题**：能否找到一个**不需要积分**的训练目标？
 
 ## 4. 第二步：推导 MeanFlow 恒等式
 
@@ -177,27 +179,17 @@ $$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\left[(X_1 - X_0) \cdot \partial_z u_\
 更直观地说：对每个训练样本 $(X_0, X_1)$，我们知道通过 $X_t$ 的这条具体轨迹的速度是 $X_1 - X_0$。虽然每次只看到一个方向，但在大量样本上取平均后，效果等价于对边际速度做回归。
 {% endnote %}
 
-### JVP 的含义与高效计算
+### JVP 的高效计算
 
-目标 (10) 中的关键计算量是全导数
+目标 (10) 中的全导数 $\frac{\mathrm{d}}{\mathrm{d}t}u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$ 恰好是 $u_\theta$ 的 Jacobian 与切向量 $(X_1-X_0, 0, 1)$ 的乘积（即 **Jacobian-Vector Product, JVP**）。在 PyTorch/JAX 中，一次 `jvp` 调用即可完成，代价约等于一次前向传播。由于目标被 stop-gradient 包裹，不引入高阶导数。
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$$
+{% note info %}
+**JVP 详解**：设 $F: \mathbb{R}^n \to \mathbb{R}^m$，Jacobian $J_F(x) \in \mathbb{R}^{m \times n}$，切向量 $v \in \mathbb{R}^n$。JVP 定义为 $J_F(x) \cdot v$——"输入沿 $v$ 方向微扰时，输出如何变化"。在我们的场景中：
 
-**什么是 Jacobian-Vector Product (JVP)？** 设 $F: \mathbb{R}^n \to \mathbb{R}^m$ 是一个可微映射，它在输入 $x$ 处的 Jacobian 矩阵为 $J_F(x) \in \mathbb{R}^{m \times n}$。给定一个"切向量" $v \in \mathbb{R}^n$，**JVP** 定义为矩阵-向量乘积 $J_F(x) \cdot v \in \mathbb{R}^m$。直观上，JVP 回答的问题是：*当输入沿方向 $v$ 微扰时，输出如何变化？*
+$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta$$
 
-在我们的场景中，$u_\theta$ 的输入为 $(z, s, t) \in \mathbb{R}^{d+2}$，它的 Jacobian 为
-
-$$J_{u_\theta} = \left[\,\partial_z u_\theta \;\mid\; \partial_s u_\theta \;\mid\; \partial_t u_\theta\,\right] \in \mathbb{R}^{d \times (d+2)}$$
-
-我们需要计算的全导数恰好是这个 Jacobian 与切向量 $(X_1 - X_0,\; 0,\; 1) \in \mathbb{R}^{d+2}$ 的乘积：
-
-$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + 0 \cdot \partial_s u_\theta + 1 \cdot \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta$$
-
-这正是"沿 ODE 轨迹方向的方向导数"——切向量的三个分量分别对应 $\frac{\mathrm{d}z}{\mathrm{d}t} = v_t = X_1 - X_0$、$\frac{\mathrm{d}s}{\mathrm{d}t} = 0$、$\frac{\mathrm{d}t}{\mathrm{d}t} = 1$。
-
-**计算效率**：在现代自动微分框架中（如 PyTorch 的 `torch.func.jvp` 或 JAX 的 `jax.jvp`），JVP 通过**前向模式自动微分**实现——只需一次额外的前向传播，代价与标准的反向传播相当。无需显式构造整个 Jacobian 矩阵（$d$ 可能高达数万维）。
-
-由于 $u_{\mathrm{tgt}}$ 被 stop-gradient 包裹，这次 JVP 计算不会引入高阶导数——神经网络参数 $\theta$ 的梯度更新只涉及标准的一阶反向传播。
+切向量三分量对应 $\frac{\mathrm{d}z}{\mathrm{d}t} = X_1 - X_0$、$\frac{\mathrm{d}s}{\mathrm{d}t} = 0$、$\frac{\mathrm{d}t}{\mathrm{d}t} = 1$。无需显式构造 $d \times (d+2)$ 的完整 Jacobian 矩阵。
+{% endnote %}
 
 ## 6. 采样：一步生成
 
@@ -407,27 +399,17 @@ Exactly as in our Flow Matching derivation: given $X_t$, the conditional expecta
 Intuitively: for each training sample $(X_0, X_1)$, we know the velocity along this specific trajectory through $X_t$ is $X_1 - X_0$. Though we only see one direction each time, averaging over many samples is equivalent to regressing against the marginal velocity.
 {% endnote %}
 
-### JVP: Meaning and Efficient Computation
+### Efficient Computation via JVP
 
-The key computation in target (10) is the total derivative:
+The total derivative $\frac{\mathrm{d}}{\mathrm{d}t}u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$ is exactly a **Jacobian-Vector Product (JVP)** of $u_\theta$ with tangent vector $(X_1-X_0, 0, 1)$. A single `jvp` call in PyTorch/JAX computes this at cost comparable to one forward pass. Since the target is stop-gradiented, no higher-order derivatives arise.
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$$
+{% note info %}
+**JVP details**: Given $F: \mathbb{R}^n \to \mathbb{R}^m$ with Jacobian $J_F(x)$ and tangent $v$, the JVP is $J_F(x) \cdot v$ — "how does output change when input is perturbed along $v$?" In our case:
 
-**What is a Jacobian-Vector Product (JVP)?** Given a differentiable map $F: \mathbb{R}^n \to \mathbb{R}^m$ with Jacobian $J_F(x) \in \mathbb{R}^{m \times n}$ at input $x$, and a "tangent vector" $v \in \mathbb{R}^n$, the **JVP** is the matrix-vector product $J_F(x) \cdot v \in \mathbb{R}^m$. Intuitively, JVP answers: *how does the output change when the input is perturbed along direction $v$?*
+$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta$$
 
-In our setting, $u_\theta$ takes input $(z, s, t) \in \mathbb{R}^{d+2}$ with Jacobian:
-
-$$J_{u_\theta} = \left[\,\partial_z u_\theta \;\mid\; \partial_s u_\theta \;\mid\; \partial_t u_\theta\,\right] \in \mathbb{R}^{d \times (d+2)}$$
-
-The total derivative we need is exactly this Jacobian times tangent vector $(X_1 - X_0,\; 0,\; 1) \in \mathbb{R}^{d+2}$:
-
-$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + 0 \cdot \partial_s u_\theta + 1 \cdot \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta$$
-
-This is the "directional derivative along the ODE trajectory" — tangent components correspond to $\frac{\mathrm{d}z}{\mathrm{d}t} = v_t = X_1 - X_0$, $\frac{\mathrm{d}s}{\mathrm{d}t} = 0$, $\frac{\mathrm{d}t}{\mathrm{d}t} = 1$.
-
-**Computational efficiency**: In modern autodiff frameworks (PyTorch `torch.func.jvp` or JAX `jax.jvp`), JVP is computed via **forward-mode automatic differentiation** — requiring only one extra forward pass, comparable in cost to standard backpropagation. No need to explicitly construct the full Jacobian matrix ($d$ can be tens of thousands).
-
-Since $u_{\mathrm{tgt}}$ is wrapped in stop-gradient, this JVP computation introduces no higher-order derivatives — the gradient update for $\theta$ involves only standard first-order backpropagation.
+Tangent components correspond to $\frac{\mathrm{d}z}{\mathrm{d}t} = X_1 - X_0$, $\frac{\mathrm{d}s}{\mathrm{d}t} = 0$, $\frac{\mathrm{d}t}{\mathrm{d}t} = 1$. No need to construct the full $d \times (d+2)$ Jacobian matrix.
+{% endnote %}
 
 ## 6. Sampling: One-Step Generation
 
