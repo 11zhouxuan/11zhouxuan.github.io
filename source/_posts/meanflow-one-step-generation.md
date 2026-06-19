@@ -179,9 +179,9 @@ $$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\left[(X_1 - X_0) \cdot \partial_z u_\
 更直观地说：对每个训练样本 $(X_0, X_1)$，我们知道通过 $X_t$ 的这条具体轨迹的速度是 $X_1 - X_0$。虽然每次只看到一个方向，但在大量样本上取平均后，效果等价于对边际速度做回归。
 {% endnote %}
 
-### JVP 的高效计算
+### 高效计算：JVP = 方向导数
 
-目标 (10) 中的全导数 $\frac{\mathrm{d}}{\mathrm{d}t}u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$ 恰好是 $u_\theta$ 的 Jacobian 与切向量 $(X_1-X_0, 0, 1)$ 的乘积（即 **Jacobian-Vector Product, JVP**）。在 PyTorch/JAX 中，一次 `jvp` 调用即可完成，代价约等于一次前向传播。由于目标被 stop-gradient 包裹，不引入高阶导数。
+目标 (10) 中的全导数 $\frac{\mathrm{d}}{\mathrm{d}t}u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$ 本质上是 $u_\theta$ 沿 ODE 轨迹方向 $(X_1-X_0, 0, 1)$ 的**方向导数**。在自动微分中，这称为 **Jacobian-Vector Product (JVP)**——即 Jacobian 矩阵与方向向量的乘积。PyTorch/JAX 中一次 `jvp` 调用即可计算，代价约等于一次前向传播，无需构造完整 Jacobian。由于目标被 stop-gradient 包裹，不引入高阶导数。
 
 {% note info %}
 **JVP 详解**：设 $F: \mathbb{R}^n \to \mathbb{R}^m$，Jacobian $J_F(x) \in \mathbb{R}^{m \times n}$，切向量 $v \in \mathbb{R}^n$。JVP 定义为 $J_F(x) \cdot v$——"输入沿 $v$ 方向微扰时，输出如何变化"。在我们的场景中：
@@ -399,9 +399,9 @@ Exactly as in our Flow Matching derivation: given $X_t$, the conditional expecta
 Intuitively: for each training sample $(X_0, X_1)$, we know the velocity along this specific trajectory through $X_t$ is $X_1 - X_0$. Though we only see one direction each time, averaging over many samples is equivalent to regressing against the marginal velocity.
 {% endnote %}
 
-### Efficient Computation via JVP
+### Efficient Computation: JVP = Directional Derivative
 
-The total derivative $\frac{\mathrm{d}}{\mathrm{d}t}u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$ is exactly a **Jacobian-Vector Product (JVP)** of $u_\theta$ with tangent vector $(X_1-X_0, 0, 1)$. A single `jvp` call in PyTorch/JAX computes this at cost comparable to one forward pass. Since the target is stop-gradiented, no higher-order derivatives arise.
+The total derivative $\frac{\mathrm{d}}{\mathrm{d}t}u_\theta = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta$ is the **directional derivative** of $u_\theta$ along the ODE trajectory direction $(X_1-X_0, 0, 1)$. In autodiff, this is called a **Jacobian-Vector Product (JVP)** — the Jacobian times the direction vector. A single `jvp` call in PyTorch/JAX computes it at cost comparable to one forward pass, without constructing the full Jacobian. Since the target is stop-gradiented, no higher-order derivatives arise.
 
 {% note info %}
 **JVP details**: Given $F: \mathbb{R}^n \to \mathbb{R}^m$ with Jacobian $J_F(x)$ and tangent $v$, the JVP is $J_F(x) \cdot v$ — "how does output change when input is perturbed along $v$?" In our case:
