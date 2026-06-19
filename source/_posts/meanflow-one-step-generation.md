@@ -87,15 +87,15 @@ $$Z_1 = Z_0 + u(Z_0, 0, 1) \cdot (1 - 0) = Z_0 + u(Z_0, 0, 1)$$
 
 对 ODE (1)，从时刻 $s$ 到 $t$（$s < t$）的位移可写为
 
-$$Z_t - Z_s = \int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau.$$
+$$Z_t - Z_s = \int_s^t v_\tau(Z_\tau) \mathrm{d}\tau.$$
 
 我们定义**平均速度**（average velocity）为位移除以时间间隔：
 
-$$\boxed{u(Z_s, s, t) \;:=\; \frac{1}{t - s} \int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau} \tag{2}$$
+$$\boxed{u(Z_s, s, t) \enspace:=\enspace \frac{1}{t - s} \int_s^t v_\tau(Z_\tau) \mathrm{d}\tau} \tag{2}$$
 
 于是位移关系可简洁地写为：
 
-$$Z_t = Z_s + (t-s)\,u(Z_s, s, t) \tag{3}$$
+$$Z_t = Z_s + (t-s) u(Z_s, s, t) \tag{3}$$
 
 {% note success %}
 **关键性质**：
@@ -115,21 +115,21 @@ $$Z_t = Z_s + (t-s)\,u(Z_s, s, t) \tag{3}$$
 
 为了推导方便，我们等价地把平均速度写成"以终点为参数"的形式<a href="#note-1" style="text-decoration:none"><sup>[1]</sup></a>：
 
-$$(t - s)\,u(Z_t, s, t) = \int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau \tag{4}$$
+$$(t - s) u(Z_t, s, t) = \int_s^t v_\tau(Z_\tau) \mathrm{d}\tau \tag{4}$$
 
 对 (4) 两边关于 $t$ 求导（$s$ 视为与 $t$ 无关的常数）：
 
 **左边**——乘法法则：
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\Big[(t-s)\,u(Z_t, s, t)\Big] = u(Z_t, s, t) + (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t)$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\Big[(t-s) u(Z_t, s, t)\Big] = u(Z_t, s, t) + (t-s) \frac{\mathrm{d}}{\mathrm{d}t} u(Z_t, s, t)$$
 
 **右边**——微积分基本定理（上限对 $t$ 求导）：
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau = v_t(Z_t)$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\int_s^t v_\tau(Z_\tau) \mathrm{d}\tau = v_t(Z_t)$$
 
 **联立**，令左 = 右，整理得到 **MeanFlow 恒等式**：
 
-$$\boxed{u(Z_t, s, t) = v_t(Z_t) - (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t)} \tag{5}$$
+$$\boxed{u(Z_t, s, t) = v_t(Z_t) - (t-s) \frac{\mathrm{d}}{\mathrm{d}t} u(Z_t, s, t)} \tag{5}$$
 
 {% note warning %}
 **验证**：当 $s = t$ 时，$(t-s) = 0$，恒等式退化为 $u = v_t$——平均速度等于瞬时速度。这与定义一致。
@@ -139,11 +139,11 @@ $$\boxed{u(Z_t, s, t) = v_t(Z_t) - (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t,
 
 注意 $\frac{\mathrm{d}}{\mathrm{d}t}$ 是沿 ODE 轨迹的**全导数**（total derivative）。$u$ 的变量为 $(Z_t, s, t)$，其中 $Z_t$ 本身依赖 $t$（通过 ODE），而 $s$ 不依赖 $t$。用链式法则：
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t}{\mathrm{d}t}}\_{= v_t(Z_t)} \cdot \partial_z u + \underbrace{\frac{\mathrm{d}s}{\mathrm{d}t}}\_{= 0} \cdot \partial_s u + \underbrace{\frac{\mathrm{d}t}{\mathrm{d}t}}\_{= 1} \cdot \partial_t u = v_t(Z_t) \cdot \partial_z u + \partial_t u \tag{6}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t} u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t}{\mathrm{d}t}}\_{= v_t(Z_t)} \cdot \partial_z u + \underbrace{\frac{\mathrm{d}s}{\mathrm{d}t}}\_{= 0} \cdot \partial_s u + \underbrace{\frac{\mathrm{d}t}{\mathrm{d}t}}\_{= 1} \cdot \partial_t u = v_t(Z_t) \cdot \partial_z u + \partial_t u \tag{6}$$
 
 将 (6) 代入 (5)，得到完全展开的形式：
 
-$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t u\right] \tag{7}$$
+$$u(Z_t, s, t) = v_t(Z_t) - (t-s)[v_t(Z_t) \cdot \partial_z u + \partial_t u] \tag{7}$$
 
 {% note info %}
 **MeanFlow 恒等式的本质**：它是微积分基本定理的直接推论。左边是"平均速度"，右边用"瞬时速度"加上"平均速度随时间的变化率"来表达。这个恒等式**不依赖**任何神经网络——它是 $u$ 和 $v$ 之间的内在数学关系。
@@ -155,11 +155,11 @@ $$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t 
 
 将恒等式 (7) 视为"$u$ 等于某个目标"的形式，用神经网络 $u_\theta$ 替代右边的 $u$（的导数部分），构造**有效回归目标**：
 
-$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)\,\left[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{8}$$
+$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta] \tag{8}$$
 
 ### 损失函数
 
-$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$
+$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\enspace\mathbb{E}\_{X_0, X_1}\enspace\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$
 
 其中 $\mathrm{sg}(\cdot)$ 表示 stop-gradient（将目标视为常数，不对其反向传播）。
 
@@ -169,7 +169,7 @@ $$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\lVert
 
 在默认的线性插值下 $X_t = (1-t)X_0 + tX_1$，条件速度为 $X_1 - X_0$。于是最终的回归目标为：
 
-$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{10}$$
+$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta] \tag{10}$$
 
 {% note success %}
 **为什么可以用条件速度代替边际速度？**
@@ -186,7 +186,7 @@ $$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\left[(X_1 - X_0) \cdot \partial_z u_\
 {% note info %}
 **JVP 详解**：设 $F: \mathbb{R}^n \to \mathbb{R}^m$，Jacobian $J_F(x) \in \mathbb{R}^{m \times n}$，切向量 $v \in \mathbb{R}^n$。JVP 定义为 $J_F(x) \cdot v$——"输入沿 $v$ 方向微扰时，输出如何变化"。在我们的场景中：
 
-$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta$$
+$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t} u_\theta$$
 
 切向量三分量对应 $\frac{\mathrm{d}z}{\mathrm{d}t} = X_1 - X_0$、$\frac{\mathrm{d}s}{\mathrm{d}t} = 0$、$\frac{\mathrm{d}t}{\mathrm{d}t} = 1$。无需显式构造 $d \times (d+2)$ 的完整 Jacobian 矩阵。
 {% endnote %}
@@ -213,16 +213,16 @@ $$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 
 
 因此，MeanFlow 的训练可以看作**标准 FM 加上一个 JVP 修正项**：
 
-$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM 目标}} - \underbrace{(t-s)\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right]}\_{\text{MeanFlow 修正}}$$
+$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM 目标}} - \underbrace{(t-s)[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta]}\_{\text{MeanFlow 修正}}$$
 
 实践中，训练时随机采样一定比例的 $s \neq t$ 样本（如 25%），其余 $s = t$ 的样本相当于做标准 FM 训练。
 {% endnote %}
 
 ## 8. 总结：三步逻辑链
 
-1. **定义平均速度**：$u(Z_t, s, t) := \frac{1}{t-s}\int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau$。它将 ODE 积分的位移浓缩为一个场——知道了 $u(X_0, 0, 1)$，一步就能从噪声到数据。
+1. **定义平均速度**：$u(Z_t, s, t) := \frac{1}{t-s}\int_s^t v_\tau(Z_\tau) \mathrm{d}\tau$。它将 ODE 积分的位移浓缩为一个场——知道了 $u(X_0, 0, 1)$，一步就能从噪声到数据。
 
-2. **推导恒等式**：对定义式两边关于 $t$ 求导（微积分基本定理），得到 $u = v_t - (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}u$。这是 $u$ 和 $v$ 之间的内在关系，不依赖任何神经网络。
+2. **推导恒等式**：对定义式两边关于 $t$ 求导（微积分基本定理），得到 $u = v_t - (t-s) \frac{\mathrm{d}}{\mathrm{d}t}u$。这是 $u$ 和 $v$ 之间的内在关系，不依赖任何神经网络。
 
 3. **构造损失**：将恒等式转为回归目标，用条件速度 $X_1 - X_0$ 代替边际速度（与 FM 相同的 $L^2$ 正交性技巧），并用 stop-gradient + JVP 实现高效训练。
 
@@ -309,15 +309,15 @@ More crucially, this average velocity field $u$ and instantaneous velocity $v$ a
 
 For ODE (1), displacement from time $s$ to $t$ ($s < t$) is:
 
-$$Z_t - Z_s = \int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau$$
+$$Z_t - Z_s = \int_s^t v_\tau(Z_\tau) \mathrm{d}\tau$$
 
 We define **average velocity** as displacement divided by time interval:
 
-$$\boxed{u(Z_s, s, t) \;:=\; \frac{1}{t - s} \int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau} \tag{2}$$
+$$\boxed{u(Z_s, s, t) \enspace:=\enspace \frac{1}{t - s} \int_s^t v_\tau(Z_\tau) \mathrm{d}\tau} \tag{2}$$
 
 The displacement relation becomes:
 
-$$Z_t = Z_s + (t-s)\,u(Z_s, s, t) \tag{3}$$
+$$Z_t = Z_s + (t-s) u(Z_s, s, t) \tag{3}$$
 
 {% note success %}
 **Key properties**:
@@ -335,21 +335,21 @@ $$Z_t = Z_s + (t-s)\,u(Z_s, s, t) \tag{3}$$
 
 For convenience, we write average velocity parameterized by the endpoint<a href="#note-1-en" style="text-decoration:none"><sup>[1]</sup></a>:
 
-$$(t - s)\,u(Z_t, s, t) = \int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau \tag{4}$$
+$$(t - s) u(Z_t, s, t) = \int_s^t v_\tau(Z_\tau) \mathrm{d}\tau \tag{4}$$
 
 Differentiate both sides of (4) with respect to $t$ (treating $s$ as independent of $t$):
 
 **Left side** — product rule:
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\Big[(t-s)\,u(Z_t, s, t)\Big] = u(Z_t, s, t) + (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t)$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\Big[(t-s) u(Z_t, s, t)\Big] = u(Z_t, s, t) + (t-s) \frac{\mathrm{d}}{\mathrm{d}t} u(Z_t, s, t)$$
 
 **Right side** — Fundamental Theorem of Calculus (differentiating upper limit):
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau = v_t(Z_t)$$
+$$\frac{\mathrm{d}}{\mathrm{d}t}\int_s^t v_\tau(Z_\tau) \mathrm{d}\tau = v_t(Z_t)$$
 
 **Equating** left = right and rearranging, we obtain the **MeanFlow Identity**:
 
-$$\boxed{u(Z_t, s, t) = v_t(Z_t) - (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t)} \tag{5}$$
+$$\boxed{u(Z_t, s, t) = v_t(Z_t) - (t-s) \frac{\mathrm{d}}{\mathrm{d}t} u(Z_t, s, t)} \tag{5}$$
 
 {% note warning %}
 **Verification**: When $s = t$, $(t-s) = 0$, and the identity reduces to $u = v_t$ — average velocity equals instantaneous velocity. Consistent with the definition.
@@ -359,11 +359,11 @@ $$\boxed{u(Z_t, s, t) = v_t(Z_t) - (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t,
 
 Note $\frac{\mathrm{d}}{\mathrm{d}t}$ is the **total derivative** along the ODE trajectory. Since $u$ depends on $(Z_t, s, t)$ where $Z_t$ itself depends on $t$ (via ODE) while $s$ doesn't, the chain rule gives:
 
-$$\frac{\mathrm{d}}{\mathrm{d}t}\,u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t}{\mathrm{d}t}}\_{= v_t(Z_t)} \cdot \partial_z u + \underbrace{\frac{\mathrm{d}s}{\mathrm{d}t}}\_{= 0} \cdot \partial_s u + \underbrace{\frac{\mathrm{d}t}{\mathrm{d}t}}\_{= 1} \cdot \partial_t u = v_t(Z_t) \cdot \partial_z u + \partial_t u \tag{6}$$
+$$\frac{\mathrm{d}}{\mathrm{d}t} u(Z_t, s, t) = \underbrace{\frac{\mathrm{d}Z_t}{\mathrm{d}t}}\_{= v_t(Z_t)} \cdot \partial_z u + \underbrace{\frac{\mathrm{d}s}{\mathrm{d}t}}\_{= 0} \cdot \partial_s u + \underbrace{\frac{\mathrm{d}t}{\mathrm{d}t}}\_{= 1} \cdot \partial_t u = v_t(Z_t) \cdot \partial_z u + \partial_t u \tag{6}$$
 
 Substituting (6) into (5), the fully expanded form is:
 
-$$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t u\right] \tag{7}$$
+$$u(Z_t, s, t) = v_t(Z_t) - (t-s)[v_t(Z_t) \cdot \partial_z u + \partial_t u] \tag{7}$$
 
 {% note info %}
 **Essence of the MeanFlow Identity**: It's a direct consequence of the Fundamental Theorem of Calculus. The left side is "average velocity"; the right side expresses it via "instantaneous velocity" plus "rate of change of average velocity". This identity is **independent** of any neural network — it's an intrinsic mathematical relationship between $u$ and $v$.
@@ -375,11 +375,11 @@ $$u(Z_t, s, t) = v_t(Z_t) - (t-s)\left[v_t(Z_t) \cdot \partial_z u + \partial_t 
 
 Viewing identity (7) as "$u$ equals some target," we replace $u$ (its derivatives) on the right with the neural network $u_\theta$ to construct the **effective regression target**:
 
-$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)\,\left[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{8}$$
+$$u_{\mathrm{tgt}} := v_t(Z_t) - (t-s)[v_t(Z_t) \cdot \partial_z u_\theta + \partial_t u_\theta] \tag{8}$$
 
 ### Loss Function
 
-$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\;\mathbb{E}\_{X_0, X_1}\;\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$
+$$\boxed{\mathcal{L}(\theta) = \mathbb{E}\_{s,t}\enspace\mathbb{E}\_{X_0, X_1}\enspace\lVert u_\theta(X_t, s, t) - \mathrm{sg}(u_{\mathrm{tgt}})\rVert ^2} \tag{9}$$
 
 where $\mathrm{sg}(\cdot)$ denotes stop-gradient (treating the target as a constant, no backpropagation through it).
 
@@ -389,7 +389,7 @@ The $v_t(Z_t)$ in the identity is the **marginal velocity field** — i.e., $\ma
 
 Under linear interpolation $X_t = (1-t)X_0 + tX_1$, the conditional velocity is $X_1 - X_0$. The final regression target becomes:
 
-$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)\,\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right] \tag{10}$$
+$$u_{\mathrm{tgt}} = (X_1 - X_0) - (t-s)[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta] \tag{10}$$
 
 {% note success %}
 **Why can we replace marginal with conditional velocity?**
@@ -406,7 +406,7 @@ The total derivative $\frac{\mathrm{d}}{\mathrm{d}t}u_\theta = (X_1 - X_0) \cdot
 {% note info %}
 **JVP details**: Given $F: \mathbb{R}^n \to \mathbb{R}^m$ with Jacobian $J_F(x)$ and tangent $v$, the JVP is $J_F(x) \cdot v$ — "how does output change when input is perturbed along $v$?" In our case:
 
-$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t}\,u_\theta$$
+$$J_{u_\theta} \cdot \begin{pmatrix} X_1 - X_0 \\\ 0 \\\ 1 \end{pmatrix} = (X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta = \frac{\mathrm{d}}{\mathrm{d}t} u_\theta$$
 
 Tangent components correspond to $\frac{\mathrm{d}z}{\mathrm{d}t} = X_1 - X_0$, $\frac{\mathrm{d}s}{\mathrm{d}t} = 0$, $\frac{\mathrm{d}t}{\mathrm{d}t} = 1$. No need to construct the full $d \times (d+2)$ Jacobian matrix.
 {% endnote %}
@@ -433,16 +433,16 @@ That's it. No ODE integration needed.
 
 Thus, MeanFlow training is **standard FM plus a JVP correction**:
 
-$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM target}} - \underbrace{(t-s)\left[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta\right]}\_{\text{MeanFlow correction}}$$
+$$u_{\mathrm{tgt}} = \underbrace{(X_1 - X_0)}\_{\text{FM target}} - \underbrace{(t-s)[(X_1 - X_0) \cdot \partial_z u_\theta + \partial_t u_\theta]}\_{\text{MeanFlow correction}}$$
 
 In practice, a fraction (e.g., 25%) of training samples use $s \neq t$; the rest use $s = t$, equivalent to standard FM training.
 {% endnote %}
 
 ## 8. Summary: Three-Step Logic Chain
 
-1. **Define average velocity**: $u(Z_t, s, t) := \frac{1}{t-s}\int_s^t v_\tau(Z_\tau)\,\mathrm{d}\tau$. It condenses ODE integration into a single field — knowing $u(X_0, 0, 1)$, one step goes from noise to data.
+1. **Define average velocity**: $u(Z_t, s, t) := \frac{1}{t-s}\int_s^t v_\tau(Z_\tau) \mathrm{d}\tau$. It condenses ODE integration into a single field — knowing $u(X_0, 0, 1)$, one step goes from noise to data.
 
-2. **Derive the identity**: Differentiate the definition with respect to $t$ (Fundamental Theorem of Calculus) to get $u = v_t - (t-s)\,\frac{\mathrm{d}}{\mathrm{d}t}u$. An intrinsic relation between $u$ and $v$, independent of any neural network.
+2. **Derive the identity**: Differentiate the definition with respect to $t$ (Fundamental Theorem of Calculus) to get $u = v_t - (t-s) \frac{\mathrm{d}}{\mathrm{d}t}u$. An intrinsic relation between $u$ and $v$, independent of any neural network.
 
 3. **Construct loss**: Convert identity to regression target, replace marginal velocity with conditional velocity $X_1 - X_0$ (same $L^2$ orthogonality trick as FM), and use stop-gradient + JVP for efficient training.
 
