@@ -109,6 +109,9 @@ mathjax: true
 | 10500 | 22.0 | 12.9x | 2.60 | 13 |
 | 11000 | 23.1 | 13.6x | 2.59 | 13 |
 | 11500 | 24.1 | 14.2x | 2.58 | 13 |
+| 12000 | 25.2 | 14.8x | 2.58 | 13 |
+
+训练在 step 12000 后停止（val loss Δ 降至 0.006/500步，接近饱和）。
 
 ## Scaling Law 拟合
 
@@ -339,6 +342,9 @@ We record validation loss every 500 steps:
 | 10500 | 22.0 | 12.9x | 2.60 | 13 |
 | 11000 | 23.1 | 13.6x | 2.59 | 13 |
 | 11500 | 24.1 | 14.2x | 2.58 | 13 |
+| 12000 | 25.2 | 14.8x | 2.58 | 13 |
+
+Training was stopped after step 12000 (val loss Δ dropped to 0.006/500 steps, approaching saturation).
 
 ## Scaling Law Fitting
 
