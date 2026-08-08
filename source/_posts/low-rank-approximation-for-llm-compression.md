@@ -19,7 +19,7 @@ tags: [math, linear-algebra, SVD, approximation-theory]
 
 给定矩阵 $W \in \mathbb{R}^{m \times n}$，要找一个秩不超过 $r$ 的矩阵 $\hat W$ 使得 $\hat W \approx W$。
 
-等价地，找 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \times n}$，使得 $AB \approx W$。存储量从 $mn$ 降到 $(m+n)r$。
+一种参数化方式：取 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \times n}$。由矩阵乘法的秩不等式 $\text{rank}(AB) \le \min(\text{rank}(A), \text{rank}(B)) \le r$，$AB$ 的秩自然不超过 $r$。此时存储量从 $mn$ 降到 $(m+n)r$。
 
 **核心问题**：什么是"$\approx$"？不同的度量方式导致不同的最优解。
 
@@ -27,7 +27,7 @@ tags: [math, linear-algebra, SVD, approximation-theory]
 
 #### 2.1 目标
 
-$$\min_{\text{rank}(\hat W) \le r} \|W - \hat W\|_F^2 = \min_{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$
+$$\min_{\text{rank}(\hat W) \le r} \lVert W - \hat W\rVert_F^2 = \min_{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$
 
 所有矩阵元素的误差等权相加。
 
@@ -35,7 +35,7 @@ $$\min_{\text{rank}(\hat W) \le r} \|W - \hat W\|_F^2 = \min_{\text{rank}(\hat W
 
 任何矩阵 $W$ 可以分解为：
 
-$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k\, u_k v_k^T$$
+$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k  u_k v_k^T$$
 
 其中：
 - $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ 为奇异值
@@ -48,21 +48,21 @@ $$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k\, u_k v_k^T$$
 
 **定理**：Frobenius 范数下的最优 rank-$r$ 逼近是截断 SVD：
 
-$$\hat W^* = \sum_{k=1}^r \sigma_k\, u_k v_k^T = U_r \Sigma_r V_r^T$$
+$$\hat W^* = \sum_{k=1}^r \sigma_k  u_k v_k^T = U_r \Sigma_r V_r^T$$
 
 最优误差：
 
-$$\|W - \hat W^*\|_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2$$
+$$\lVert W - \hat W^*\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2$$
 
 即被丢掉的尾部奇异值的平方和。
 
-**证明思路**：利用 Frobenius 范数的酉不变性 $\|W\|_F = \|U^T W V\|_F$，将问题变为在对角矩阵 $\Sigma$ 上选最优的 rank-$r$ 逼近，而对角矩阵的最优截断显然是保留最大的 $r$ 个对角元。
+**证明思路**：利用 Frobenius 范数的酉不变性 $\lVert W\rVert_F = \lVert U^T W V\rVert_F$，将问题变为在对角矩阵 $\Sigma$ 上选最优的 rank-$r$ 逼近，而对角矩阵的最优截断显然是保留最大的 $r$ 个对角元。
 
 #### 2.4 分解为两个因子
 
 取：
 
-$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}\, V_r^T \in \mathbb{R}^{r \times n}$$
+$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}  V_r^T \in \mathbb{R}^{r \times n}$$
 
 则 $AB = U_r \Sigma_r V_r^T = \hat W^*$。将奇异值的平方根对称地分配到两个因子中。
 
@@ -78,19 +78,19 @@ Plain SVD 对所有元素等权——它只关心"矩阵本身的近似程度"�
 
 如果我们关心的是**输出误差**而不是权重误差：
 
-$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[\|Wx - \hat Wx\|^2\big]$$
+$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[\lVert Wx - \hat Wx\rVert^2\big]$$
 
 其中 $\mu$ 是输入 $x$ 的分布。
 
 #### 3.2 展开
 
-$$\mathbb{E}\|(W - \hat W)x\|^2 = \text{tr}\big((W - \hat W)\,\Sigma\,(W - \hat W)^T\big)$$
+$$\mathbb{E}\lVert(W - \hat W)x\rVert^2 = \text{tr}\big((W - \hat W) \Sigma (W - \hat W)^T\big)$$
 
 其中 $\Sigma = \mathbb{E}[xx^T] \in \mathbb{R}^{n \times n}$ 是输入的二阶矩矩阵。
 
 **推导**：
 
-$$\mathbb{E}\|(W-\hat W)x\|^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W)\,\mathbb{E}[xx^T]\big)$$
+$$\mathbb{E}\lVert(W-\hat W)x\rVert^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W) \mathbb{E}[xx^T]\big)$$
 
 利用 $\text{tr}(ABC) = \text{tr}(CAB)$，即得上式。
 
@@ -98,15 +98,15 @@ $$\mathbb{E}\|(W-\hat W)x\|^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] =
 
 设 $\Sigma = SS^T$（$S$ 可以是 $\Sigma^{1/2}$ 或 Cholesky 因子），则：
 
-$$\text{tr}\big((W-\hat W)\,\Sigma\,(W-\hat W)^T\big) = \|(W - \hat W)S\|_F^2$$
+$$\text{tr}\big((W-\hat W) \Sigma (W-\hat W)^T\big) = \lVert(W - \hat W)S\rVert_F^2$$
 
 令 $\tilde W = WS$，问题变为：
 
-$$\min_{\text{rank}(\hat W) \le r} \|\tilde W - \hat W S\|_F^2$$
+$$\min_{\text{rank}(\hat W) \le r} \lVert\tilde W - \hat W S\rVert_F^2$$
 
 由于 $\hat W S$ 的秩 $\le r$（秩不因右乘满秩矩阵而增加），且任何 rank-$r$ 矩阵都可写为 $\hat W S$ 的形式（取 $\hat W = M S^{-1}$），问题等价于：
 
-$$\min_{\text{rank}(M) \le r} \|\tilde W - M\|_F^2$$
+$$\min_{\text{rank}(M) \le r} \lVert\tilde W - M\rVert_F^2$$
 
 这正是 $\tilde W$ 在 Frobenius 下的最优 rank-$r$ 逼近，由 Eckart-Young 直接解出。
 
@@ -115,7 +115,7 @@ $$\min_{\text{rank}(M) \le r} \|\tilde W - M\|_F^2$$
 1. 计算 $\tilde W = WS$
 2. 对 $\tilde W$ 做 SVD：$\tilde W = U\tilde\Sigma V^T$
 3. 截断前 $r$ 项：$\tilde W_r = U_r \tilde\Sigma_r V_r^T$
-4. 还原：$A = U_r \sqrt{\tilde\Sigma_r}$，$B = \sqrt{\tilde\Sigma_r}\, V_r^T S^{-1}$
+4. 还原：$A = U_r \sqrt{\tilde\Sigma_r}$，$B = \sqrt{\tilde\Sigma_r}  V_r^T S^{-1}$
 
 验证：$(W - AB)S = WS - U_r\tilde\Sigma_r V_r^T = \tilde W - \tilde W_r$，正是 SVD 截断残差，Eckart-Young 最优。
 
@@ -125,7 +125,7 @@ $$\min_{\text{rank}(M) \le r} \|\tilde W - M\|_F^2$$
 
 取 $S = \Sigma^{1/2}$ 或 $S = \text{chol}(\Sigma)$。
 
-此时 $\|(W-\hat W)S\|_F^2 = \mathbb{E}\|Wx - \hat Wx\|^2$ **精确成立**。
+此时 $\lVert(W-\hat W)S\rVert_F^2 = \mathbb{E}\lVert Wx - \hat Wx\rVert^2$ **精确成立**。
 
 - 需要估计完整的 $n \times n$ 协方差矩阵
 - 需要 Cholesky 分解（$O(n^3)$）
@@ -139,7 +139,7 @@ $$\min_{\text{rank}(M) \le r} \|\tilde W - M\|_F^2$$
 
 此时加权 Frobenius 范数为：
 
-$$\|(W - \hat W)\text{diag}(s)\|_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$
+$$\lVert(W - \hat W)\text{diag}(s)\rVert_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$
 
 第 $i$ 列的逼近误差被赋予权重 $s_i^2$：$s_i$ 大的列（对应"活跃"的输入分量）更被重视。
 
@@ -159,9 +159,9 @@ $$\|(W - \hat W)\text{diag}(s)\|_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2
 
 | 方法 | 目标 | 对 $\Sigma$ 的假设 |
 |---|---|---|
-| Plain SVD | $\min\|W - \hat W\|_F^2$ | $\Sigma = I$（各向同性） |
-| Diag SVD | $\min\|(W-\hat W)\text{diag}(s)\|_F^2$ | $\Sigma$ 是对角的（各分量独立） |
-| Whiten SVD | $\min\|(W-\hat W)\Sigma^{1/2}\|_F^2$ | 完整的 $\Sigma$ |
+| Plain SVD | $\min\lVert W - \hat W\rVert_F^2$ | $\Sigma = I$（各向同性） |
+| Diag SVD | $\min\lVert(W-\hat W)\text{diag}(s)\rVert_F^2$ | $\Sigma$ 是对角的（各分量独立） |
+| Whiten SVD | $\min\lVert(W-\hat W)\Sigma^{1/2}\rVert_F^2$ | 完整的 $\Sigma$ |
 
 三者都由 Eckart-Young 定理给出闭式最优解——区别只在"对什么做 SVD"：
 
@@ -173,7 +173,7 @@ $$\|(W - \hat W)\text{diag}(s)\|_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2
 
 给定加权矩阵 $\tilde W = WS$，最优 rank-$r$ 逼近的误差为：
 
-$$\inf_{\text{rank}(\hat W) \le r} \|(W - \hat W)S\|_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$
+$$\inf_{\text{rank}(\hat W) \le r} \lVert(W - \hat W)S\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$
 
 这是 **Kolmogorov $r$-宽度**的矩阵版本——它给出了一个**与算法无关的下界**。
 
@@ -187,7 +187,7 @@ $$\inf_{\text{rank}(\hat W) \le r} \|(W - \hat W)S\|_F^2 = \sum_{k=r+1}^{\min(m,
 
 答案是**否定的**。原因是复合映射的误差具有跨层交互结构：
 
-$$F - \tilde F = \sum_\ell (\partial F_{>\ell})\,\varepsilon_\ell + O(\varepsilon^2)$$
+$$F - \tilde F = \sum_\ell (\partial F_{>\ell}) \varepsilon_\ell + O(\varepsilon^2)$$
 
 其中 $\varepsilon_\ell = W_\ell - \hat W_\ell$ 是第 $\ell$ 层的逼近误差，$\partial F_{>\ell}$ 是下游映射对该误差的放大。各层误差之间可能存在**相消**（内积为负），使得端到端误差小于各层误差之和。逐矩阵优化不能利用这个自由度。
 
@@ -204,7 +204,7 @@ $$F - \tilde F = \sum_\ell (\partial F_{>\ell})\,\varepsilon_\ell + O(\varepsilo
 
 Given a matrix $W \in \mathbb{R}^{m \times n}$, find a matrix $\hat W$ with rank at most $r$ such that $\hat W \approx W$.
 
-Equivalently, find $A \in \mathbb{R}^{m \times r}$, $B \in \mathbb{R}^{r \times n}$ such that $AB \approx W$. Storage drops from $mn$ to $(m+n)r$.
+One parameterization: take $A \in \mathbb{R}^{m \times r}$, $B \in \mathbb{R}^{r \times n}$. By the rank inequality $\text{rank}(AB) \le \min(\text{rank}(A), \text{rank}(B)) \le r$, the product $AB$ has rank at most $r$ automatically. Storage drops from $mn$ to $(m+n)r$.
 
 **Core question**: What does "$\approx$" mean? Different metrics lead to different optimal solutions.
 
@@ -212,7 +212,7 @@ Equivalently, find $A \in \mathbb{R}^{m \times r}$, $B \in \mathbb{R}^{r \times 
 
 #### 2.1 Objective
 
-$$\min_{\text{rank}(\hat W) \le r} \|W - \hat W\|_F^2 = \min_{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$
+$$\min_{\text{rank}(\hat W) \le r} \lVert W - \hat W\rVert_F^2 = \min_{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$
 
 All matrix entries are weighted equally.
 
@@ -220,7 +220,7 @@ All matrix entries are weighted equally.
 
 Any matrix $W$ can be decomposed as:
 
-$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k\, u_k v_k^T$$
+$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k  u_k v_k^T$$
 
 where:
 - $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ are the singular values
@@ -233,21 +233,21 @@ Each term $\sigma_k u_k v_k^T$ is a rank-1 matrix; $W$ is expressed as an ordere
 
 **Theorem**: The optimal rank-$r$ approximation under the Frobenius norm is the truncated SVD:
 
-$$\hat W^* = \sum_{k=1}^r \sigma_k\, u_k v_k^T = U_r \Sigma_r V_r^T$$
+$$\hat W^* = \sum_{k=1}^r \sigma_k  u_k v_k^T = U_r \Sigma_r V_r^T$$
 
 Optimal error:
 
-$$\|W - \hat W^*\|_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2$$
+$$\lVert W - \hat W^*\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2$$
 
 The sum of squared singular values that were discarded.
 
-**Proof sketch**: Using the unitary invariance of the Frobenius norm ($\|W\|_F = \|U^TWV\|_F$), the problem reduces to finding the best rank-$r$ approximation of the diagonal matrix $\Sigma$, which is obviously to keep the $r$ largest diagonal entries.
+**Proof sketch**: Using the unitary invariance of the Frobenius norm ($\lVert W\rVert_F = \|U^TWV\rVert_F$), the problem reduces to finding the best rank-$r$ approximation of the diagonal matrix $\Sigma$, which is obviously to keep the $r$ largest diagonal entries.
 
 #### 2.4 Factored Form
 
 Take:
 
-$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}\, V_r^T \in \mathbb{R}^{r \times n}$$
+$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}  V_r^T \in \mathbb{R}^{r \times n}$$
 
 Then $AB = U_r \Sigma_r V_r^T = \hat W^*$. The square root of the singular values is distributed symmetrically between the two factors.
 
@@ -263,19 +263,19 @@ Plain SVD weights all entries equally — it only cares about "how well the matr
 
 If we care about **output error** rather than weight error:
 
-$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[\|Wx - \hat Wx\|^2\big]$$
+$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[\lVert Wx - \hat Wx\rVert^2\big]$$
 
 where $\mu$ is the distribution of the input $x$.
 
 #### 3.2 Expansion
 
-$$\mathbb{E}\|(W - \hat W)x\|^2 = \text{tr}\big((W - \hat W)\,\Sigma\,(W - \hat W)^T\big)$$
+$$\mathbb{E}\lVert(W - \hat W)x\rVert^2 = \text{tr}\big((W - \hat W) \Sigma (W - \hat W)^T\big)$$
 
 where $\Sigma = \mathbb{E}[xx^T] \in \mathbb{R}^{n \times n}$ is the second moment matrix of the input.
 
 **Derivation**:
 
-$$\mathbb{E}\|(W-\hat W)x\|^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W)\,\mathbb{E}[xx^T]\big)$$
+$$\mathbb{E}\lVert(W-\hat W)x\rVert^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W) \mathbb{E}[xx^T]\big)$$
 
 Using $\text{tr}(ABC) = \text{tr}(CAB)$, the result follows.
 
@@ -283,15 +283,15 @@ Using $\text{tr}(ABC) = \text{tr}(CAB)$, the result follows.
 
 Let $\Sigma = SS^T$ ($S$ can be $\Sigma^{1/2}$ or a Cholesky factor). Then:
 
-$$\text{tr}\big((W-\hat W)\,\Sigma\,(W-\hat W)^T\big) = \|(W - \hat W)S\|_F^2$$
+$$\text{tr}\big((W-\hat W) \Sigma (W-\hat W)^T\big) = \lVert(W - \hat W)S\rVert_F^2$$
 
 Setting $\tilde W = WS$, the problem becomes:
 
-$$\min_{\text{rank}(\hat W) \le r} \|\tilde W - \hat W S\|_F^2$$
+$$\min_{\text{rank}(\hat W) \le r} \lVert\tilde W - \hat W S\rVert_F^2$$
 
 Since the rank of $\hat WS$ is $\le r$ (rank does not increase by right-multiplication by a full-rank matrix), and any rank-$r$ matrix can be written as $\hat WS$ (take $\hat W = MS^{-1}$), the problem is equivalent to:
 
-$$\min_{\text{rank}(M) \le r} \|\tilde W - M\|_F^2$$
+$$\min_{\text{rank}(M) \le r} \lVert\tilde W - M\rVert_F^2$$
 
 This is precisely the optimal rank-$r$ approximation of $\tilde W$ under Frobenius, solved by Eckart-Young.
 
@@ -300,7 +300,7 @@ This is precisely the optimal rank-$r$ approximation of $\tilde W$ under Frobeni
 1. Compute $\tilde W = WS$
 2. SVD of $\tilde W$: $\tilde W = U\tilde\Sigma V^T$
 3. Truncate to rank $r$: $\tilde W_r = U_r \tilde\Sigma_r V_r^T$
-4. Recover factors: $A = U_r \sqrt{\tilde\Sigma_r}$, $B = \sqrt{\tilde\Sigma_r}\, V_r^T S^{-1}$
+4. Recover factors: $A = U_r \sqrt{\tilde\Sigma_r}$, $B = \sqrt{\tilde\Sigma_r}  V_r^T S^{-1}$
 
 Verification: $(W - AB)S = WS - U_r\tilde\Sigma_r V_r^T = \tilde W - \tilde W_r$, which is the SVD truncation residual — Eckart-Young optimal.
 
@@ -310,7 +310,7 @@ Verification: $(W - AB)S = WS - U_r\tilde\Sigma_r V_r^T = \tilde W - \tilde W_r$
 
 Take $S = \Sigma^{1/2}$ or $S = \text{chol}(\Sigma)$.
 
-Then $\|(W-\hat W)S\|_F^2 = \mathbb{E}\|Wx - \hat Wx\|^2$ holds **exactly**.
+Then $\lVert(W-\hat W)S\rVert_F^2 = \mathbb{E}\lVert Wx - \hat Wx\rVert^2$ holds **exactly**.
 
 - Requires estimating the full $n \times n$ covariance matrix
 - Requires Cholesky decomposition ($O(n^3)$)
@@ -324,7 +324,7 @@ Typical choice: $s_i = (\mathbb{E}[|x_i|])^\alpha$, $\alpha > 0$.
 
 The weighted Frobenius norm becomes:
 
-$$\|(W - \hat W)\text{diag}(s)\|_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$
+$$\lVert(W - \hat W)\text{diag}(s)\rVert_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$
 
 Column $i$'s approximation error is weighted by $s_i^2$: columns corresponding to "active" input components are prioritized.
 
@@ -344,9 +344,9 @@ All three methods live in the same framework, differing only in how finely they 
 
 | Method | Objective | Assumption on $\Sigma$ |
 |---|---|---|
-| Plain SVD | $\min\|W - \hat W\|_F^2$ | $\Sigma = I$ (isotropic) |
-| Diag SVD | $\min\|(W-\hat W)\text{diag}(s)\|_F^2$ | $\Sigma$ is diagonal (independent components) |
-| Whiten SVD | $\min\|(W-\hat W)\Sigma^{1/2}\|_F^2$ | Full $\Sigma$ |
+| Plain SVD | $\min\lVert W - \hat W\rVert_F^2$ | $\Sigma = I$ (isotropic) |
+| Diag SVD | $\min\lVert(W-\hat W)\text{diag}(s)\rVert_F^2$ | $\Sigma$ is diagonal (independent components) |
+| Whiten SVD | $\min\lVert(W-\hat W)\Sigma^{1/2}\rVert_F^2$ | Full $\Sigma$ |
 
 All three are solved in closed form by the Eckart-Young theorem — the only difference is "what matrix to apply SVD to":
 
@@ -358,7 +358,7 @@ All three are solved in closed form by the Eckart-Young theorem — the only dif
 
 Given the weighted matrix $\tilde W = WS$, the optimal rank-$r$ error is:
 
-$$\inf_{\text{rank}(\hat W) \le r} \|(W - \hat W)S\|_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$
+$$\inf_{\text{rank}(\hat W) \le r} \lVert(W - \hat W)S\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$
 
 This is the matrix version of the **Kolmogorov $r$-width** — an **algorithm-independent lower bound**.
 
@@ -372,7 +372,7 @@ Each $W_\ell$ individually optimal $\quad\overset{?}{\Longrightarrow}\quad$ comp
 
 The answer is **no**. The reason is that the composite error has cross-layer interaction structure:
 
-$$F - \tilde F = \sum_\ell (\partial F_{>\ell})\,\varepsilon_\ell + O(\varepsilon^2)$$
+$$F - \tilde F = \sum_\ell (\partial F_{>\ell}) \varepsilon_\ell + O(\varepsilon^2)$$
 
 where $\varepsilon_\ell = W_\ell - \hat W_\ell$ is the approximation error at layer $\ell$, and $\partial F_{>\ell}$ is the downstream amplification. Error vectors from different layers may partially **cancel** (negative inner products), making the end-to-end error smaller than the sum of per-layer errors. Per-matrix optimization cannot exploit this degree of freedom.
 
