@@ -19,25 +19,30 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="Personal academic blog on applied mathematics and machine learning.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Xuan&#39;s Blog">
-<meta property="og:url" content="https://11zhouxuan.github.io/index.html">
+    <meta name="description" content="English   中文    概述 本文记录了从零开始预训练一个 1.7B 参数语言模型的完整实验过程。我们使用 Qwen3-1.7B 的架构（随机初始化权重），在 FineWeb-Edu 数据集上训练，并拟合了 token scaling law。实验揭示了预训练过程中的关键现象，包括 loss 的 power law 衰减、不同 token 的学习难度差异，以及数据重复对模型能力的影响">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Pre-training a 1.7B LLM from Scratch: Scaling Laws and Lessons Learned">
+<meta property="og:url" content="https://11zhouxuan.github.io/2026/07/13/pretraining-from-scratch-scaling-law/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="Personal academic blog on applied mathematics and machine learning.">
+<meta property="og:description" content="English   中文    概述 本文记录了从零开始预训练一个 1.7B 参数语言模型的完整实验过程。我们使用 Qwen3-1.7B 的架构（随机初始化权重），在 FineWeb-Edu 数据集上训练，并拟合了 token scaling law。实验揭示了预训练过程中的关键现象，包括 loss 的 power law 衰减、不同 token 的学习难度差异，以及数据重复对模型能力的影响">
 <meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-07-13T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-08T07:42:57.213Z">
 <meta property="article:author" content="Xuan Zhou">
-<meta property="article:tag" content="applied mathematics, machine learning, numerical analysis, research">
+<meta property="article:tag" content="LLM">
+<meta property="article:tag" content="deep-learning">
+<meta property="article:tag" content="pre-training">
+<meta property="article:tag" content="scaling-law">
 <meta name="twitter:card" content="summary">
 
 
-<link rel="canonical" href="https://11zhouxuan.github.io/">
+<link rel="canonical" href="https://11zhouxuan.github.io/2026/07/13/pretraining-from-scratch-scaling-law/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":true,"isPost":false,"lang":"en","comments":"","permalink":"","path":"index.html","title":""}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/07/13/pretraining-from-scratch-scaling-law/","path":"2026/07/13/pretraining-from-scratch-scaling-law/","title":"Pre-training a 1.7B LLM from Scratch: Scaling Laws and Lessons Learned"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Xuan's Blog</title>
+<title>Pre-training a 1.7B LLM from Scratch: Scaling Laws and Lessons Learned | Xuan's Blog</title>
   
 
 
@@ -99,7 +104,7 @@
 
     <a href="/" class="brand" rel="start">
       <i class="logo-line"></i>
-      <h1 class="site-title">Xuan's Blog</h1>
+      <p class="site-title">Xuan's Blog</p>
       <i class="logo-line"></i>
     </a>
       <p class="site-subtitle" itemprop="description">Applied Mathematics & Machine Learning</p>
@@ -153,7 +158,7 @@
   
   <aside class="sidebar">
 
-    <div class="sidebar-inner sidebar-overview-active">
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
       <ul class="sidebar-nav">
         <li class="sidebar-nav-toc">
           Table of Contents
@@ -166,6 +171,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E8%BF%B0"><span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E9%85%8D%E7%BD%AE"><span class="nav-text">实验配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%A1%AC%E4%BB%B6%E7%8E%AF%E5%A2%83"><span class="nav-text">硬件环境</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84"><span class="nav-text">模型架构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E9%85%8D%E7%BD%AE"><span class="nav-text">训练配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE"><span class="nav-text">数据</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E8%BF%87%E7%A8%8B%E4%B8%8E-Validation-Loss-%E6%9B%B2%E7%BA%BF"><span class="nav-text">训练过程与 Validation Loss 曲线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scaling-Law-%E6%8B%9F%E5%90%88"><span class="nav-text">Scaling Law 拟合</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E5%BC%8F"><span class="nav-text">公式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8B%9F%E5%90%88%E7%BB%93%E6%9E%9C"><span class="nav-text">拟合结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%96%E6%8E%A8%E9%AA%8C%E8%AF%81"><span class="nav-text">外推验证</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A4%96%E6%8E%A8%E9%A2%84%E6%B5%8B"><span class="nav-text">外推预测</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E5%8F%91%E7%8E%B0"><span class="nav-text">关键发现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Val-Loss-%E4%B8%8B%E9%99%8D%E9%80%9F%E7%8E%87%E7%9A%84-Power-Law-%E8%A1%B0%E5%87%8F"><span class="nav-text">1. Val Loss 下降速率的 Power Law 衰减</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Train-Loss-%E2%89%88-Val-Loss%EF%BC%88%E6%97%A0%E8%BF%87%E6%8B%9F%E5%90%88%EF%BC%89"><span class="nav-text">2. Train Loss ≈ Val Loss（无过拟合）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%96%87%E6%A1%A3%E8%BE%B9%E7%95%8C%E6%95%88%E5%BA%94"><span class="nav-text">3. 文档边界效应</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Token-%E7%B1%BB%E5%9E%8B%E5%BD%B1%E5%93%8D%E5%AD%A6%E4%B9%A0%E9%9A%BE%E5%BA%A6"><span class="nav-text">4. Token 类型影响学习难度</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Bigram-%E6%9D%A1%E4%BB%B6%E6%A6%82%E7%8E%87%E4%B8%8E-Loss-%E7%9A%84%E5%85%B3%E7%B3%BB"><span class="nav-text">5. Bigram 条件概率与 Loss 的关系</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E5%B7%A5%E5%85%B7%E4%B8%8E%E4%BC%98%E5%8C%96"><span class="nav-text">实验工具与优化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#GPU-%E5%88%A9%E7%94%A8%E7%8E%87%E4%BC%98%E5%8C%96"><span class="nav-text">GPU 利用率优化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Checkpoint-%E7%AD%96%E7%95%A5"><span class="nav-text">Checkpoint 策略</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8E%E5%B7%B2%E6%9C%89-Scaling-Law-%E7%9A%84%E5%AF%B9%E6%AF%94"><span class="nav-text">与已有 Scaling Law 的对比</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9F%A5%E8%AF%86%E8%AF%84%E4%BC%B0%EF%BC%88PopQA-Benchmark%EF%BC%89"><span class="nav-text">知识评估（PopQA Benchmark）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%84%E4%BC%B0%E6%A0%BC%E5%BC%8F%EF%BC%88%E5%AE%98%E6%96%B9%EF%BC%89"><span class="nav-text">评估格式（官方）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%84%E4%BC%B0%E7%BB%93%E6%9E%9C"><span class="nav-text">评估结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E6%9E%90"><span class="nav-text">分析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%8E%E5%AE%98%E6%96%B9-Qwen-%E6%A8%A1%E5%9E%8B%E7%9A%84-Val-Loss-%E5%AF%B9%E6%AF%94"><span class="nav-text">与官方 Qwen 模型的 Val Loss 对比</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Dense-%E6%A8%A1%E5%9E%8B%E5%AF%B9%E6%AF%94"><span class="nav-text">Dense 模型对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MoE-%E6%A8%A1%E5%9E%8B"><span class="nav-text">MoE 模型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8E%E5%AE%98%E6%96%B9%E6%A8%A1%E5%9E%8B%E7%9A%84-PopQA-%E5%AF%B9%E6%AF%94"><span class="nav-text">与官方模型的 PopQA 对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E6%9E%90-2"><span class="nav-text">分析</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9F%A5%E8%AF%86%E6%B3%A8%E5%85%A5%E5%AE%9E%E9%AA%8C%EF%BC%9APermutation-based-Knowledge-Injection"><span class="nav-text">知识注入实验：Permutation-based Knowledge Injection</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E6%9C%BA"><span class="nav-text">动机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B9%E6%B3%95"><span class="nav-text">方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E9%85%8D%E7%BD%AE-2"><span class="nav-text">训练配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E6%9B%B2%E7%BA%BF"><span class="nav-text">训练曲线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%8F%E6%9C%BA%E9%87%87%E6%A0%B7%E8%AF%84%E4%BC%B0%EF%BC%88%E8%A6%86%E7%9B%96%E5%85%A8%E9%83%A8-16-%E7%A7%8D-property-%E7%B1%BB%E5%9E%8B%EF%BC%89"><span class="nav-text">随机采样评估（覆盖全部 16 种 property 类型）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8C%89-Property-%E7%B1%BB%E5%9E%8B%E5%88%86%E6%9E%90"><span class="nav-text">按 Property 类型分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E7%BB%93%E8%AE%BA"><span class="nav-text">关键结论</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E7%85%A7%E5%AE%9E%E9%AA%8C%EF%BC%9A%E5%9F%BA%E4%BA%8E%E5%AE%98%E6%96%B9-Qwen3-1-7B-Base-%E7%9A%84%E7%9F%A5%E8%AF%86%E6%B3%A8%E5%85%A5"><span class="nav-text">对照实验：基于官方 Qwen3-1.7B-Base 的知识注入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B6%88%E8%9E%8D%E5%AE%9E%E9%AA%8C%EF%BC%9APermutation-vs-%E7%AE%80%E5%8D%95%E9%87%8D%E5%A4%8D"><span class="nav-text">消融实验：Permutation vs 简单重复</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LoRD%EF%BC%9A%E4%BB%8E%E5%A4%A7%E6%A8%A1%E5%9E%8B%E5%8E%8B%E7%BC%A9%E5%8F%82%E6%95%B0%E6%9D%A5%E5%8A%A0%E9%80%9F%E9%A2%84%E8%AE%AD%E7%BB%83"><span class="nav-text">LoRD：从大模型压缩参数来加速预训练</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E6%9C%BA-2"><span class="nav-text">动机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E6%95%B0%E9%87%8F%E6%8B%86%E8%A7%A3"><span class="nav-text">参数量拆解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96%E6%96%B9%E5%BC%8F%E7%9A%84%E5%AF%B9%E6%AF%94%EF%BC%9ASVD-vs-%E9%9A%8F%E6%9C%BA"><span class="nav-text">初始化方式的对比：SVD vs 随机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%E9%97%AE%E9%A2%98%EF%BC%9A%E9%80%90%E7%9F%A9%E9%98%B5-SVD-%E6%98%AF%E6%9C%80%E4%BC%98%E7%9A%84%E5%90%97%EF%BC%9F"><span class="nav-text">关键问题：逐矩阵 SVD 是最优的吗？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Activation-aware-SVD-ASVD"><span class="nav-text">Activation-aware SVD (ASVD)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C%EF%BC%88rank-384%EF%BC%8C%E9%9B%B6%E8%AE%AD%E7%BB%83%E5%88%9D%E5%A7%8B-val-loss%EF%BC%89"><span class="nav-text">实验结果（rank&#x3D;384，零训练初始 val loss）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82"><span class="nav-text">实现细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%9E%E5%9D%87%E5%8C%80-rank-%E5%88%86%E9%85%8D"><span class="nav-text">非均匀 rank 分配</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%9D%E5%A7%8B%E5%8C%96%E6%94%B9%E8%BF%9B%E6%B1%87%E6%80%BB"><span class="nav-text">初始化改进汇总</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%B3%E5%AE%9A%E6%80%A7%E5%AE%9E%E9%AA%8C%EF%BC%9A%E5%88%9D%E5%A7%8B%E5%8C%96%E4%BC%98%E5%8A%BF%E8%83%BD%E5%90%A6%E7%A9%BF%E9%80%8F%E8%AE%AD%E7%BB%83%EF%BC%9F"><span class="nav-text">决定性实验：初始化优势能否穿透训练？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E6%9D%83%E9%87%8D%E6%8B%9F%E5%90%88%E5%BE%97%E5%A5%BD%EF%BC%8Chidden-state-%E4%BE%9D%E7%84%B6%E6%BC%82%E7%A7%BB%EF%BC%9F"><span class="nav-text">为什么权重拟合得好，hidden state 依然漂移？</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%98%AF%E5%93%AA%E4%B8%AA%E7%AE%97%E5%AD%90%E7%9A%84%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">是哪个算子的问题？</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%A4%E4%B8%AA%E5%A4%B1%E8%B4%A5%E7%9A%84%E4%BF%AE%E8%A1%A5%E5%B0%9D%E8%AF%95"><span class="nav-text">两个失败的修补尝试</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%A0%B9%E6%9C%AC%E9%97%AE%E9%A2%98%EF%BC%9A%E6%88%91%E4%BB%AC%E4%B8%80%E7%9B%B4%E5%9C%A8%E4%BC%98%E5%8C%96%E4%BB%A3%E7%90%86%E7%9B%AE%E6%A0%87"><span class="nav-text">根本问题：我们一直在优化代理目标</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%AF%E5%B7%AE%E7%A9%B6%E7%AB%9F%E5%87%BA%E5%9C%A8%E5%93%AA%E4%B8%80%E5%B1%82%EF%BC%9F%E5%8D%95%E5%9D%97%E5%BD%92%E5%9B%A0"><span class="nav-text">误差究竟出在哪一层？单块归因</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%BB%E5%87%BA%E5%B1%82%E6%95%8F%E6%84%9F%E5%BA%A6%EF%BC%9A%E4%B8%80%E4%B8%AA%E5%BF%85%E8%A6%81%E7%9A%84%E5%AF%B9%E7%85%A7"><span class="nav-text">读出层敏感度：一个必要的对照</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%9B%9B%E6%AC%A1%E4%BF%AE%E8%A1%A5%E5%B0%9D%E8%AF%95%EF%BC%8C%E5%85%A8%E9%83%A8%E5%A4%B1%E8%B4%A5"><span class="nav-text">四次修补尝试，全部失败</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8E%E6%96%87%E7%8C%AE%E7%9A%84%E5%AF%B9%E7%85%A7%EF%BC%9A%E8%BF%99%E4%B8%AA%E5%8E%8B%E7%BC%A9%E7%8E%87%E8%B6%85%E5%87%BA%E4%BA%86%E5%B7%B2%E6%9C%89%E6%96%B9%E6%B3%95%E7%9A%84%E8%83%BD%E5%8A%9B"><span class="nav-text">与文献的对照：这个压缩率超出了已有方法的能力</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8E%E5%87%BD%E6%95%B0%E9%80%BC%E8%BF%91%E8%AE%BA%E9%87%8D%E6%96%B0%E5%AE%A1%E8%A7%86%EF%BC%9A%E6%88%91%E4%BB%AC%E4%B8%80%E7%9B%B4%E5%9C%A8%E8%A7%A3%E9%94%99%E8%AF%AF%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-text">从函数逼近论重新审视：我们一直在解错误的问题</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%AF%81%E6%8D%AE%EF%BC%9A%E8%AF%AF%E5%B7%AE%E4%B8%8D%E5%8F%AF%E5%8A%A0%EF%BC%8C%E8%80%8C%E4%B8%94%E4%BC%9A%E7%9B%B8%E6%B6%88"><span class="nav-text">证据：误差不可加，而且会相消</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E9%80%90%E5%B1%82%E7%9B%AE%E6%A0%87%E6%98%AF%E9%94%99%E7%9A%84%E5%B1%82%E6%AC%A1"><span class="nav-text">为什么逐层目标是错的层次</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%A1%BA%E5%B8%A6%EF%BC%9A%E5%9C%A8%E5%BD%93%E5%89%8D%E9%80%BC%E8%BF%91%E7%B1%BB%E9%87%8C%E6%88%91%E4%BB%AC%E5%B7%B2%E7%BB%8F%E8%A7%A6%E5%88%B0%E4%B8%8B%E7%95%8C"><span class="nav-text">顺带：在当前逼近类里我们已经触到下界</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%9B%B4%E6%8E%A5%E4%BC%98%E5%8C%96%E5%A4%8D%E5%90%88%E6%98%A0%E5%B0%84%EF%BC%9A%E5%94%AF%E4%B8%80%E6%9C%89%E6%95%88%E7%9A%84%E6%96%B9%E6%B3%95"><span class="nav-text">直接优化复合映射：唯一有效的方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%8E-LRC-%E7%9A%84%E5%AF%B9%E7%85%A7%EF%BC%9A%E6%95%99%E5%B8%88%E8%AF%A5%E4%B8%8D%E8%AF%A5%E8%A2%AB%E6%8A%9B%E5%BC%83%EF%BC%9F"><span class="nav-text">与 LRC 的对照：教师该不该被抛弃？</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%AC%E6%AC%A1-LoRD-%E9%A2%84%E8%AE%AD%E7%BB%83%E7%9A%84%E5%AE%9E%E9%99%85%E7%BB%93%E6%9E%9C"><span class="nav-text">本次 LoRD 预训练的实际结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LoRD-%E7%9A%84-Scaling-Law"><span class="nav-text">LoRD 的 Scaling Law</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%8E%E4%BB%8E%E9%9B%B6%E8%AE%AD%E7%BB%83%E7%9A%84%E5%AF%B9%E6%AF%94%EF%BC%9A%E4%B8%80%E4%B8%AA%E9%9C%80%E8%A6%81%E8%B0%A8%E6%85%8E%E8%A7%A3%E8%AF%BB%E7%9A%84%E7%BB%93%E8%AE%BA"><span class="nav-text">与从零训练的对比：一个需要谨慎解读的结论</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E9%80%9F%E5%BA%A6%EF%BC%9A%E4%B8%80%E4%B8%AA%E6%9C%AA%E9%A2%84%E6%9C%9F%E7%9A%84%E5%8F%91%E7%8E%B0"><span class="nav-text">训练速度：一个未预期的发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%BE%85%E9%AA%8C%E8%AF%81%E7%9A%84%E5%BC%80%E6%94%BE%E9%97%AE%E9%A2%98"><span class="nav-text">待验证的开放问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E5%B7%A5%E4%BD%9C"><span class="nav-text">相关工作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9F%A5%E8%AF%86%E5%AD%98%E5%82%A8%E4%B8%8E%E6%8F%90%E5%8F%96%E7%9A%84%E7%90%86%E8%AE%BA%E5%9F%BA%E7%A1%80"><span class="nav-text">知识存储与提取的理论基础</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Reversal-Curse-%E4%B8%8E%E6%8E%92%E5%88%97%E8%AE%AD%E7%BB%83"><span class="nav-text">Reversal Curse 与排列训练</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9F%A5%E8%AF%86%E6%B3%A8%E5%85%A5%E6%95%88%E7%8E%87"><span class="nav-text">知识注入效率</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E4%B8%8E%E6%BF%80%E6%B4%BB%E6%84%9F%E7%9F%A5%E5%88%86%E8%A7%A3"><span class="nav-text">低秩压缩与激活感知分解</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%AC%E5%B7%A5%E4%BD%9C%E7%9A%84%E7%8B%AC%E7%89%B9%E8%B4%A1%E7%8C%AE"><span class="nav-text">本工作的独特贡献</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Overview"><span class="nav-text">Overview</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Experimental-Setup"><span class="nav-text">Experimental Setup</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Hardware"><span class="nav-text">Hardware</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Model-Architecture"><span class="nav-text">Model Architecture</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Training-Configuration"><span class="nav-text">Training Configuration</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Data"><span class="nav-text">Data</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Training-Progress-and-Validation-Loss-Curve"><span class="nav-text">Training Progress and Validation Loss Curve</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Scaling-Law-Fitting"><span class="nav-text">Scaling Law Fitting</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Formula"><span class="nav-text">Formula</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Fitting-Results"><span class="nav-text">Fitting Results</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Extrapolation-Validation"><span class="nav-text">Extrapolation Validation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Forward-Predictions"><span class="nav-text">Forward Predictions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Key-Findings"><span class="nav-text">Key Findings</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Power-Law-Decay-of-Val-Loss-Improvement-Rate"><span class="nav-text">1. Power-Law Decay of Val Loss Improvement Rate</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-No-Overfitting-Train-Loss-%E2%89%88-Val-Loss"><span class="nav-text">2. No Overfitting (Train Loss ≈ Val Loss)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Document-Boundary-Effect"><span class="nav-text">3. Document Boundary Effect</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Token-Type-Affects-Learning-Difficulty"><span class="nav-text">4. Token Type Affects Learning Difficulty</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Bigram-Conditional-Probability-vs-Loss"><span class="nav-text">5. Bigram Conditional Probability vs Loss</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Engineering-Optimizations"><span class="nav-text">Engineering Optimizations</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#GPU-Utilization"><span class="nav-text">GPU Utilization</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Checkpoint-Strategy"><span class="nav-text">Checkpoint Strategy</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Comparison-with-Existing-Scaling-Laws"><span class="nav-text">Comparison with Existing Scaling Laws</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Knowledge-Evaluation-PopQA-Benchmark"><span class="nav-text">Knowledge Evaluation (PopQA Benchmark)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Evaluation-Format-Official"><span class="nav-text">Evaluation Format (Official)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Results"><span class="nav-text">Results</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Analysis"><span class="nav-text">Analysis</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Comparison-with-Official-Qwen-Models"><span class="nav-text">Comparison with Official Qwen Models</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Dense-Models"><span class="nav-text">Dense Models</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#MoE-Models"><span class="nav-text">MoE Models</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PopQA-Comparison-with-Official-Models"><span class="nav-text">PopQA Comparison with Official Models</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Analysis-2"><span class="nav-text">Analysis</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Knowledge-Injection-Experiment-Permutation-based-Knowledge-Injection"><span class="nav-text">Knowledge Injection Experiment: Permutation-based Knowledge Injection</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Motivation"><span class="nav-text">Motivation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Method"><span class="nav-text">Method</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Training-Configuration-2"><span class="nav-text">Training Configuration</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Training-Curve"><span class="nav-text">Training Curve</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Random-Sampled-Evaluation-covering-all-16-property-types"><span class="nav-text">Random-Sampled Evaluation (covering all 16 property types)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Analysis-by-Property-Type"><span class="nav-text">Analysis by Property Type</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Key-Findings-2"><span class="nav-text">Key Findings</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Control-Experiment-Knowledge-Injection-on-Official-Qwen3-1-7B-Base"><span class="nav-text">Control Experiment: Knowledge Injection on Official Qwen3-1.7B-Base</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Ablation-Permutation-vs-Simple-Repetition"><span class="nav-text">Ablation: Permutation vs Simple Repetition</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LoRD-Compressing-a-Larger-Model-to-Accelerate-Pre-training"><span class="nav-text">LoRD: Compressing a Larger Model to Accelerate Pre-training</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Motivation-2"><span class="nav-text">Motivation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Parameter-Breakdown"><span class="nav-text">Parameter Breakdown</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Initialization-Comparison-SVD-vs-Random"><span class="nav-text">Initialization Comparison: SVD vs Random</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-Key-Question-Is-Per-Matrix-SVD-Optimal"><span class="nav-text">The Key Question: Is Per-Matrix SVD Optimal?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Activation-aware-SVD-ASVD-2"><span class="nav-text">Activation-aware SVD (ASVD)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Results-rank-384-initial-val-loss-with-zero-training"><span class="nav-text">Results (rank&#x3D;384, initial val loss with zero training)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Implementation-Notes"><span class="nav-text">Implementation Notes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Non-Uniform-Rank-Allocation"><span class="nav-text">Non-Uniform Rank Allocation</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Initialization-Improvements-Summary"><span class="nav-text">Initialization Improvements: Summary</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-Decisive-Experiment-Does-the-Initialization-Advantage-Penetrate-Training"><span class="nav-text">The Decisive Experiment: Does the Initialization Advantage Penetrate Training?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Why-Do-Hidden-States-Drift-When-the-Weights-Fit-Well"><span class="nav-text">Why Do Hidden States Drift When the Weights Fit Well?</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Which-operator-is-at-fault"><span class="nav-text">Which operator is at fault?</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Where-does-the-error-really-come-from-Single-block-attribution"><span class="nav-text">Where does the error really come from? Single-block attribution</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Readout-sensitivity-a-necessary-control"><span class="nav-text">Readout sensitivity: a necessary control</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Four-repair-attempts-all-failed"><span class="nav-text">Four repair attempts, all failed</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Against-the-literature-this-compression-ratio-is-beyond-existing-methods"><span class="nav-text">Against the literature: this compression ratio is beyond existing methods</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Revisiting-This-From-Approximation-Theory-We-Were-Solving-the-Wrong-Problem"><span class="nav-text">Revisiting This From Approximation Theory: We Were Solving the Wrong Problem</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Evidence-the-errors-are-not-additive-and-they-cancel"><span class="nav-text">Evidence: the errors are not additive, and they cancel</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Why-per-layer-objectives-are-the-wrong-level"><span class="nav-text">Why per-layer objectives are the wrong level</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Incidentally-within-this-approximation-class-we-already-sit-at-the-lower-bound"><span class="nav-text">Incidentally: within this approximation class we already sit at the lower bound</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Optimizing-the-composite-map-directly-the-only-thing-that-worked"><span class="nav-text">Optimizing the composite map directly: the only thing that worked</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Against-LRC-should-the-teacher-be-discarded"><span class="nav-text">Against LRC: should the teacher be discarded?</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Actual-Results-of-This-LoRD-Pre-training-Run"><span class="nav-text">Actual Results of This LoRD Pre-training Run</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LoRD-s-Scaling-Law"><span class="nav-text">LoRD&#39;s Scaling Law</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Comparison-with-From-Scratch-A-Conclusion-Requiring-Careful-Reading"><span class="nav-text">Comparison with From-Scratch: A Conclusion Requiring Careful Reading</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Training-Speed-An-Unexpected-Finding"><span class="nav-text">Training Speed: An Unexpected Finding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Open-Questions"><span class="nav-text">Open Questions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Related-Work"><span class="nav-text">Related Work</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Theoretical-Foundations-of-Knowledge-Storage-and-Extraction"><span class="nav-text">Theoretical Foundations of Knowledge Storage and Extraction</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-Reversal-Curse-and-Permutation-Training"><span class="nav-text">The Reversal Curse and Permutation Training</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Knowledge-Injection-Efficiency"><span class="nav-text">Knowledge Injection Efficiency</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Low-Rank-Compression-and-Activation-Aware-Decomposition"><span class="nav-text">Low-Rank Compression and Activation-Aware Decomposition</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Novel-Contributions-of-This-Work"><span class="nav-text">Novel Contributions of This Work</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Conclusions"><span class="nav-text">Conclusions</span></a></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -210,422 +216,17 @@
 
     </div>
 
-    <div class="main-inner index posts-expand">
+    <div class="main-inner post posts-expand">
 
-    
+
+  
 
 
 <div class="post-block">
   
   
 
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/08/08/low-rank-approximation-for-llm-compression/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xuan Zhou">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Xuan's Blog">
-      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Xuan's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/08/08/low-rank-approximation-for-llm-compression/" class="post-title-link" itemprop="url">Low-Rank Approximation for LLM Compression: Mathematical Foundations</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-      
-
-      <time title="Created: 2026-08-08 00:00:00 / Modified: 07:42:57" itemprop="dateCreated datePublished" datetime="2026-08-08T00:00:00+00:00">2026-08-08</time>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <h1>低秩逼近用于 LLM 压缩：数学推导</h1>
-<h2 id="1-问题设定">1. 问题设定</h2>
-<p>一个 transformer 的线性层做的事情是矩阵乘法：</p>
-<p>$$y = Wx, \quad W \in \mathbb{R}^{m \times n}$$</p>
-<p>比如 <code>gate_proj</code> 的 $W$ 是 $12288 \times 4096$，把 4096 维的隐状态映射到 12288 维的中间表示。</p>
-<p><strong>目标</strong>：用更少的参数近似 $W$。如果能找到 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \times n}$（$r \ll \min(m,n)$），使得 $AB \approx W$，那参数量从 $mn$ 降到 $(m+n)r$。</p>
-<p>例如 gate_proj：$12288 \times 4096 = 50.3M$ 参数 → rank-384 时 $(12288+4096)\times 384 = 6.29M$，压缩 8 倍。</p>
-<h2 id="2-Plain-SVD：最基础的低秩逼近">2. Plain SVD：最基础的低秩逼近</h2>
-<h3 id="2-1-目标函数">2.1 目标函数</h3>
-<p>最朴素的想法：让 $AB$ 在 Frobenius 范数下尽可能接近 $W$：</p>
-<p>$$\min_{\text{rank}(\hat W) \le r} |W - \hat W|<em>F^2 = \min</em>{\text{rank}(\hat W) \le r} \sum_{j,i} (W_{ji} - \hat W_{ji})^2$$</p>
-<h3 id="2-2-SVD-分解">2.2 SVD 分解</h3>
-<p>对 $W$ 做奇异值分解：</p>
-<p>$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k u_k v_k^T$$</p>
-<p>其中 $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ 是奇异值，$u_k$ 和 $v_k$ 分别是左/右奇异向量。</p>
-<h3 id="2-3-Eckart-Young-定理">2.3 Eckart-Young 定理</h3>
-<p><strong>最优 rank-$r$ 逼近是截断 SVD</strong>：</p>
-<p>$$\hat W = \sum_{k=1}^{r} \sigma_k u_k v_k^T = U_r \Sigma_r V_r^T$$</p>
-<p>最小误差为：</p>
-<p>$$|W - \hat W|<em>F^2 = \sum</em>{k=r+1}^{\min(m,n)} \sigma_k^2$$</p>
-<p>即被丢掉的奇异值的平方和。这是<strong>所有</strong> rank-$r$ 矩阵中的最优解——不存在更好的 rank-$r$ 逼近。</p>
-<h3 id="2-4-分解为-A、B">2.4 分解为 A、B</h3>
-<p>取：</p>
-<p>$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r} V_r^T \in \mathbb{R}^{r \times n}$$</p>
-<p>则 $AB = U_r \Sigma_r V_r^T = \hat W$。推理时计算 $y = ABx = A(Bx)$：先做 $n \to r$，再做 $r \to m$，两次小矩阵乘法。</p>
-<h3 id="2-5-问题">2.5 问题</h3>
-<p>Plain SVD 最小化的是<strong>权重误差</strong> $|W - AB|_F$——对 $W$ 所有元素等权。但实际使用时，我们关心的是<strong>输出误差</strong> $|Wx - ABx|$，而输入 $x$ 不是均匀分布的。</p>
-<h2 id="3-ASVD（Activation-aware-SVD）：考虑输入分布">3. ASVD（Activation-aware SVD）：考虑输入分布</h2>
-<h3 id="3-1-真正要最小化的">3.1 真正要最小化的</h3>
-<p>我们实际关心的是输出误差在数据分布上的期望：</p>
-<p>$$\min_{A,B} \mathbb{E}_{x \sim \mu}\big[|Wx - ABx|^2\big]$$</p>
-<p>展开（利用迹的循环性和期望的线性性）：</p>
-<p>$$\mathbb{E}|(W-AB)x|^2 = \mathbb{E}\big[\text{tr}\big((W-AB)xx^T(W-AB)^T\big)\big] = \text{tr}\big((W-AB),\Sigma,(W-AB)^T\big)$$</p>
-<p>其中 $\Sigma = \mathbb{E}[xx^T] \in \mathbb{R}^{n \times n}$ 是输入的（未中心化的）协方差矩阵。</p>
-<h3 id="3-2-变量代换">3.2 变量代换</h3>
-<p>设 $\Sigma$ 有分解 $\Sigma = S S^T$（比如 $S = \Sigma^{1/2}$ 或 Cholesky 分解）。则：</p>
-<p>$$\text{tr}\big((W-AB),\Sigma,(W-AB)^T\big) = |(W-AB)S|_F^2$$</p>
-<p>所以原问题等价于：</p>
-<p>$$\min_{\text{rank}(\hat W) \le r} |(W - \hat W)S|_F^2$$</p>
-<p>再做代换 $\tilde W = WS$：</p>
-<p>$$= \min_{\text{rank}(\hat W) \le r} |\tilde W - \hat W S|_F^2$$</p>
-<p>注意 $\hat W S$ 的秩仍然 $\le r$（因为 $\hat W$ 的秩 $\le r$），所以这等价于对 $\tilde W = WS$ 做标准的 rank-$r$ 最优逼近，由 Eckart-Young 定理解出。</p>
-<h3 id="3-3-完整求解过程">3.3 完整求解过程</h3>
-<ol>
-<li>计算 $\tilde W = WS$</li>
-<li>对 $\tilde W$ 做 SVD：$\tilde W = U \Sigma_{\tilde W} V^T$</li>
-<li>截断：$\tilde W_r = U_r \Sigma_r V_r^T$</li>
-<li>还原：$\hat W = \tilde W_r S^{-1}$，即 $A = U_r \sqrt{\Sigma_r}$，$B = \sqrt{\Sigma_r} V_r^T S^{-1}$</li>
-</ol>
-<p>验证：$AB = U_r \Sigma_r V_r^T S^{-1}$，所以 $(W - AB)S = WS - U_r \Sigma_r V_r^T = \tilde W - \tilde W_r$，正是 SVD 截断的残差，Eckart-Young 最优。</p>
-<h3 id="3-4-两种-S-的选择">3.4 两种 $S$ 的选择</h3>
-<h4 id="Whiten-ASVD（精确解）">Whiten ASVD（精确解）</h4>
-<p>取 $S = \Sigma^{1/2}$（或 $S = \text{chol}(\Sigma)$），精确保留完整协方差结构。</p>
-<ul>
-<li><strong>优点</strong>：精确最小化 $\mathbb{E}|Wx - ABx|^2$，是理论最优</li>
-<li><strong>缺点</strong>：需要存/计算完整的 $n \times n$ 协方差矩阵（4096×4096 = 64MB/层），加上 Cholesky 分解</li>
-</ul>
-<h4 id="Diag-ASVD（对角近似）">Diag ASVD（对角近似）</h4>
-<p>取 $S = \text{diag}(s_1, \ldots, s_n)$，其中 $s_i = (\mathbb{E}[|x_i|])^\alpha$。</p>
-<p>这是把 $\Sigma$ 近似为对角矩阵——<strong>只保留各通道的边际统计量，忽略通道间的相关性</strong>。</p>
-<ul>
-<li><strong>优点</strong>：只需要一个 $n$ 维向量（16KB/层），计算极快</li>
-<li><strong>缺点</strong>：忽略了协方差的非对角部分</li>
-<li><strong>实测</strong>：diag（α=1.0）给出 val loss 8.91，whiten 给出 8.64——差距仅 0.27，说明对角近似已经足够好</li>
-</ul>
-<h2 id="4-Diag-ASVD-的详细推导">4. Diag ASVD 的详细推导</h2>
-<h3 id="4-1-动机">4.1 动机</h3>
-<p>设输入 $x$ 的各通道方差差异很大（LLM 中确实如此，某些通道激活值比其他通道大几万倍）。$s_i = \mathbb{E}[|x_i|]^\alpha$ 作为 $\sqrt{\text{Var}(x_i)}$ 的近似（对对称分布，$\mathbb{E}[|x|] \propto \sqrt{\text{Var}(x)}$）。</p>
-<h3 id="4-2-加权矩阵">4.2 加权矩阵</h3>
-<p>$$\tilde W = W \cdot \text{diag}(s) \quad \Rightarrow \quad \tilde W_{ji} = W_{ji} \cdot s_i$$</p>
-<p>物理含义：$W$ 的第 $i$ 列乘以 $s_i$。如果通道 $i$ 的激活量大（$s_i$ 大），这一列被放大 → SVD 会优先保真；如果 $s_i$ 小，这一列被缩小 → 可以牺牲。</p>
-<h3 id="4-3-SVD-还原">4.3 SVD + 还原</h3>
-<p>对 $\tilde W$ 做 SVD 并截断到 rank $r$：</p>
-<p>$$\tilde W = U\Sigma V^T, \quad \tilde W_r = U_r \Sigma_r V_r^T$$</p>
-<p>还原（除以 $s$）：</p>
-<p>$$A = U_r \sqrt{\Sigma_r}, \quad B = \sqrt{\Sigma_r} V_r^T \cdot \text{diag}(s)^{-1}$$</p>
-<p>验证输出：$(AB)x = U_r \Sigma_r V_r^T \text{diag}(s)^{-1} x$</p>
-<h3 id="4-4-alpha-的作用">4.4 $\alpha$ 的作用</h3>
-<p>$s_i = (\mathbb{E}[|x_i|])^\alpha$。$\alpha$ 控制加权的强度：</p>
-<ul>
-<li>$\alpha = 0$：不加权，退化为 plain SVD</li>
-<li>$\alpha = 0.5$：ASVD 论文默认值</li>
-<li>$\alpha = 1.0$：我们实测最优——直接用激活量均值</li>
-<li>$\alpha &gt; 1$：过度加权高激活通道，可能忽略其他方向</li>
-</ul>
-<p>实测 Qwen3-8B（rank=384，uniform）：</p>
-<table>
-<thead>
-<tr>
-<th>$\alpha$</th>
-<th>初始 val loss</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0.25</td>
-<td>18.69（≈ plain SVD）</td>
-</tr>
-<tr>
-<td>0.5</td>
-<td>10.83</td>
-</tr>
-<tr>
-<td>0.75</td>
-<td>9.35</td>
-</tr>
-<tr>
-<td><strong>1.0</strong></td>
-<td><strong>8.91</strong></td>
-</tr>
-<tr>
-<td>1.25</td>
-<td>9.11</td>
-</tr>
-<tr>
-<td>1.5</td>
-<td>10.09</td>
-</tr>
-<tr>
-<td>2.0</td>
-<td>11.79</td>
-</tr>
-</tbody>
-</table>
-<p>$\alpha$ 有一个阈值效应：0.25 几乎等于不加权（差距只有 0.04），但从 0.5 开始急剧改善。最优在 1.0。</p>
-<h2 id="5-三者关系的直观理解">5. 三者关系的直观理解</h2>
-<table>
-<thead>
-<tr>
-<th></th>
-<th>目标</th>
-<th>等价于</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Plain SVD</td>
-<td>$\min |W - AB|_F^2$</td>
-<td>假设 $x \sim \mathcal{N}(0, I)$（各向同性）</td>
-</tr>
-<tr>
-<td>Diag ASVD</td>
-<td>$\min |(W-AB)\text{diag}(s)|_F^2$</td>
-<td>假设 $x$ 各分量独立但方差不同</td>
-</tr>
-<tr>
-<td>Whiten ASVD</td>
-<td>$\min |(W-AB)\Sigma^{1/2}|_F^2$</td>
-<td>精确假设 $x \sim \mathcal{N}(0, \Sigma)$</td>
-</tr>
-</tbody>
-</table>
-<p>从 plain 到 diag 到 whiten，逐步引入更多关于数据分布的信息：</p>
-<ul>
-<li>Plain：什么都不知道，平等对待所有方向</li>
-<li>Diag：知道每个通道有多重要（边际统计量）</li>
-<li>Whiten：知道通道之间的完整相关结构</li>
-</ul>
-<h2 id="6-逼近的理论极限：Kolmogorov-宽度">6. 逼近的理论极限：Kolmogorov 宽度</h2>
-<p>给定任何 $S$，ASVD 给出的是<strong>该加权范数下的最优</strong> rank-$r$ 逼近。最优误差为：</p>
-<p>$$\inf_{\text{rank}(\hat W) \le r} |(W - \hat W)S|<em>F^2 = \sum</em>{k=r+1}^{\min(m,n)} \sigma_k^2(WS)$$</p>
-<p>这是 <strong>Kolmogorov $r$-宽度</strong>（对矩阵集合在加权 Frobenius 范数下的版本）。它是<strong>与算法无关的下界</strong>——不可能存在任何方法做得比 SVD 截断更好。</p>
-<p>如果 $\sigma_k(WS)$ 衰减快（前几个奇异值占据大部分能量），低秩逼近很好；如果衰减慢，再好的算法也无能为力。</p>
-<p>我们实测 Qwen3-8B 的情况：</p>
-<table>
-<thead>
-<tr>
-<th>矩阵</th>
-<th>rank=384 加权能量保留</th>
-<th>含义</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>L35 down_proj</td>
-<td><strong>98.5%</strong></td>
-<td>几乎满秩可恢复——因为 massive activations 让少数方向主导</td>
-</tr>
-<tr>
-<td>L0 gate_proj</td>
-<td><strong>32.5%</strong></td>
-<td>丢掉 2/3 的信息——因为浅层激活分布均匀</td>
-</tr>
-<tr>
-<td>L0 up_proj</td>
-<td><strong>25.1%</strong></td>
-<td>丢掉 3/4——最难压缩</td>
-</tr>
-</tbody>
-</table>
-<h2 id="7-为什么单矩阵最优不等于端到端最优">7. 为什么单矩阵最优不等于端到端最优</h2>
-<p>ASVD 保证每个矩阵在其加权范数下最优，但模型的 val loss 取决于<strong>所有层的复合映射</strong> $F = f_L \circ \cdots \circ f_1$。</p>
-<p>设每层误差为 $\varepsilon_\ell = f_\ell - \tilde f_\ell$，则端到端误差：</p>
-<p>$$F - \tilde F = \sum_\ell (\partial f_{&gt;\ell}),\varepsilon_\ell + O(\varepsilon^2)$$</p>
-<p>这里 $\partial f_{&gt;\ell}$ 是下游层对误差的放大/缩小。如果各层误差的方向恰好互相抵消（$\langle \partial f_{&gt;\ell}\varepsilon_\ell,, \partial f_{&gt;k}\varepsilon_k \rangle &lt; 0$），那端到端误差比各层误差之和小——我们实测这个亚线性因子为 <strong>1.64×</strong>。</p>
-<p><strong>逐矩阵优化不能利用这个相消结构</strong>。而端到端蒸馏（联合优化所有 $A_\ell, B_\ell$）可以——这就是为什么它能把 8.50 降到 3.79。</p>
-<h2 id="8-总结">8. 总结</h2>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>数学保证</th>
-<th>实测 val loss</th>
-<th>局限</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Plain SVD</td>
-<td>$|W - AB|_F$ 最优</td>
-<td>18.65</td>
-<td>完全忽略数据分布</td>
-</tr>
-<tr>
-<td>Diag ASVD (α=1)</td>
-<td>$|(W-AB)\text{diag}(s)|_F$ 最优</td>
-<td>8.91</td>
-<td>忽略通道相关性</td>
-</tr>
-<tr>
-<td>Whiten ASVD</td>
-<td>$\mathbb{E}|Wx-ABx|^2$ 最优</td>
-<td>8.64</td>
-<td>仅限单矩阵层面</td>
-</tr>
-<tr>
-<td>+ 非均匀 rank 分配</td>
-<td>同上 + 预算分配最优</td>
-<td>8.50</td>
-<td>仍是单矩阵层面</td>
-</tr>
-<tr>
-<td>端到端蒸馏</td>
-<td>直接优化复合映射</td>
-<td><strong>3.79</strong></td>
-<td>需要训练</td>
-</tr>
-</tbody>
-</table>
-<p>从 18.65 到 8.50 是&quot;在单矩阵层面做到极致&quot;；从 8.50 到 3.79 是&quot;承认单矩阵不够，改成优化复合映射&quot;。后者的改进（4.71 nat）远大于前者（10.15 nat 看似更大，但大部分是从&quot;完全不对&quot;到&quot;基本对&quot;的门槛效应）。</p>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/07/13/llm-ontology-construction-survey/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xuan Zhou">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Xuan's Blog">
-      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Xuan's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/07/13/llm-ontology-construction-survey/" class="post-title-link" itemprop="url">LLM/Agent-Driven Ontology Construction: A Survey of 18 Papers (2024-2026)</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2026-07-13 10:00:00" itemprop="dateCreated datePublished" datetime="2026-07-13T10:00:00+00:00">2026-07-13</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-08 07:42:57" itemprop="dateModified" datetime="2026-08-08T07:42:57+00:00">2026-08-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/research/" itemprop="url" rel="index"><span itemprop="name">research</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <div class="lang-switch">
-  <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
-  <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中文</button>
-</div>
-<!-- Chinese Version -->
-<div class="lang-content lang-zh" style="display:none;">
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2026/07/13/llm-ontology-construction-survey/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
     <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/07/13/pretraining-from-scratch-scaling-law/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -639,13 +240,13 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Xuan's Blog">
+      <meta itemprop="name" content="Pre-training a 1.7B LLM from Scratch: Scaling Laws and Lessons Learned | Xuan's Blog">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/07/13/pretraining-from-scratch-scaling-law/" class="post-title-link" itemprop="url">Pre-training a 1.7B LLM from Scratch: Scaling Laws and Lessons Learned</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          Pre-training a 1.7B LLM from Scratch: Scaling Laws and Lessons Learned
+        </h1>
 
         <div class="post-meta-container">
           <div class="post-meta">
@@ -675,6 +276,13 @@
     </span>
 
   
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
 </div>
 
         </div>
@@ -683,8 +291,7 @@
     
     
     
-    <div class="post-body" itemprop="articleBody">
-          <div class="lang-switch">
+    <div class="post-body" itemprop="articleBody"><div class="lang-switch">
   <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
   <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中文</button>
 </div>
@@ -7232,7 +6839,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-      
     </div>
 
     
@@ -7240,207 +6846,31 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
+          <div class="post-tags">
+              <a href="/tags/LLM/" rel="tag"><i class="fa fa-tag"></i> LLM</a>
+              <a href="/tags/pre-training/" rel="tag"><i class="fa fa-tag"></i> pre-training</a>
+              <a href="/tags/scaling-law/" rel="tag"><i class="fa fa-tag"></i> scaling-law</a>
+              <a href="/tags/deep-learning/" rel="tag"><i class="fa fa-tag"></i> deep-learning</a>
+          </div>
 
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2025/06/18/meanflow-one-step-generation/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xuan Zhou">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Xuan's Blog">
-      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Xuan's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/06/18/meanflow-one-step-generation/" class="post-title-link" itemprop="url">From Flow Matching to MeanFlow: One-Step Generation</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2025-06-18 10:00:00" itemprop="dateCreated datePublished" datetime="2025-06-18T10:00:00+00:00">2025-06-18</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-08 07:42:57" itemprop="dateModified" datetime="2026-08-08T07:42:57+00:00">2026-08-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/machine-learning/" itemprop="url" rel="index"><span itemprop="name">machine learning</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <div class="lang-switch">
-  <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
-  <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中文</button>
-</div>
-<!-- Chinese Version -->
-<div class="lang-content lang-zh" style="display:none;">
-<p>从 Flow Matching 到 MeanFlow——用同一分析框架推导一步生成的训练目标。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/06/18/meanflow-one-step-generation/#more" rel="contents">
-                Read more &raquo;
-              </a>
-            </div>
-          <!--/noindex-->
         
-      
-    </div>
 
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2025/06/12/flow-matching-three-steps/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xuan Zhou">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Xuan's Blog">
-      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Xuan's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/06/12/flow-matching-three-steps/" class="post-title-link" itemprop="url">The Mathematics of Flow Matching</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2025-06-12 10:00:00" itemprop="dateCreated datePublished" datetime="2025-06-12T10:00:00+00:00">2025-06-12</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-08 07:42:57" itemprop="dateModified" datetime="2026-08-08T07:42:57+00:00">2026-08-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-folder"></i>
-      </span>
-      <span class="post-meta-item-text">In</span>
-        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/machine-learning/" itemprop="url" rel="index"><span itemprop="name">machine learning</span></a>
-        </span>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <div class="lang-switch">
-  <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
-  <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中文</button>
-</div>
-<!-- Chinese Version -->
-<div class="lang-content lang-zh" style="display:none;">
-<p>Flow Matching——连续生成模型中&quot;无需模拟&quot;训练目标的极简推导，三步到位。</p>
-          <!--noindex-->
-            <div class="post-button">
-              <a class="btn" href="/2025/06/12/flow-matching-three-steps/#more" rel="contents">
-                Read more &raquo;
-              </a>
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/06/18/meanflow-one-step-generation/" rel="prev" title="From Flow Matching to MeanFlow: One-Step Generation">
+                  <i class="fa fa-angle-left"></i> From Flow Matching to MeanFlow: One-Step Generation
+                </a>
             </div>
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
+            <div class="post-nav-item">
+                <a href="/2026/07/13/llm-ontology-construction-survey/" rel="next" title="LLM&#x2F;Agent-Driven Ontology Construction: A Survey of 18 Papers (2024-2026)">
+                  LLM/Agent-Driven Ontology Construction: A Survey of 18 Papers (2024-2026) <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
     </footer>
   </article>
 </div>
+
 
 
 
