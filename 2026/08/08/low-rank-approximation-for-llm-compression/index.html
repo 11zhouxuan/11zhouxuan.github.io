@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English    矩阵低秩逼近：从 SVD 到加权 SVD 1. 问题设定 给定矩阵 $W \in \mathbb{R}^{m \times n}$，要找一个秩不超过 $r$ 的矩阵 $\hat W$ 使得 $\hat W \approx W$。 等价地，找 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \times">
+    <meta name="description" content="中文   English    矩阵低秩逼近：从 SVD 到加权 SVD 1. 问题设定 给定矩阵 $W \in \mathbb{R}^{m \times n}$，要找一个秩不超过 $r$ 的矩阵 $\hat W$ 使得 $\hat W \approx W$。 一种参数化方式：取 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \ti">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Low-Rank Matrix Approximation: From SVD to Weighted SVD">
 <meta property="og:url" content="https://11zhouxuan.github.io/2026/08/08/low-rank-approximation-for-llm-compression/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English    矩阵低秩逼近：从 SVD 到加权 SVD 1. 问题设定 给定矩阵 $W \in \mathbb{R}^{m \times n}$，要找一个秩不超过 $r$ 的矩阵 $\hat W$ 使得 $\hat W \approx W$。 等价地，找 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \times">
+<meta property="og:description" content="中文   English    矩阵低秩逼近：从 SVD 到加权 SVD 1. 问题设定 给定矩阵 $W \in \mathbb{R}^{m \times n}$，要找一个秩不超过 $r$ 的矩阵 $\hat W$ 使得 $\hat W \approx W$。 一种参数化方式：取 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \ti">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-08T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-08T07:54:01.253Z">
+<meta property="article:modified_time" content="2026-08-08T09:08:05.202Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="SVD">
 <meta property="article:tag" content="approximation-theory">
@@ -257,7 +257,7 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2026-08-08 00:00:00 / Modified: 07:54:01" itemprop="dateCreated datePublished" datetime="2026-08-08T00:00:00+00:00">2026-08-08</time>
+      <time title="Created: 2026-08-08 00:00:00 / Modified: 09:08:05" itemprop="dateCreated datePublished" datetime="2026-08-08T00:00:00+00:00">2026-08-08</time>
     </span>
 
   
@@ -285,15 +285,15 @@
 <h2 id="矩阵低秩逼近：从-SVD-到加权-SVD">矩阵低秩逼近：从 SVD 到加权 SVD</h2>
 <h3 id="1-问题设定">1. 问题设定</h3>
 <p>给定矩阵 $W \in \mathbb{R}^{m \times n}$，要找一个秩不超过 $r$ 的矩阵 $\hat W$ 使得 $\hat W \approx W$。</p>
-<p>等价地，找 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \times n}$，使得 $AB \approx W$。存储量从 $mn$ 降到 $(m+n)r$。</p>
+<p>一种参数化方式：取 $A \in \mathbb{R}^{m \times r}$，$B \in \mathbb{R}^{r \times n}$。由矩阵乘法的秩不等式 $\text{rank}(AB) \le \min(\text{rank}(A), \text{rank}(B)) \le r$，$AB$ 的秩自然不超过 $r$。此时存储量从 $mn$ 降到 $(m+n)r$。</p>
 <p><strong>核心问题</strong>：什么是&quot;$\approx$&quot;？不同的度量方式导致不同的最优解。</p>
 <h3 id="2-Frobenius-范数下的最优逼近（Plain-SVD）">2. Frobenius 范数下的最优逼近（Plain SVD）</h3>
 <h4 id="2-1-目标">2.1 目标</h4>
-<p>$$\min_{\text{rank}(\hat W) \le r} |W - \hat W|<em>F^2 = \min</em>{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$</p>
+<p>$$\min_{\text{rank}(\hat W) \le r} \lVert W - \hat W\rVert_F^2 = \min_{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$</p>
 <p>所有矩阵元素的误差等权相加。</p>
 <h4 id="2-2-奇异值分解（SVD）">2.2 奇异值分解（SVD）</h4>
 <p>任何矩阵 $W$ 可以分解为：</p>
-<p>$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k, u_k v_k^T$$</p>
+<p>$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k  u_k v_k^T$$</p>
 <p>其中：</p>
 <ul>
 <li>$\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ 为奇异值</li>
@@ -303,14 +303,14 @@
 <p>每一项 $\sigma_k u_k v_k^T$ 是一个秩-1 矩阵，$W$ 被表示为秩-1 矩阵的有序加权和。</p>
 <h4 id="2-3-Eckart-Young-定理">2.3 Eckart-Young 定理</h4>
 <p><strong>定理</strong>：Frobenius 范数下的最优 rank-$r$ 逼近是截断 SVD：</p>
-<p>$$\hat W^* = \sum_{k=1}^r \sigma_k, u_k v_k^T = U_r \Sigma_r V_r^T$$</p>
+<p>$$\hat W^* = \sum_{k=1}^r \sigma_k  u_k v_k^T = U_r \Sigma_r V_r^T$$</p>
 <p>最优误差：</p>
-<p>$$|W - \hat W^*|<em>F^2 = \sum</em>{k=r+1}^{\min(m,n)} \sigma_k^2$$</p>
+<p>$$\lVert W - \hat W^*\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2$$</p>
 <p>即被丢掉的尾部奇异值的平方和。</p>
-<p><strong>证明思路</strong>：利用 Frobenius 范数的酉不变性 $|W|_F = |U^T W V|_F$，将问题变为在对角矩阵 $\Sigma$ 上选最优的 rank-$r$ 逼近，而对角矩阵的最优截断显然是保留最大的 $r$ 个对角元。</p>
+<p><strong>证明思路</strong>：利用 Frobenius 范数的酉不变性 $\lVert W\rVert_F = \lVert U^T W V\rVert_F$，将问题变为在对角矩阵 $\Sigma$ 上选最优的 rank-$r$ 逼近，而对角矩阵的最优截断显然是保留最大的 $r$ 个对角元。</p>
 <h4 id="2-4-分解为两个因子">2.4 分解为两个因子</h4>
 <p>取：</p>
-<p>$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}, V_r^T \in \mathbb{R}^{r \times n}$$</p>
+<p>$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}  V_r^T \in \mathbb{R}^{r \times n}$$</p>
 <p>则 $AB = U_r \Sigma_r V_r^T = \hat W^*$。将奇异值的平方根对称地分配到两个因子中。</p>
 <p>计算 $\hat W x = A(Bx)$：先做 $\mathbb{R}^n \to \mathbb{R}^r$（降维），再做 $\mathbb{R}^r \to \mathbb{R}^m$（升维）。</p>
 <h4 id="2-5-局限">2.5 局限</h4>
@@ -318,34 +318,34 @@
 <h3 id="3-加权-Frobenius-范数下的最优逼近（Weighted-SVD）">3. 加权 Frobenius 范数下的最优逼近（Weighted SVD）</h3>
 <h4 id="3-1-动机">3.1 动机</h4>
 <p>如果我们关心的是<strong>输出误差</strong>而不是权重误差：</p>
-<p>$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[|Wx - \hat Wx|^2\big]$$</p>
+<p>$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[\lVert Wx - \hat Wx\rVert^2\big]$$</p>
 <p>其中 $\mu$ 是输入 $x$ 的分布。</p>
 <h4 id="3-2-展开">3.2 展开</h4>
-<p>$$\mathbb{E}|(W - \hat W)x|^2 = \text{tr}\big((W - \hat W),\Sigma,(W - \hat W)^T\big)$$</p>
+<p>$$\mathbb{E}\lVert(W - \hat W)x\rVert^2 = \text{tr}\big((W - \hat W) \Sigma (W - \hat W)^T\big)$$</p>
 <p>其中 $\Sigma = \mathbb{E}[xx^T] \in \mathbb{R}^{n \times n}$ 是输入的二阶矩矩阵。</p>
 <p><strong>推导</strong>：</p>
-<p>$$\mathbb{E}|(W-\hat W)x|^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W),\mathbb{E}[xx^T]\big)$$</p>
+<p>$$\mathbb{E}\lVert(W-\hat W)x\rVert^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W) \mathbb{E}[xx^T]\big)$$</p>
 <p>利用 $\text{tr}(ABC) = \text{tr}(CAB)$，即得上式。</p>
 <h4 id="3-3-变量代换与求解">3.3 变量代换与求解</h4>
 <p>设 $\Sigma = SS^T$（$S$ 可以是 $\Sigma^{1/2}$ 或 Cholesky 因子），则：</p>
-<p>$$\text{tr}\big((W-\hat W),\Sigma,(W-\hat W)^T\big) = |(W - \hat W)S|_F^2$$</p>
+<p>$$\text{tr}\big((W-\hat W) \Sigma (W-\hat W)^T\big) = \lVert(W - \hat W)S\rVert_F^2$$</p>
 <p>令 $\tilde W = WS$，问题变为：</p>
-<p>$$\min_{\text{rank}(\hat W) \le r} |\tilde W - \hat W S|_F^2$$</p>
+<p>$$\min_{\text{rank}(\hat W) \le r} \lVert\tilde W - \hat W S\rVert_F^2$$</p>
 <p>由于 $\hat W S$ 的秩 $\le r$（秩不因右乘满秩矩阵而增加），且任何 rank-$r$ 矩阵都可写为 $\hat W S$ 的形式（取 $\hat W = M S^{-1}$），问题等价于：</p>
-<p>$$\min_{\text{rank}(M) \le r} |\tilde W - M|_F^2$$</p>
+<p>$$\min_{\text{rank}(M) \le r} \lVert\tilde W - M\rVert_F^2$$</p>
 <p>这正是 $\tilde W$ 在 Frobenius 下的最优 rank-$r$ 逼近，由 Eckart-Young 直接解出。</p>
 <p><strong>求解步骤</strong>：</p>
 <ol>
 <li>计算 $\tilde W = WS$</li>
 <li>对 $\tilde W$ 做 SVD：$\tilde W = U\tilde\Sigma V^T$</li>
 <li>截断前 $r$ 项：$\tilde W_r = U_r \tilde\Sigma_r V_r^T$</li>
-<li>还原：$A = U_r \sqrt{\tilde\Sigma_r}$，$B = \sqrt{\tilde\Sigma_r}, V_r^T S^{-1}$</li>
+<li>还原：$A = U_r \sqrt{\tilde\Sigma_r}$，$B = \sqrt{\tilde\Sigma_r}  V_r^T S^{-1}$</li>
 </ol>
 <p>验证：$(W - AB)S = WS - U_r\tilde\Sigma_r V_r^T = \tilde W - \tilde W_r$，正是 SVD 截断残差，Eckart-Young 最优。</p>
 <h3 id="4-S-的两种选择">4. $S$ 的两种选择</h3>
 <h4 id="4-1-全协方差（Whiten）">4.1 全协方差（Whiten）</h4>
 <p>取 $S = \Sigma^{1/2}$ 或 $S = \text{chol}(\Sigma)$。</p>
-<p>此时 $|(W-\hat W)S|_F^2 = \mathbb{E}|Wx - \hat Wx|^2$ <strong>精确成立</strong>。</p>
+<p>此时 $\lVert(W-\hat W)S\rVert_F^2 = \mathbb{E}\lVert Wx - \hat Wx\rVert^2$ <strong>精确成立</strong>。</p>
 <ul>
 <li>需要估计完整的 $n \times n$ 协方差矩阵</li>
 <li>需要 Cholesky 分解（$O(n^3)$）</li>
@@ -355,7 +355,7 @@
 <p>取 $S = \text{diag}(s_1, \ldots, s_n)$，其中 $s_i$ 反映第 $i$ 个输入分量的&quot;重要程度&quot;。</p>
 <p>典型选择：$s_i = (\mathbb{E}[|x_i|])^\alpha$，$\alpha &gt; 0$。</p>
 <p>此时加权 Frobenius 范数为：</p>
-<p>$$|(W - \hat W)\text{diag}(s)|<em>F^2 = \sum</em>{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$</p>
+<p>$$\lVert(W - \hat W)\text{diag}(s)\rVert_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$</p>
 <p>第 $i$ 列的逼近误差被赋予权重 $s_i^2$：$s_i$ 大的列（对应&quot;活跃&quot;的输入分量）更被重视。</p>
 <ul>
 <li>只需一个 $n$ 维向量</li>
@@ -381,17 +381,17 @@
 <tbody>
 <tr>
 <td>Plain SVD</td>
-<td>$\min|W - \hat W|_F^2$</td>
+<td>$\min\lVert W - \hat W\rVert_F^2$</td>
 <td>$\Sigma = I$（各向同性）</td>
 </tr>
 <tr>
 <td>Diag SVD</td>
-<td>$\min|(W-\hat W)\text{diag}(s)|_F^2$</td>
+<td>$\min\lVert(W-\hat W)\text{diag}(s)\rVert_F^2$</td>
 <td>$\Sigma$ 是对角的（各分量独立）</td>
 </tr>
 <tr>
 <td>Whiten SVD</td>
-<td>$\min|(W-\hat W)\Sigma^{1/2}|_F^2$</td>
+<td>$\min\lVert(W-\hat W)\Sigma^{1/2}\rVert_F^2$</td>
 <td>完整的 $\Sigma$</td>
 </tr>
 </tbody>
@@ -404,14 +404,14 @@
 </ul>
 <h3 id="6-理论极限：Kolmogorov-宽度">6. 理论极限：Kolmogorov 宽度</h3>
 <p>给定加权矩阵 $\tilde W = WS$，最优 rank-$r$ 逼近的误差为：</p>
-<p>$$\inf_{\text{rank}(\hat W) \le r} |(W - \hat W)S|<em>F^2 = \sum</em>{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$</p>
+<p>$$\inf_{\text{rank}(\hat W) \le r} \lVert(W - \hat W)S\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$</p>
 <p>这是 <strong>Kolmogorov $r$-宽度</strong>的矩阵版本——它给出了一个<strong>与算法无关的下界</strong>。</p>
 <p>含义：如果 $\tilde W$ 的奇异值衰减快（谱集中），低秩逼近效果好；如果衰减慢（谱均匀分散），任何方法在该加权度量下都无法用少量秩给出好的逼近。这是问题本身的<strong>固有难度</strong>，而非算法的不足。</p>
 <h3 id="7-讨论：单矩阵逼近-vs-复合映射逼近">7. 讨论：单矩阵逼近 vs 复合映射逼近</h3>
 <p>上面的所有结果针对的是<strong>单个矩阵</strong>的最优逼近。在实际系统中，多个矩阵串联使用：$F = W_L \circ \cdots \circ W_1$。此时一个自然的问题是：</p>
 <p>每个 $W_\ell$ 各自最优 $\quad\overset{?}{\Longrightarrow}\quad$ 复合映射 $F$ 最优？</p>
 <p>答案是<strong>否定的</strong>。原因是复合映射的误差具有跨层交互结构：</p>
-<p>$$F - \tilde F = \sum_\ell (\partial F_{&gt;\ell}),\varepsilon_\ell + O(\varepsilon^2)$$</p>
+<p>$$F - \tilde F = \sum_\ell (\partial F_{&gt;\ell}) \varepsilon_\ell + O(\varepsilon^2)$$</p>
 <p>其中 $\varepsilon_\ell = W_\ell - \hat W_\ell$ 是第 $\ell$ 层的逼近误差，$\partial F_{&gt;\ell}$ 是下游映射对该误差的放大。各层误差之间可能存在<strong>相消</strong>（内积为负），使得端到端误差小于各层误差之和。逐矩阵优化不能利用这个自由度。</p>
 <p>要最小化复合映射的误差，需要对所有因子联合优化——这超出了闭式解的范围，通常需要迭代优化方法。</p>
 </div>
@@ -420,15 +420,15 @@
 <h2 id="Low-Rank-Matrix-Approximation-From-SVD-to-Weighted-SVD">Low-Rank Matrix Approximation: From SVD to Weighted SVD</h2>
 <h3 id="1-Problem-Setup">1. Problem Setup</h3>
 <p>Given a matrix $W \in \mathbb{R}^{m \times n}$, find a matrix $\hat W$ with rank at most $r$ such that $\hat W \approx W$.</p>
-<p>Equivalently, find $A \in \mathbb{R}^{m \times r}$, $B \in \mathbb{R}^{r \times n}$ such that $AB \approx W$. Storage drops from $mn$ to $(m+n)r$.</p>
+<p>One parameterization: take $A \in \mathbb{R}^{m \times r}$, $B \in \mathbb{R}^{r \times n}$. By the rank inequality $\text{rank}(AB) \le \min(\text{rank}(A), \text{rank}(B)) \le r$, the product $AB$ has rank at most $r$ automatically. Storage drops from $mn$ to $(m+n)r$.</p>
 <p><strong>Core question</strong>: What does &quot;$\approx$&quot; mean? Different metrics lead to different optimal solutions.</p>
 <h3 id="2-Optimal-Approximation-Under-the-Frobenius-Norm-Plain-SVD">2. Optimal Approximation Under the Frobenius Norm (Plain SVD)</h3>
 <h4 id="2-1-Objective">2.1 Objective</h4>
-<p>$$\min_{\text{rank}(\hat W) \le r} |W - \hat W|<em>F^2 = \min</em>{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$</p>
+<p>$$\min_{\text{rank}(\hat W) \le r} \lVert W - \hat W\rVert_F^2 = \min_{\text{rank}(\hat W) \le r} \sum_{j=1}^m \sum_{i=1}^n (W_{ji} - \hat W_{ji})^2$$</p>
 <p>All matrix entries are weighted equally.</p>
 <h4 id="2-2-Singular-Value-Decomposition-SVD">2.2 Singular Value Decomposition (SVD)</h4>
 <p>Any matrix $W$ can be decomposed as:</p>
-<p>$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k, u_k v_k^T$$</p>
+<p>$$W = U \Sigma V^T = \sum_{k=1}^{\min(m,n)} \sigma_k  u_k v_k^T$$</p>
 <p>where:</p>
 <ul>
 <li>$\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ are the singular values</li>
@@ -438,14 +438,14 @@
 <p>Each term $\sigma_k u_k v_k^T$ is a rank-1 matrix; $W$ is expressed as an ordered weighted sum of rank-1 components.</p>
 <h4 id="2-3-The-Eckart-Young-Theorem">2.3 The Eckart-Young Theorem</h4>
 <p><strong>Theorem</strong>: The optimal rank-$r$ approximation under the Frobenius norm is the truncated SVD:</p>
-<p>$$\hat W^* = \sum_{k=1}^r \sigma_k, u_k v_k^T = U_r \Sigma_r V_r^T$$</p>
+<p>$$\hat W^* = \sum_{k=1}^r \sigma_k  u_k v_k^T = U_r \Sigma_r V_r^T$$</p>
 <p>Optimal error:</p>
-<p>$$|W - \hat W^*|<em>F^2 = \sum</em>{k=r+1}^{\min(m,n)} \sigma_k^2$$</p>
+<p>$$\lVert W - \hat W^*\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2$$</p>
 <p>The sum of squared singular values that were discarded.</p>
-<p><strong>Proof sketch</strong>: Using the unitary invariance of the Frobenius norm ($|W|_F = |U^TWV|_F$), the problem reduces to finding the best rank-$r$ approximation of the diagonal matrix $\Sigma$, which is obviously to keep the $r$ largest diagonal entries.</p>
+<p><strong>Proof sketch</strong>: Using the unitary invariance of the Frobenius norm ($\lVert W\rVert_F = |U^TWV\rVert_F$), the problem reduces to finding the best rank-$r$ approximation of the diagonal matrix $\Sigma$, which is obviously to keep the $r$ largest diagonal entries.</p>
 <h4 id="2-4-Factored-Form">2.4 Factored Form</h4>
 <p>Take:</p>
-<p>$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}, V_r^T \in \mathbb{R}^{r \times n}$$</p>
+<p>$$A = U_r \sqrt{\Sigma_r} \in \mathbb{R}^{m \times r}, \quad B = \sqrt{\Sigma_r}  V_r^T \in \mathbb{R}^{r \times n}$$</p>
 <p>Then $AB = U_r \Sigma_r V_r^T = \hat W^*$. The square root of the singular values is distributed symmetrically between the two factors.</p>
 <p>Computing $\hat W x = A(Bx)$: first $\mathbb{R}^n \to \mathbb{R}^r$ (dimension reduction), then $\mathbb{R}^r \to \mathbb{R}^m$ (expansion).</p>
 <h4 id="2-5-Limitation">2.5 Limitation</h4>
@@ -453,34 +453,34 @@
 <h3 id="3-Optimal-Approximation-Under-Weighted-Frobenius-Norm-Weighted-SVD">3. Optimal Approximation Under Weighted Frobenius Norm (Weighted SVD)</h3>
 <h4 id="3-1-Motivation">3.1 Motivation</h4>
 <p>If we care about <strong>output error</strong> rather than weight error:</p>
-<p>$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[|Wx - \hat Wx|^2\big]$$</p>
+<p>$$\min_{\text{rank}(\hat W) \le r} \mathbb{E}_{x \sim \mu}\big[\lVert Wx - \hat Wx\rVert^2\big]$$</p>
 <p>where $\mu$ is the distribution of the input $x$.</p>
 <h4 id="3-2-Expansion">3.2 Expansion</h4>
-<p>$$\mathbb{E}|(W - \hat W)x|^2 = \text{tr}\big((W - \hat W),\Sigma,(W - \hat W)^T\big)$$</p>
+<p>$$\mathbb{E}\lVert(W - \hat W)x\rVert^2 = \text{tr}\big((W - \hat W) \Sigma (W - \hat W)^T\big)$$</p>
 <p>where $\Sigma = \mathbb{E}[xx^T] \in \mathbb{R}^{n \times n}$ is the second moment matrix of the input.</p>
 <p><strong>Derivation</strong>:</p>
-<p>$$\mathbb{E}|(W-\hat W)x|^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W),\mathbb{E}[xx^T]\big)$$</p>
+<p>$$\mathbb{E}\lVert(W-\hat W)x\rVert^2 = \mathbb{E}\big[x^T(W-\hat W)^T(W-\hat W)x\big] = \text{tr}\big((W-\hat W)^T(W-\hat W) \mathbb{E}[xx^T]\big)$$</p>
 <p>Using $\text{tr}(ABC) = \text{tr}(CAB)$, the result follows.</p>
 <h4 id="3-3-Change-of-Variables-and-Solution">3.3 Change of Variables and Solution</h4>
 <p>Let $\Sigma = SS^T$ ($S$ can be $\Sigma^{1/2}$ or a Cholesky factor). Then:</p>
-<p>$$\text{tr}\big((W-\hat W),\Sigma,(W-\hat W)^T\big) = |(W - \hat W)S|_F^2$$</p>
+<p>$$\text{tr}\big((W-\hat W) \Sigma (W-\hat W)^T\big) = \lVert(W - \hat W)S\rVert_F^2$$</p>
 <p>Setting $\tilde W = WS$, the problem becomes:</p>
-<p>$$\min_{\text{rank}(\hat W) \le r} |\tilde W - \hat W S|_F^2$$</p>
+<p>$$\min_{\text{rank}(\hat W) \le r} \lVert\tilde W - \hat W S\rVert_F^2$$</p>
 <p>Since the rank of $\hat WS$ is $\le r$ (rank does not increase by right-multiplication by a full-rank matrix), and any rank-$r$ matrix can be written as $\hat WS$ (take $\hat W = MS^{-1}$), the problem is equivalent to:</p>
-<p>$$\min_{\text{rank}(M) \le r} |\tilde W - M|_F^2$$</p>
+<p>$$\min_{\text{rank}(M) \le r} \lVert\tilde W - M\rVert_F^2$$</p>
 <p>This is precisely the optimal rank-$r$ approximation of $\tilde W$ under Frobenius, solved by Eckart-Young.</p>
 <p><strong>Solution steps</strong>:</p>
 <ol>
 <li>Compute $\tilde W = WS$</li>
 <li>SVD of $\tilde W$: $\tilde W = U\tilde\Sigma V^T$</li>
 <li>Truncate to rank $r$: $\tilde W_r = U_r \tilde\Sigma_r V_r^T$</li>
-<li>Recover factors: $A = U_r \sqrt{\tilde\Sigma_r}$, $B = \sqrt{\tilde\Sigma_r}, V_r^T S^{-1}$</li>
+<li>Recover factors: $A = U_r \sqrt{\tilde\Sigma_r}$, $B = \sqrt{\tilde\Sigma_r}  V_r^T S^{-1}$</li>
 </ol>
 <p>Verification: $(W - AB)S = WS - U_r\tilde\Sigma_r V_r^T = \tilde W - \tilde W_r$, which is the SVD truncation residual — Eckart-Young optimal.</p>
 <h3 id="4-Two-Choices-of-S">4. Two Choices of $S$</h3>
 <h4 id="4-1-Full-Covariance-Whiten">4.1 Full Covariance (Whiten)</h4>
 <p>Take $S = \Sigma^{1/2}$ or $S = \text{chol}(\Sigma)$.</p>
-<p>Then $|(W-\hat W)S|_F^2 = \mathbb{E}|Wx - \hat Wx|^2$ holds <strong>exactly</strong>.</p>
+<p>Then $\lVert(W-\hat W)S\rVert_F^2 = \mathbb{E}\lVert Wx - \hat Wx\rVert^2$ holds <strong>exactly</strong>.</p>
 <ul>
 <li>Requires estimating the full $n \times n$ covariance matrix</li>
 <li>Requires Cholesky decomposition ($O(n^3)$)</li>
@@ -490,7 +490,7 @@
 <p>Take $S = \text{diag}(s_1, \ldots, s_n)$, where $s_i$ reflects the &quot;importance&quot; of the $i$-th input component.</p>
 <p>Typical choice: $s_i = (\mathbb{E}[|x_i|])^\alpha$, $\alpha &gt; 0$.</p>
 <p>The weighted Frobenius norm becomes:</p>
-<p>$$|(W - \hat W)\text{diag}(s)|<em>F^2 = \sum</em>{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$</p>
+<p>$$\lVert(W - \hat W)\text{diag}(s)\rVert_F^2 = \sum_{j,i} (W_{ji} - \hat W_{ji})^2 s_i^2$$</p>
 <p>Column $i$'s approximation error is weighted by $s_i^2$: columns corresponding to &quot;active&quot; input components are prioritized.</p>
 <ul>
 <li>Only requires an $n$-dimensional vector</li>
@@ -516,17 +516,17 @@
 <tbody>
 <tr>
 <td>Plain SVD</td>
-<td>$\min|W - \hat W|_F^2$</td>
+<td>$\min\lVert W - \hat W\rVert_F^2$</td>
 <td>$\Sigma = I$ (isotropic)</td>
 </tr>
 <tr>
 <td>Diag SVD</td>
-<td>$\min|(W-\hat W)\text{diag}(s)|_F^2$</td>
+<td>$\min\lVert(W-\hat W)\text{diag}(s)\rVert_F^2$</td>
 <td>$\Sigma$ is diagonal (independent components)</td>
 </tr>
 <tr>
 <td>Whiten SVD</td>
-<td>$\min|(W-\hat W)\Sigma^{1/2}|_F^2$</td>
+<td>$\min\lVert(W-\hat W)\Sigma^{1/2}\rVert_F^2$</td>
 <td>Full $\Sigma$</td>
 </tr>
 </tbody>
@@ -539,14 +539,14 @@
 </ul>
 <h3 id="6-Theoretical-Limits-Kolmogorov-Width">6. Theoretical Limits: Kolmogorov Width</h3>
 <p>Given the weighted matrix $\tilde W = WS$, the optimal rank-$r$ error is:</p>
-<p>$$\inf_{\text{rank}(\hat W) \le r} |(W - \hat W)S|<em>F^2 = \sum</em>{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$</p>
+<p>$$\inf_{\text{rank}(\hat W) \le r} \lVert(W - \hat W)S\rVert_F^2 = \sum_{k=r+1}^{\min(m,n)} \sigma_k^2(\tilde W)$$</p>
 <p>This is the matrix version of the <strong>Kolmogorov $r$-width</strong> — an <strong>algorithm-independent lower bound</strong>.</p>
 <p>Implication: if $\tilde W$'s singular values decay rapidly (concentrated spectrum), low-rank approximation works well. If they decay slowly (uniformly spread spectrum), no method can achieve a good approximation at that rank under that weighted metric. This is the <strong>intrinsic hardness</strong> of the problem, not a shortcoming of the algorithm.</p>
 <h3 id="7-Discussion-Per-Matrix-vs-Composite-Approximation">7. Discussion: Per-Matrix vs Composite Approximation</h3>
 <p>All results above concern the optimal approximation of a <strong>single matrix</strong>. In practice, multiple matrices are used in composition: $F = W_L \circ \cdots \circ W_1$. A natural question is:</p>
 <p>Each $W_\ell$ individually optimal $\quad\overset{?}{\Longrightarrow}\quad$ composite $F$ optimal?</p>
 <p>The answer is <strong>no</strong>. The reason is that the composite error has cross-layer interaction structure:</p>
-<p>$$F - \tilde F = \sum_\ell (\partial F_{&gt;\ell}),\varepsilon_\ell + O(\varepsilon^2)$$</p>
+<p>$$F - \tilde F = \sum_\ell (\partial F_{&gt;\ell}) \varepsilon_\ell + O(\varepsilon^2)$$</p>
 <p>where $\varepsilon_\ell = W_\ell - \hat W_\ell$ is the approximation error at layer $\ell$, and $\partial F_{&gt;\ell}$ is the downstream amplification. Error vectors from different layers may partially <strong>cancel</strong> (negative inner products), making the end-to-end error smaller than the sum of per-layer errors. Per-matrix optimization cannot exploit this degree of freedom.</p>
 <p>To minimize the composite error, one must jointly optimize all factors — which goes beyond closed-form solutions and typically requires iterative optimization.</p>
 </div>
