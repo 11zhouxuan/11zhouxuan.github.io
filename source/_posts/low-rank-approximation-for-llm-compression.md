@@ -183,7 +183,7 @@ $$\inf_{\text{rank}(\hat W) \le r} \|(W - \hat W)S\|_F^2 = \sum_{k=r+1}^{\min(m,
 
 上面的所有结果针对的是**单个矩阵**的最优逼近。在实际系统中，多个矩阵串联使用：$F = W_L \circ \cdots \circ W_1$。此时一个自然的问题是：
 
-$$\text{每个 } W_\ell \text{ 各自最优} \quad \stackrel{?}{\Longrightarrow} \quad \text{复合映射 } F \text{ 最优}$$
+每个 $W_\ell$ 各自最优 $\quad\overset{?}{\Longrightarrow}\quad$ 复合映射 $F$ 最优？
 
 答案是**否定的**。原因是复合映射的误差具有跨层交互结构：
 
@@ -368,7 +368,7 @@ Implication: if $\tilde W$'s singular values decay rapidly (concentrated spectru
 
 All results above concern the optimal approximation of a **single matrix**. In practice, multiple matrices are used in composition: $F = W_L \circ \cdots \circ W_1$. A natural question is:
 
-$$\text{each } W_\ell \text{ individually optimal} \quad \stackrel{?}{\Longrightarrow} \quad \text{composite } F \text{ optimal}$$
+Each $W_\ell$ individually optimal $\quad\overset{?}{\Longrightarrow}\quad$ composite $F$ optimal?
 
 The answer is **no**. The reason is that the composite error has cross-layer interaction structure:
 
