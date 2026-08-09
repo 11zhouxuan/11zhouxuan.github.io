@@ -193,6 +193,71 @@ $$F - \tilde F = \sum_\ell (\partial F_{>\ell}) \varepsilon_\ell + O(\varepsilon
 
 要最小化复合映射的误差，需要对所有因子联合优化——这超出了闭式解的范围，通常需要迭代优化方法。
 
+### 8. 实验验证：单矩阵最优 ≠ 端到端最优
+
+以上理论可以通过实验直接验证。对一个 36 层的 LLM 做低秩分解，分别测量：
+
+**1. 三种分解方式的谱能量对比（rank=384）：**
+
+| 方法 | 浅层 gate_proj | 中间层 gate_proj | 深层 gate_proj |
+|---|---|---|---|
+| Plain SVD | 21% | 14% | 13% |
+| Diag SVD ($\alpha=1$) | 54% | 52% | 72% |
+| **Whiten SVD** | **82%** | **86%** | **94%** |
+
+Whiten 比 Diag 多保留 28~35 个百分点的能量——通道间的相关性确实很重要。
+
+**2. 但端到端的模型质量（val loss）几乎不变：**
+
+| 方法 | rank=384 均匀分配 | 端到端 val loss |
+|---|---|---|
+| Plain SVD | — | 18.65 |
+| Diag SVD | — | 8.91 |
+| Whiten SVD | — | **8.93** |
+
+Whiten 让每个矩阵的逼近质量大幅提升（能量 +28pp，单层输出 cos +0.17），但端到端 loss **完全不变**（8.93 vs 8.91，差 0.02）。
+
+**3. 误差不可加性的直接测量：**
+
+对 36 层逐一做单层归因（只分解该层，其余保持满秩），各层 $\Delta$loss 之和为 10.10；若可加则预测 loss 为 12.43；实际全模型 loss 为 8.50。**亚线性因子 1.64×**。
+
+更强的证据：累积分解的 prefix 曲线出现 **−3.20 的负增量**（多分解一层，loss 反而下降）。这意味着后面的层在**补偿**前面层的误差——逐矩阵目标禁止了这个自由度。
+
+**4. 三种敏感度指标回答不同问题：**
+
+| 指标 | 衡量什么 | 浅层（L0） | 深层（L35） |
+|---|---|---|---|
+| $\lVert WS\rVert_F$（范数） | 权重在加权空间的大小 | 最小 | 最大 |
+| 梯度 $\lVert\partial\mathcal{L}/\partial W\rVert$ | 微扰的一阶敏感度 | 最小 | 最大 |
+| 单层归因 $\Delta\mathcal{L}$ | 大位移后的实际损害 | **最大（39×第二名）** | 很小 |
+
+三者互相矛盾——因为它们衡量的东西不同（局部 vs 全局、一阶 vs 非线性、前向 vs 后向）。没有单一指标能正确指导压缩决策。
+
+**5. 联合优化复合映射是唯一有效的方向：**
+
+将目标从"逐矩阵最优"改为"联合优化 $\min \mathbb{E}[\mathcal{L}(F(x), \tilde F(x))]$"后，相同参数量下 loss 从 8.50 降到 3.79——**改善量（4.71）远超所有单矩阵层面的改进之和**。
+
+结论：在深度复合映射的低秩逼近中，**"逼近什么"（目标的层次）比"怎么逼近"（算法的精度）重要一个数量级。**
+
+### 9. SwiGLU 架构下的特殊困难
+
+现代 LLM 广泛使用 SwiGLU MLP：$\text{out} = \text{silu}(W_{gate}x) \odot (W_{up}x)$。这个结构对低秩逼近有特殊的困难：
+
+1. **逐元素乘法是误差放大器**。若 $W_{gate}$ 和 $W_{up}$ 的低秩逼近各自 cos $\approx c$，则乘积 $\text{silu}(\hat W_{gate}x) \odot (\hat W_{up}x)$ 相对教师的 cos $\approx c^2$。两条路各 cos=0.86 → 乘完 cos=0.72。
+
+2. **gate/up/down_proj 本质不低秩**。跨模型（Qwen3/LLaMA/自训练模型）一致：
+
+| 算子类型 | r=128 Whiten 能量 | 原因 |
+|---|---|---|
+| k_proj | 90~96% | 匹配操作，内在秩受 head_dim 限制 |
+| q_proj | 92~97% | 同上 |
+| v_proj | 58~74% | 携带内容，多样性更高 |
+| gate_proj | 63~92% | 特征检测器，各自独立 |
+| up_proj | 34~53% | 内容多样性最高 |
+| **down_proj** | **25~54%** | **输入高维且稀疏，最难压缩** |
+
+这是架构决定的——SwiGLU 的 12288 个 neuron 各自检测不同的模式，它们的权重方向必须独立，因此矩阵天然高秩。
+
 </div>
 
 <!-- English Version -->
@@ -377,6 +442,71 @@ $$F - \tilde F = \sum_\ell (\partial F_{>\ell}) \varepsilon_\ell + O(\varepsilon
 where $\varepsilon_\ell = W_\ell - \hat W_\ell$ is the approximation error at layer $\ell$, and $\partial F_{>\ell}$ is the downstream amplification. Error vectors from different layers may partially **cancel** (negative inner products), making the end-to-end error smaller than the sum of per-layer errors. Per-matrix optimization cannot exploit this degree of freedom.
 
 To minimize the composite error, one must jointly optimize all factors — which goes beyond closed-form solutions and typically requires iterative optimization.
+
+### 8. Experimental Verification: Per-Matrix Optimal ≠ End-to-End Optimal
+
+The above theory can be verified experimentally. Applying low-rank factorization to a 36-layer LLM:
+
+**1. Spectral energy comparison across three methods (rank=384):**
+
+| Method | Shallow gate_proj | Middle gate_proj | Deep gate_proj |
+|---|---|---|---|
+| Plain SVD | 21% | 14% | 13% |
+| Diag SVD ($\alpha=1$) | 54% | 52% | 72% |
+| **Whiten SVD** | **82%** | **86%** | **94%** |
+
+Whiten retains 28–35 percentage points more energy than Diag — cross-channel correlations matter.
+
+**2. Yet end-to-end model quality (val loss) barely changes:**
+
+| Method | rank=384 uniform | End-to-end val loss |
+|---|---|---|
+| Plain SVD | — | 18.65 |
+| Diag SVD | — | 8.91 |
+| Whiten SVD | — | **8.93** |
+
+Whiten massively improves per-matrix approximation quality (energy +28pp, single-layer output cos +0.17), but end-to-end loss is **unchanged** (8.93 vs 8.91, diff 0.02).
+
+**3. Direct measurement of error non-additivity:**
+
+Single-layer attribution (factorize only that layer, keep the rest full-rank): the sum of all 36 layers' $\Delta$loss is 10.10; if additive, predicted loss is 12.43; actual full-model loss is 8.50. **Sublinearity factor: 1.64×.**
+
+Stronger evidence: the cumulative prefix curve shows increments as negative as **−3.20** (factorizing one more layer *decreases* the loss). Later layers **compensate** for earlier layers' errors — a per-matrix objective forbids this degree of freedom.
+
+**4. Three sensitivity metrics answer different questions:**
+
+| Metric | Measures | Shallow (L0) | Deep (L35) |
+|---|---|---|---|
+| $\lVert WS\rVert_F$ (norm) | Weight magnitude in weighted space | Smallest | Largest |
+| Gradient $\lVert\partial\mathcal{L}/\partial W\rVert$ | First-order perturbation sensitivity | Smallest | Largest |
+| Single-layer attribution $\Delta\mathcal{L}$ | Actual damage from large displacement | **Largest (39× runner-up)** | Small |
+
+They contradict each other — because they measure different things (local vs global, first-order vs nonlinear, forward vs backward). No single metric can correctly guide compression decisions.
+
+**5. Joint optimization of the composite map is the only effective direction:**
+
+Switching the objective from "per-matrix optimal" to "jointly optimize $\min \mathbb{E}[\mathcal{L}(F(x), \tilde F(x))]$," the loss drops from 8.50 to 3.79 at the same parameter count — **an improvement (4.71 nats) far exceeding the sum of all per-matrix improvements.**
+
+Conclusion: in low-rank approximation of deep composite maps, **"what to approximate" (the level of the objective) matters an order of magnitude more than "how to approximate" (the algorithm's precision).**
+
+### 9. Special Difficulties Under the SwiGLU Architecture
+
+Modern LLMs widely use SwiGLU MLP: $\text{out} = \text{silu}(W_{gate}x) \odot (W_{up}x)$. This structure poses special challenges for low-rank approximation:
+
+1. **Elementwise multiplication amplifies errors.** If the low-rank approximations of $W_{gate}$ and $W_{up}$ each achieve cos $\approx c$, the product $\text{silu}(\hat W_{gate}x) \odot (\hat W_{up}x)$ has cos $\approx c^2$ relative to the teacher. Two paths each at cos=0.86 → product at cos=0.72.
+
+2. **gate/up/down_proj are inherently not low-rank.** Consistent across models (Qwen3/LLaMA/self-trained):
+
+| Operator type | r=128 Whiten energy | Reason |
+|---|---|---|
+| k_proj | 90–96% | Matching operation, intrinsic rank limited by head_dim |
+| q_proj | 92–97% | Same |
+| v_proj | 58–74% | Carries content, higher diversity |
+| gate_proj | 63–92% | Feature detectors, each independent |
+| up_proj | 34–53% | Highest content diversity |
+| **down_proj** | **25–54%** | **High-dimensional sparse input, hardest to compress** |
+
+This is architecture-determined — SwiGLU's 12288 neurons each detect different patterns, their weight directions must be independent, so the matrix is inherently high-rank.
 
 </div>
 
