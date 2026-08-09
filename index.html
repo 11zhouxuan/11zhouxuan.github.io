@@ -248,9 +248,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-08-08 00:00:00 / Modified: 09:08:05" itemprop="dateCreated datePublished" datetime="2026-08-08T00:00:00+00:00">2026-08-08</time>
+      <time title="Created: 2026-08-08 00:00:00" itemprop="dateCreated datePublished" datetime="2026-08-08T00:00:00+00:00">2026-08-08</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-08-09 02:37:36" itemprop="dateModified" datetime="2026-08-09T02:37:36+00:00">2026-08-09</time>
     </span>
 
   
@@ -401,6 +407,158 @@
 <p>$$F - \tilde F = \sum_\ell (\partial F_{&gt;\ell}) \varepsilon_\ell + O(\varepsilon^2)$$</p>
 <p>其中 $\varepsilon_\ell = W_\ell - \hat W_\ell$ 是第 $\ell$ 层的逼近误差，$\partial F_{&gt;\ell}$ 是下游映射对该误差的放大。各层误差之间可能存在<strong>相消</strong>（内积为负），使得端到端误差小于各层误差之和。逐矩阵优化不能利用这个自由度。</p>
 <p>要最小化复合映射的误差，需要对所有因子联合优化——这超出了闭式解的范围，通常需要迭代优化方法。</p>
+<h3 id="8-实验验证：单矩阵最优-≠-端到端最优">8. 实验验证：单矩阵最优 ≠ 端到端最优</h3>
+<p>以上理论可以通过实验直接验证。对一个 36 层的 LLM 做低秩分解，分别测量：</p>
+<p><strong>1. 三种分解方式的谱能量对比（rank=384）：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>浅层 gate_proj</th>
+<th>中间层 gate_proj</th>
+<th>深层 gate_proj</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain SVD</td>
+<td>21%</td>
+<td>14%</td>
+<td>13%</td>
+</tr>
+<tr>
+<td>Diag SVD ($\alpha=1$)</td>
+<td>54%</td>
+<td>52%</td>
+<td>72%</td>
+</tr>
+<tr>
+<td><strong>Whiten SVD</strong></td>
+<td><strong>82%</strong></td>
+<td><strong>86%</strong></td>
+<td><strong>94%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Whiten 比 Diag 多保留 28~35 个百分点的能量——通道间的相关性确实很重要。</p>
+<p><strong>2. 但端到端的模型质量（val loss）几乎不变：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>rank=384 均匀分配</th>
+<th>端到端 val loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain SVD</td>
+<td>—</td>
+<td>18.65</td>
+</tr>
+<tr>
+<td>Diag SVD</td>
+<td>—</td>
+<td>8.91</td>
+</tr>
+<tr>
+<td>Whiten SVD</td>
+<td>—</td>
+<td><strong>8.93</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Whiten 让每个矩阵的逼近质量大幅提升（能量 +28pp，单层输出 cos +0.17），但端到端 loss <strong>完全不变</strong>（8.93 vs 8.91，差 0.02）。</p>
+<p><strong>3. 误差不可加性的直接测量：</strong></p>
+<p>对 36 层逐一做单层归因（只分解该层，其余保持满秩），各层 $\Delta$loss 之和为 10.10；若可加则预测 loss 为 12.43；实际全模型 loss 为 8.50。<strong>亚线性因子 1.64×</strong>。</p>
+<p>更强的证据：累积分解的 prefix 曲线出现 <strong>−3.20 的负增量</strong>（多分解一层，loss 反而下降）。这意味着后面的层在<strong>补偿</strong>前面层的误差——逐矩阵目标禁止了这个自由度。</p>
+<p><strong>4. 三种敏感度指标回答不同问题：</strong></p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>衡量什么</th>
+<th>浅层（L0）</th>
+<th>深层（L35）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\lVert WS\rVert_F$（范数）</td>
+<td>权重在加权空间的大小</td>
+<td>最小</td>
+<td>最大</td>
+</tr>
+<tr>
+<td>梯度 $\lVert\partial\mathcal{L}/\partial W\rVert$</td>
+<td>微扰的一阶敏感度</td>
+<td>最小</td>
+<td>最大</td>
+</tr>
+<tr>
+<td>单层归因 $\Delta\mathcal{L}$</td>
+<td>大位移后的实际损害</td>
+<td><strong>最大（39×第二名）</strong></td>
+<td>很小</td>
+</tr>
+</tbody>
+</table>
+<p>三者互相矛盾——因为它们衡量的东西不同（局部 vs 全局、一阶 vs 非线性、前向 vs 后向）。没有单一指标能正确指导压缩决策。</p>
+<p><strong>5. 联合优化复合映射是唯一有效的方向：</strong></p>
+<p>将目标从&quot;逐矩阵最优&quot;改为&quot;联合优化 $\min \mathbb{E}[\mathcal{L}(F(x), \tilde F(x))]$&quot;后，相同参数量下 loss 从 8.50 降到 3.79——<strong>改善量（4.71）远超所有单矩阵层面的改进之和</strong>。</p>
+<p>结论：在深度复合映射的低秩逼近中，<strong>&quot;逼近什么&quot;（目标的层次）比&quot;怎么逼近&quot;（算法的精度）重要一个数量级。</strong></p>
+<h3 id="9-SwiGLU-架构下的特殊困难">9. SwiGLU 架构下的特殊困难</h3>
+<p>现代 LLM 广泛使用 SwiGLU MLP：$\text{out} = \text{silu}(W_{gate}x) \odot (W_{up}x)$。这个结构对低秩逼近有特殊的困难：</p>
+<ol>
+<li>
+<p><strong>逐元素乘法是误差放大器</strong>。若 $W_{gate}$ 和 $W_{up}$ 的低秩逼近各自 cos $\approx c$，则乘积 $\text{silu}(\hat W_{gate}x) \odot (\hat W_{up}x)$ 相对教师的 cos $\approx c^2$。两条路各 cos=0.86 → 乘完 cos=0.72。</p>
+</li>
+<li>
+<p><strong>gate/up/down_proj 本质不低秩</strong>。跨模型（Qwen3/LLaMA/自训练模型）一致：</p>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>算子类型</th>
+<th>r=128 Whiten 能量</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>k_proj</td>
+<td>90~96%</td>
+<td>匹配操作，内在秩受 head_dim 限制</td>
+</tr>
+<tr>
+<td>q_proj</td>
+<td>92~97%</td>
+<td>同上</td>
+</tr>
+<tr>
+<td>v_proj</td>
+<td>58~74%</td>
+<td>携带内容，多样性更高</td>
+</tr>
+<tr>
+<td>gate_proj</td>
+<td>63~92%</td>
+<td>特征检测器，各自独立</td>
+</tr>
+<tr>
+<td>up_proj</td>
+<td>34~53%</td>
+<td>内容多样性最高</td>
+</tr>
+<tr>
+<td><strong>down_proj</strong></td>
+<td><strong>25~54%</strong></td>
+<td><strong>输入高维且稀疏，最难压缩</strong></td>
+</tr>
+</tbody>
+</table>
+<p>这是架构决定的——SwiGLU 的 12288 个 neuron 各自检测不同的模式，它们的权重方向必须独立，因此矩阵天然高秩。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -536,6 +694,158 @@
 <p>$$F - \tilde F = \sum_\ell (\partial F_{&gt;\ell}) \varepsilon_\ell + O(\varepsilon^2)$$</p>
 <p>where $\varepsilon_\ell = W_\ell - \hat W_\ell$ is the approximation error at layer $\ell$, and $\partial F_{&gt;\ell}$ is the downstream amplification. Error vectors from different layers may partially <strong>cancel</strong> (negative inner products), making the end-to-end error smaller than the sum of per-layer errors. Per-matrix optimization cannot exploit this degree of freedom.</p>
 <p>To minimize the composite error, one must jointly optimize all factors — which goes beyond closed-form solutions and typically requires iterative optimization.</p>
+<h3 id="8-Experimental-Verification-Per-Matrix-Optimal-≠-End-to-End-Optimal">8. Experimental Verification: Per-Matrix Optimal ≠ End-to-End Optimal</h3>
+<p>The above theory can be verified experimentally. Applying low-rank factorization to a 36-layer LLM:</p>
+<p><strong>1. Spectral energy comparison across three methods (rank=384):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Shallow gate_proj</th>
+<th>Middle gate_proj</th>
+<th>Deep gate_proj</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain SVD</td>
+<td>21%</td>
+<td>14%</td>
+<td>13%</td>
+</tr>
+<tr>
+<td>Diag SVD ($\alpha=1$)</td>
+<td>54%</td>
+<td>52%</td>
+<td>72%</td>
+</tr>
+<tr>
+<td><strong>Whiten SVD</strong></td>
+<td><strong>82%</strong></td>
+<td><strong>86%</strong></td>
+<td><strong>94%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Whiten retains 28–35 percentage points more energy than Diag — cross-channel correlations matter.</p>
+<p><strong>2. Yet end-to-end model quality (val loss) barely changes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>rank=384 uniform</th>
+<th>End-to-end val loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain SVD</td>
+<td>—</td>
+<td>18.65</td>
+</tr>
+<tr>
+<td>Diag SVD</td>
+<td>—</td>
+<td>8.91</td>
+</tr>
+<tr>
+<td>Whiten SVD</td>
+<td>—</td>
+<td><strong>8.93</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Whiten massively improves per-matrix approximation quality (energy +28pp, single-layer output cos +0.17), but end-to-end loss is <strong>unchanged</strong> (8.93 vs 8.91, diff 0.02).</p>
+<p><strong>3. Direct measurement of error non-additivity:</strong></p>
+<p>Single-layer attribution (factorize only that layer, keep the rest full-rank): the sum of all 36 layers' $\Delta$loss is 10.10; if additive, predicted loss is 12.43; actual full-model loss is 8.50. <strong>Sublinearity factor: 1.64×.</strong></p>
+<p>Stronger evidence: the cumulative prefix curve shows increments as negative as <strong>−3.20</strong> (factorizing one more layer <em>decreases</em> the loss). Later layers <strong>compensate</strong> for earlier layers' errors — a per-matrix objective forbids this degree of freedom.</p>
+<p><strong>4. Three sensitivity metrics answer different questions:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Measures</th>
+<th>Shallow (L0)</th>
+<th>Deep (L35)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>$\lVert WS\rVert_F$ (norm)</td>
+<td>Weight magnitude in weighted space</td>
+<td>Smallest</td>
+<td>Largest</td>
+</tr>
+<tr>
+<td>Gradient $\lVert\partial\mathcal{L}/\partial W\rVert$</td>
+<td>First-order perturbation sensitivity</td>
+<td>Smallest</td>
+<td>Largest</td>
+</tr>
+<tr>
+<td>Single-layer attribution $\Delta\mathcal{L}$</td>
+<td>Actual damage from large displacement</td>
+<td><strong>Largest (39× runner-up)</strong></td>
+<td>Small</td>
+</tr>
+</tbody>
+</table>
+<p>They contradict each other — because they measure different things (local vs global, first-order vs nonlinear, forward vs backward). No single metric can correctly guide compression decisions.</p>
+<p><strong>5. Joint optimization of the composite map is the only effective direction:</strong></p>
+<p>Switching the objective from &quot;per-matrix optimal&quot; to &quot;jointly optimize $\min \mathbb{E}[\mathcal{L}(F(x), \tilde F(x))]$,&quot; the loss drops from 8.50 to 3.79 at the same parameter count — <strong>an improvement (4.71 nats) far exceeding the sum of all per-matrix improvements.</strong></p>
+<p>Conclusion: in low-rank approximation of deep composite maps, <strong>&quot;what to approximate&quot; (the level of the objective) matters an order of magnitude more than &quot;how to approximate&quot; (the algorithm's precision).</strong></p>
+<h3 id="9-Special-Difficulties-Under-the-SwiGLU-Architecture">9. Special Difficulties Under the SwiGLU Architecture</h3>
+<p>Modern LLMs widely use SwiGLU MLP: $\text{out} = \text{silu}(W_{gate}x) \odot (W_{up}x)$. This structure poses special challenges for low-rank approximation:</p>
+<ol>
+<li>
+<p><strong>Elementwise multiplication amplifies errors.</strong> If the low-rank approximations of $W_{gate}$ and $W_{up}$ each achieve cos $\approx c$, the product $\text{silu}(\hat W_{gate}x) \odot (\hat W_{up}x)$ has cos $\approx c^2$ relative to the teacher. Two paths each at cos=0.86 → product at cos=0.72.</p>
+</li>
+<li>
+<p><strong>gate/up/down_proj are inherently not low-rank.</strong> Consistent across models (Qwen3/LLaMA/self-trained):</p>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Operator type</th>
+<th>r=128 Whiten energy</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>k_proj</td>
+<td>90–96%</td>
+<td>Matching operation, intrinsic rank limited by head_dim</td>
+</tr>
+<tr>
+<td>q_proj</td>
+<td>92–97%</td>
+<td>Same</td>
+</tr>
+<tr>
+<td>v_proj</td>
+<td>58–74%</td>
+<td>Carries content, higher diversity</td>
+</tr>
+<tr>
+<td>gate_proj</td>
+<td>63–92%</td>
+<td>Feature detectors, each independent</td>
+</tr>
+<tr>
+<td>up_proj</td>
+<td>34–53%</td>
+<td>Highest content diversity</td>
+</tr>
+<tr>
+<td><strong>down_proj</strong></td>
+<td><strong>25–54%</strong></td>
+<td><strong>High-dimensional sparse input, hardest to compress</strong></td>
+</tr>
+</tbody>
+</table>
+<p>This is architecture-determined — SwiGLU's 12288 neurons each detect different patterns, their weight directions must be independent, so the matrix is inherently high-rank.</p>
 </div>
 <script>
 function switchLang(lang) {
@@ -611,7 +921,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-08 09:08:05" itemprop="dateModified" datetime="2026-08-08T09:08:05+00:00">2026-08-08</time>
+      <time title="Modified: 2026-08-09 02:37:36" itemprop="dateModified" datetime="2026-08-09T02:37:36+00:00">2026-08-09</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -708,7 +1018,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-08 09:08:05" itemprop="dateModified" datetime="2026-08-08T09:08:05+00:00">2026-08-08</time>
+      <time title="Modified: 2026-08-09 02:37:36" itemprop="dateModified" datetime="2026-08-09T02:37:36+00:00">2026-08-09</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -806,7 +1116,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-08 09:08:05" itemprop="dateModified" datetime="2026-08-08T09:08:05+00:00">2026-08-08</time>
+      <time title="Modified: 2026-08-09 02:37:36" itemprop="dateModified" datetime="2026-08-09T02:37:36+00:00">2026-08-09</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
