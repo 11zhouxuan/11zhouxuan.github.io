@@ -17,7 +17,7 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 ### 1. 一个意外的发现
 
-对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$，rank=384），使用激活加权 SVD（ASVD）得到的模型 val loss = 8.50。作为对比，plain SVD 的 val loss = 18.65——ASVD 看似好了一倍多。
+对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$），使用激活加权 SVD（ASVD，$\alpha=1.0$）配合**逐层 rank 分配**（按 $\lVert WS\rVert_F$ 分配，平均 rank 357，Block 0 只分到 rank 32）得到的模型 val loss = 8.50。作为对比，plain SVD（均匀 rank=384）的 val loss = 18.65——ASVD 看似好了一倍多。
 
 但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：
 
@@ -28,7 +28,7 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 | Random 权重 | 17.77 | 1104 | 13.7% | "fcc" |
 | **ASVD** | **8.50** | **1** | **100%** | **","** |
 
-**ASVD 模型对所有 8191 个位置都预测同一个 token——逗号。**
+**ASVD 模型对所有 8191 个位置都预测同一个 token——逗号。**（单序列测量；在 30 个 batch 上复测为 12 个 unique token、逗号占 98.6%，现象相同。）
 
 ### 2. 为什么坍缩反而 loss 更低？
 
@@ -41,6 +41,12 @@ $$\text{把所有概率集中到出现频率最高的 token 上}$$
 逗号在英文文本中出现频率约 3.6%。如果模型以 ~10% 的概率输出逗号（softmax 后 top-1 prob = 0.0995），这给出 CE ≈ 8.5。而如果模型试图**区分不同 token 但区分得很差**（random/plain SVD），每个预测都高 confidence 指向错误的 token → CE 远超 11.93（均匀分布）甚至到 17~19。
 
 **"全押一个高频 token"是预测能力为零时的 loss-最优退化策略。** ASVD 的 8.50 不代表"逼近得好"，而是代表"模型已经放弃预测，退化成了常数函数"。
+
+信息论上可以精确验证这一点。如果模型是常数预测器（每个位置输出同一个分布 $q$），它的 CE 等于语料 unigram 分布 $p$ 与 $q$ 的交叉熵，下界是 unigram 熵：
+
+$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上实测）}$$
+
+坍缩模型的 8.50 恰好落在这个下界之上 1 nat——它是一个接近最优的常数预测器。同时直接测量证实了"常数函数"：采样 64 个位置，输出分布之间的两两 KL 散度平均只有 **0.007**（正常模型 KL 在 1~10 量级）。
 
 ### 3. 坍缩的机制
 
@@ -71,6 +77,8 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 ### 3.5 坍缩的微观机制：MLP 是凶手
 
 进一步的诊断实验追踪了 effective rank 在网络每个子组件中的变化，揭示了更精确的坍缩机制。
+
+> **测量对象说明**：本节的追踪数据来自均匀 rank=384、$\alpha=0.5$ 的 ASVD 变体（val loss 10.83）。它没有完全坍缩成常数函数（保留了 546 个 unique 预测），但表示已高度退化（最终 erank=7、pcos=0.92）——是观察"多样性如何被逐层耗尽"的合适对象。完全坍缩的 8.50 模型（$\alpha=1.0$ + 逐层 rank）是同一机制的更极端版本。
 
 **Effective rank（erank）在 residual stream 中的变化：**
 
@@ -145,33 +153,48 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 
 **正交约束确实打破了坍缩**（预测多样性从 1 到 23 到 401），但 **val loss 同时变差**。
 
-进一步的 rank 重分配实验也证实了这一点——即使给关键组件更多参数：
+进一步的 rank 重分配实验（在均匀 rank=384、$\alpha=0.5$ 变体上做，其自身基线为 10.83）显示，即使给关键组件多得多的参数，也无法接近坍缩态的 loss：
 
 | 配置 | 参数量 | val loss | 是否坍缩 |
 |---|---|---|---|
-| ASVD rank=384（基准） | 2.29B | **8.50** | 是（100% 逗号） |
-| gate\_proj 满秩 | 3.88B | 14.22 | 否 |
-| down\_proj 满秩 | 3.88B | 11.32 | 否 |
-| down\_proj rank=1024 | 2.67B | 11.33 | 否 |
-| down\_proj rank=768（预算匹配） | 2.29B | 12.31 | 否 |
+| 坍缩的 ASVD（$\alpha=1.0$ + 逐层 rank） | 2.29B | **8.50** | 是（98.6% 逗号） |
+| 均匀 rank=384，$\alpha=0.5$（重分配实验的基线） | 2.29B | 10.83 | 否 |
+| + gate\_proj 满秩 | 3.88B | 14.22 | 否 |
+| + down\_proj 满秩 | 3.88B | 11.32 | 否 |
+| + down\_proj rank=1024 | 2.67B | 11.33 | 否 |
+| + down\_proj rank=768（预算匹配） | 2.29B | 12.31 | 否 |
 
-**所有打破坍缩的配置 loss 都比坍缩态更差**——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：
+**没有任何非坍缩配置能接近坍缩态的 8.50**——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：
 
 $$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$
 
 在模型**真的没有足够能力区分 token** 的情况下（rank=384 在 85% 压缩率下），坍缩到高频 token 就是 loss-最优的策略。**打破坍缩等于强迫模型做它做不到的事 → loss 变差。**
 
+### 5.5 验证：坍缩是真实的，但对配置敏感
+
+由于"整个模型只预测逗号"的结论过于反直觉，我们对它做了独立的复核：重新评估保存的 checkpoint、在 held-out 数据上复测、检查输出分布的位置间 KL、并与信息论下界对照。结论：**坍缩完全可复现**（val loss 8.5008、逗号 98.6%、位置间 KL=0.007、top-1 prob 0.095 ≈ 常数预测器）。
+
+但复核也暴露了一个重要事实：**坍缩对分解配置高度敏感**——
+
+| 配置 | val loss | 是否坍缩 |
+|---|---|---|
+| diag，$\alpha=1.0$，逐层 rank（Block 0 = 32） | **8.50** | **是**（KL=0.007） |
+| diag，$\alpha=0.5$，逐层 rank | 9.66 | 否（389 unique，KL=3.1） |
+| diag，$\alpha=0.5$，均匀 rank=384 | 10.83 | 否（546 unique，KL=0.67） |
+
+只有"更强的激活加权（$\alpha=1.0$）+ 被饿死的 Block 0（rank 32）"这个组合触发了完全坍缩。把 $\alpha$ 减半或改用均匀 rank，模型就停在"高度退化但未坍缩"的状态——而 loss 反而更差。这与第 5 节的 tradeoff 完全一致：**在这组变体里，坍缩得越彻底，loss 越低**（8.50 < 9.66 < 10.83）。
+
 ### 6. 结论
 
 1. **val loss 不是模型质量的可靠指标**——一个完全坍缩的模型（只输出逗号）可以比一个"有预测多样性但不准"的模型 loss 更低。
 
-2. **ASVD 的激活加权在极端压缩率下会导致 representation collapse**——因为所有层的截断方向被系统性地对齐。
+2. **ASVD 的激活加权在极端压缩率下会导致 representation collapse**——加权越强（$\alpha$ 越大）、关键层被 rank 分配饿得越狠，坍缩越彻底。
 
-3. **这个 collapse 是 loss-optimal 的退化**——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的"放弃策略"。
+3. **这个 collapse 是 loss-optimal 的退化**——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的"放弃策略"。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。
 
 4. **要恢复真正的预测能力（从坍缩的 8.50 到有意义的 3.79），必须经过端到端训练**——闭式方法无法同时打破坍缩又降低 loss，因为问题在于**预测能力本身**（需要学习），不在于逼近精度。
 
-5. **在评估压缩模型时，除了 val loss 还必须检查预测多样性**——否则可能被"坍缩到高频 token"的假象误导。
+5. **在评估压缩模型时，除了 val loss 还必须检查预测多样性**——否则可能被"坍缩到高频 token"的假象误导。同样，**对比不同压缩方法时必须固定全部配置**（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。
 
 </div>
 
@@ -182,7 +205,7 @@ $$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \
 
 ### 1. An Unexpected Finding
 
-Applying low-rank factorization to a 36-layer LLM (replacing each linear layer $W$ with $AB$, rank=384) using activation-weighted SVD (ASVD) yields a val loss of 8.50. For comparison, plain SVD gives 18.65 — ASVD appears more than twice as good.
+Applying low-rank factorization to a 36-layer LLM (replacing each linear layer $W$ with $AB$) using activation-weighted SVD (ASVD, $\alpha=1.0$) with **per-layer rank allocation** (proportional to $\lVert WS\rVert_F$; mean rank 357, Block 0 starved at rank 32) yields a val loss of 8.50. For comparison, plain SVD (uniform rank=384) gives 18.65 — ASVD appears more than twice as good.
 
 But when we inspect the model's actual token predictions:
 
@@ -193,7 +216,7 @@ But when we inspect the model's actual token predictions:
 | Random weights | 17.77 | 1104 | 13.7% | "fcc" |
 | **ASVD** | **8.50** | **1** | **100%** | **","** |
 
-**The ASVD model predicts the same token — a comma — for all 8191 positions.**
+**The ASVD model predicts the same token — a comma — for all 8191 positions.** (Single-sequence measurement; re-measured over 30 batches: 12 unique tokens, comma at 98.6% — the same phenomenon.)
 
 ### 2. Why Does Collapse Produce Lower Loss?
 
@@ -206,6 +229,12 @@ $$\text{Concentrate all probability on the highest-frequency token}$$
 Commas appear in ~3.6% of positions in English text. If the model outputs ~10% probability for comma (softmax top-1 prob = 0.0995), this gives CE ≈ 8.5. Meanwhile, a model that **tries to distinguish tokens but fails** (random/plain SVD) outputs high-confidence predictions pointing at wrong tokens → CE far exceeds 11.93 (uniform) and reaches 17–19.
 
 **"All-in on one frequent token" is the loss-optimal degenerate strategy when predictive ability is zero.** ASVD's 8.50 does not mean "good approximation" — it means "the model has given up predicting and collapsed to a constant function."
+
+This can be verified information-theoretically. If the model is a constant predictor (outputting the same distribution $q$ at every position), its CE equals the cross-entropy between the corpus unigram distribution $p$ and $q$, lower-bounded by the unigram entropy:
+
+$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats (measured on our val data)}$$
+
+The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal constant predictor. Direct measurement confirms constancy: across 64 sampled positions, the mean pairwise KL between output distributions is only **0.007** (normal models range 1–10).
 
 ### 3. The Collapse Mechanism
 
@@ -236,6 +265,8 @@ The final cos=0.95 looks like "good alignment" — but it is an **illusion**. It
 ### 3.5 Microscopic Mechanism: The MLP Is the Killer
 
 Further diagnostic experiments traced effective rank (erank) changes through every sub-component of the network, revealing a more precise collapse mechanism.
+
+> **What was measured**: the traces in this section come from the uniform rank=384, $\alpha=0.5$ ASVD variant (val loss 10.83). It does not fully collapse into a constant function (it retains 546 unique predictions), but its representations are severely degenerate (final erank=7, pcos=0.92) — a suitable subject for observing how token diversity gets depleted layer by layer. The fully collapsed 8.50 model ($\alpha=1.0$ + per-layer ranks) is a more extreme instance of the same mechanism.
 
 **Effective rank in the residual stream:**
 
@@ -310,33 +341,48 @@ We tried imposing orthogonality constraints between adjacent layers' output dire
 
 **Orthogonality constraints do break the collapse** (diversity goes from 1 to 23 to 401), but **val loss simultaneously worsens**.
 
-Further rank-reallocation experiments confirm this — even with substantially more parameters for key components:
+Further rank-reallocation experiments (run on the uniform rank=384, $\alpha=0.5$ variant, whose own baseline is 10.83) show that even with far more parameters for key components, no configuration approaches the collapsed model's loss:
 
 | Configuration | Params | val loss | Collapsed? |
 |---|---|---|---|
-| ASVD rank=384 (baseline) | 2.29B | **8.50** | Yes (100% comma) |
-| gate\_proj full rank | 3.88B | 14.22 | No |
-| down\_proj full rank | 3.88B | 11.32 | No |
-| down\_proj rank=1024 | 2.67B | 11.33 | No |
-| down\_proj rank=768 (budget-matched) | 2.29B | 12.31 | No |
+| Collapsed ASVD ($\alpha=1.0$ + per-layer ranks) | 2.29B | **8.50** | Yes (98.6% comma) |
+| Uniform rank=384, $\alpha=0.5$ (baseline for the boosts) | 2.29B | 10.83 | No |
+| + gate\_proj full rank | 3.88B | 14.22 | No |
+| + down\_proj full rank | 3.88B | 11.32 | No |
+| + down\_proj rank=1024 | 2.67B | 11.33 | No |
+| + down\_proj rank=768 (budget-matched) | 2.29B | 12.31 | No |
 
-**Every configuration that breaks collapse produces worse loss** — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff:
+**No non-collapsed configuration comes close to the collapsed 8.50** — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff:
 
 $$\text{Collapse} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$
 
 When the model **genuinely lacks the capacity to distinguish tokens** (rank=384 at 85% compression), collapsing to the highest-frequency token IS the loss-optimal strategy. **Breaking collapse forces the model to attempt what it cannot do → loss increases.**
 
+### 5.5 Verification: The Collapse Is Real, but Config-Sensitive
+
+Because "the whole model predicts only commas" is so counter-intuitive, we independently re-verified it: re-evaluating the saved checkpoint, re-measuring on held-out data, checking pairwise KL between positions, and comparing against the information-theoretic floor. Verdict: **the collapse is fully reproducible** (val loss 8.5008, comma at 98.6%, cross-position KL = 0.007, top-1 prob 0.095 ≈ a constant predictor).
+
+The verification also exposed an important fact: **collapse is highly sensitive to the factorization configuration** —
+
+| Configuration | val loss | Collapsed? |
+|---|---|---|
+| diag, $\alpha=1.0$, per-layer ranks (Block 0 = 32) | **8.50** | **Yes** (KL=0.007) |
+| diag, $\alpha=0.5$, per-layer ranks | 9.66 | No (389 unique, KL=3.1) |
+| diag, $\alpha=0.5$, uniform rank=384 | 10.83 | No (546 unique, KL=0.67) |
+
+Only the combination "stronger activation weighting ($\alpha=1.0$) + a starved Block 0 (rank 32)" triggers full collapse. Halving $\alpha$ or switching to uniform ranks leaves the model in a "severely degenerate but not collapsed" state — with worse loss. This is fully consistent with the tradeoff in Section 5: **within this family of variants, the more complete the collapse, the lower the loss** (8.50 < 9.66 < 10.83).
+
 ### 6. Conclusions
 
 1. **Val loss is not a reliable indicator of model quality** — a fully collapsed model (only outputs comma) can have lower loss than a model with prediction diversity but poor accuracy.
 
-2. **ASVD's activation weighting causes representation collapse at extreme compression ratios** — because all layers' truncation directions become systematically aligned.
+2. **ASVD's activation weighting causes representation collapse at extreme compression ratios** — the stronger the weighting (larger $\alpha$) and the more severely key layers are starved by rank allocation, the more complete the collapse.
 
-3. **This collapse is a loss-optimal degeneration** — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational "give-up strategy."
+3. **This collapse is a loss-optimal degeneration** — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational "give-up strategy." Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).
 
 4. **Recovering true predictive ability (from collapsed 8.50 to meaningful 3.79) requires end-to-end training** — closed-form methods cannot simultaneously break collapse and lower loss, because the problem is about **predictive capacity itself** (which must be learned), not approximation accuracy.
 
-5. **When evaluating compressed models, prediction diversity must be checked alongside val loss** — otherwise the "collapse to frequent token" illusion may mislead.
+5. **When evaluating compressed models, prediction diversity must be checked alongside val loss** — otherwise the "collapse to frequent token" illusion may mislead. Likewise, **when comparing compression methods, every configuration knob must be held fixed** (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.
 
 </div>
 
