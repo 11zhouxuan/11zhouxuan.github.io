@@ -22,14 +22,16 @@
     <meta name="description" content="中文   English    低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好 1. 一个意外的发现 对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$，rank&#x3D;384），使用激活加权 SVD（ASVD）得到的模型 val loss &#x3D; 8.50。作为对比，plain SVD 的 val loss &#x3D; 18.65——ASVD 看似好了一倍多。 但当">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model">
-<meta property="og:url" content="https://11zhouxuan.github.io/2026/08/08/representation-collapse-in-low-rank-compression/index.html">
+<meta property="og:url" content="https://11zhouxuan.github.io/2026/08/17/representation-collapse-in-low-rank-compression/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
 <meta property="og:description" content="中文   English    低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好 1. 一个意外的发现 对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$，rank&#x3D;384），使用激活加权 SVD（ASVD）得到的模型 val loss &#x3D; 8.50。作为对比，plain SVD 的 val loss &#x3D; 18.65——ASVD 看似好了一倍多。 但当">
 <meta property="og:locale" content="en_US">
-<meta property="article:published_time" content="2026-08-08T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-13T14:11:13.781Z">
+<meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-17T02:43:03.967Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
+<meta property="article:tag" content="MLP">
+<meta property="article:tag" content="SwiGLU">
 <meta property="article:tag" content="compression">
 <meta property="article:tag" content="linear-algebra">
 <meta property="article:tag" content="math">
@@ -37,10 +39,10 @@
 <meta name="twitter:card" content="summary">
 
 
-<link rel="canonical" href="https://11zhouxuan.github.io/2026/08/08/representation-collapse-in-low-rank-compression/">
+<link rel="canonical" href="https://11zhouxuan.github.io/2026/08/17/representation-collapse-in-low-rank-compression/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/08/representation-collapse-in-low-rank-compression/","path":"2026/08/08/representation-collapse-in-low-rank-compression/","title":"Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/17/representation-collapse-in-low-rank-compression/","path":"2026/08/17/representation-collapse-in-low-rank-compression/","title":"Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
 <title>Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model | Xuan's Blog</title>
@@ -172,7 +174,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E4%B8%AD%E7%9A%84%E8%A1%A8%E7%A4%BA%E5%9D%8D%E7%BC%A9%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88-val-loss-%E5%A5%BD%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%A8%A1%E5%9E%8B%E5%A5%BD"><span class="nav-text">低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%80%E4%B8%AA%E6%84%8F%E5%A4%96%E7%9A%84%E5%8F%91%E7%8E%B0"><span class="nav-text">1. 一个意外的发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9D%8D%E7%BC%A9%E5%8F%8D%E8%80%8C-loss-%E6%9B%B4%E4%BD%8E%EF%BC%9F"><span class="nav-text">2. 为什么坍缩反而 loss 更低？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9D%8D%E7%BC%A9%E7%9A%84%E6%9C%BA%E5%88%B6"><span class="nav-text">3. 坍缩的机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%96%87%E7%8C%AE%E4%B8%AD%E7%9A%84%E5%AF%B9%E5%BA%94"><span class="nav-text">4. 文献中的对应</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E6%89%93%E7%A0%B4%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%B0%9D%E8%AF%95"><span class="nav-text">5. 打破坍缩的尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E7%BB%93%E8%AE%BA"><span class="nav-text">6. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Representation-Collapse-in-Low-Rank-Compression-When-Low-Loss-Means-a-Broken-Model"><span class="nav-text">Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-An-Unexpected-Finding"><span class="nav-text">1. An Unexpected Finding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Why-Does-Collapse-Produce-Lower-Loss"><span class="nav-text">2. Why Does Collapse Produce Lower Loss?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Collapse-Mechanism"><span class="nav-text">3. The Collapse Mechanism</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Connection-to-Literature"><span class="nav-text">4. Connection to Literature</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Attempts-to-Break-the-Collapse"><span class="nav-text">5. Attempts to Break the Collapse</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Conclusions"><span class="nav-text">6. Conclusions</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E4%B8%AD%E7%9A%84%E8%A1%A8%E7%A4%BA%E5%9D%8D%E7%BC%A9%EF%BC%9A%E4%B8%BA%E4%BB%80%E4%B9%88-val-loss-%E5%A5%BD%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%A8%A1%E5%9E%8B%E5%A5%BD"><span class="nav-text">低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%80%E4%B8%AA%E6%84%8F%E5%A4%96%E7%9A%84%E5%8F%91%E7%8E%B0"><span class="nav-text">1. 一个意外的发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9D%8D%E7%BC%A9%E5%8F%8D%E8%80%8C-loss-%E6%9B%B4%E4%BD%8E%EF%BC%9F"><span class="nav-text">2. 为什么坍缩反而 loss 更低？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9D%8D%E7%BC%A9%E7%9A%84%E6%9C%BA%E5%88%B6"><span class="nav-text">3. 坍缩的机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%BE%AE%E8%A7%82%E6%9C%BA%E5%88%B6%EF%BC%9AMLP-%E6%98%AF%E5%87%B6%E6%89%8B"><span class="nav-text">3.5 坍缩的微观机制：MLP 是凶手</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%96%87%E7%8C%AE%E4%B8%AD%E7%9A%84%E5%AF%B9%E5%BA%94"><span class="nav-text">4. 文献中的对应</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E6%89%93%E7%A0%B4%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%B0%9D%E8%AF%95"><span class="nav-text">5. 打破坍缩的尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E7%BB%93%E8%AE%BA"><span class="nav-text">6. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Representation-Collapse-in-Low-Rank-Compression-When-Low-Loss-Means-a-Broken-Model"><span class="nav-text">Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-An-Unexpected-Finding"><span class="nav-text">1. An Unexpected Finding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Why-Does-Collapse-Produce-Lower-Loss"><span class="nav-text">2. Why Does Collapse Produce Lower Loss?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Collapse-Mechanism"><span class="nav-text">3. The Collapse Mechanism</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-Microscopic-Mechanism-The-MLP-Is-the-Killer"><span class="nav-text">3.5 Microscopic Mechanism: The MLP Is the Killer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Connection-to-Literature"><span class="nav-text">4. Connection to Literature</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Attempts-to-Break-the-Collapse"><span class="nav-text">5. Attempts to Break the Collapse</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Conclusions"><span class="nav-text">6. Conclusions</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -196,7 +198,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-count">18</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -228,7 +230,7 @@
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/08/08/representation-collapse-in-low-rank-compression/">
+    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/08/17/representation-collapse-in-low-rank-compression/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -256,15 +258,9 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
+      
 
-      <time title="Created: 2026-08-08 00:00:00" itemprop="dateCreated datePublished" datetime="2026-08-08T00:00:00+00:00">2026-08-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-13 14:11:13" itemprop="dateModified" datetime="2026-08-13T14:11:13+00:00">2026-08-13</time>
+      <time title="Created: 2026-08-17 00:00:00 / Modified: 02:43:03" itemprop="dateCreated datePublished" datetime="2026-08-17T00:00:00+00:00">2026-08-17</time>
     </span>
 
   
@@ -394,6 +390,174 @@
 </tbody>
 </table>
 <p>最后一层 cos=0.95 看起来&quot;对齐得很好&quot;——但这是一个<strong>假象</strong>。不是模型对每个 token 都和教师对齐，而是<strong>所有 token 都坍缩到了同一个方向</strong>，这个固定方向恰好和教师的某个&quot;平均方向&quot; cos=0.95。</p>
+<h3 id="3-5-坍缩的微观机制：MLP-是凶手">3.5 坍缩的微观机制：MLP 是凶手</h3>
+<p>进一步的诊断实验追踪了 effective rank 在网络每个子组件中的变化，揭示了更精确的坍缩机制。</p>
+<p><strong>Effective rank（erank）在 residual stream 中的变化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0（embedding 后）</td>
+<td>264</td>
+<td>264</td>
+<td>264</td>
+</tr>
+<tr>
+<td>3</td>
+<td>353</td>
+<td>233</td>
+<td>4.5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>355</td>
+<td>99</td>
+<td>10</td>
+</tr>
+<tr>
+<td>7~16</td>
+<td>65~120</td>
+<td>124~152</td>
+<td>13~14</td>
+</tr>
+<tr>
+<td>35</td>
+<td>301</td>
+<td>57</td>
+<td>25</td>
+</tr>
+<tr>
+<td>36（final norm 后）</td>
+<td>156</td>
+<td><strong>7</strong></td>
+<td><strong>111</strong></td>
+</tr>
+</tbody>
+</table>
+<p>惊人的发现：<strong>Plain SVD 在中间层比 ASVD 坍缩得更严重</strong>（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。</p>
+<p><strong>SwiGLU MLP 是逐层坍缩的主要驱动力。</strong> 逐 block 分解显示：</p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Attention 贡献</th>
+<th>MLP 贡献</th>
+<th>净变化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>+19.5</td>
+<td>-14.5</td>
+<td>+5.0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>+7.5</td>
+<td>-31.1</td>
+<td>-23.5</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>+7.3</td>
+<td><strong>-141.8</strong></td>
+<td><strong>-134.5</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>+5.2</td>
+<td>-23.4</td>
+<td>-18.3</td>
+</tr>
+</tbody>
+</table>
+<p>Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中最致命的一击。</p>
+<p><strong>MLP 内部的追踪</strong>（以 Block 3 为例）：</p>
+<table>
+<thead>
+<tr>
+<th>子步骤</th>
+<th>Teacher erank</th>
+<th>ASVD erank</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP 输入</td>
+<td>245</td>
+<td>163</td>
+<td></td>
+</tr>
+<tr>
+<td>gate_proj</td>
+<td>53</td>
+<td>20</td>
+<td>gate 投影本身极低秩</td>
+</tr>
+<tr>
+<td>SiLU(gate)</td>
+<td>334</td>
+<td>165</td>
+<td>非线性恢复多样性</td>
+</tr>
+<tr>
+<td>up_proj</td>
+<td>315</td>
+<td>148</td>
+<td></td>
+</tr>
+<tr>
+<td>gate×up</td>
+<td>352</td>
+<td><strong>71</strong></td>
+<td>乘法二次化误差</td>
+</tr>
+<tr>
+<td>MLP 输出</td>
+<td>329</td>
+<td><strong>28</strong></td>
+<td>down_proj 再次压缩</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么 ASVD 不能恢复而 plain SVD 可以？</strong></p>
+<p>关键不是 MLP 输出的幅度，而是<strong>MLP 输出对不同 token 是否不同</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP output pcos（36 层平均）</td>
+<td>0.20</td>
+<td><strong>0.73</strong></td>
+<td>0.27</td>
+</tr>
+<tr>
+<td>MLP override ratio（36 层平均）</td>
+<td>0.40</td>
+<td>0.30</td>
+<td>1.40</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ASVD 的 MLP 对所有 token 输出几乎相同的向量</strong>（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。</p>
+<p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。</p>
+<p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留高激活通道），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
 <h3 id="4-文献中的对应">4. 文献中的对应</h3>
 <p>这个现象在 transformer 研究中已有理论解释：</p>
 <ul>
@@ -440,7 +604,51 @@
 </tr>
 </tbody>
 </table>
-<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。这揭示了一个根本的 tradeoff：</p>
+<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。</p>
+<p>进一步的 rank 重分配实验也证实了这一点——即使给关键组件更多参数：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>参数量</th>
+<th>val loss</th>
+<th>是否坍缩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD rank=384（基准）</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>是（100% 逗号）</td>
+</tr>
+<tr>
+<td>gate_proj 满秩</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>否</td>
+</tr>
+<tr>
+<td>down_proj 满秩</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>否</td>
+</tr>
+<tr>
+<td>down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>否</td>
+</tr>
+<tr>
+<td>down_proj rank=768（预算匹配）</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p><strong>所有打破坍缩的配置 loss 都比坍缩态更差</strong>——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：</p>
 <p>$$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$</p>
 <p>在模型<strong>真的没有足够能力区分 token</strong> 的情况下（rank=384 在 85% 压缩率下），坍缩到高频 token 就是 loss-最优的策略。<strong>打破坍缩等于强迫模型做它做不到的事 → loss 变差。</strong></p>
 <h3 id="6-结论">6. 结论</h3>
@@ -569,6 +777,174 @@
 </tbody>
 </table>
 <p>The final cos=0.95 looks like &quot;good alignment&quot; — but it is an <strong>illusion</strong>. It is not that each token aligns with its teacher counterpart, but that <strong>all tokens have collapsed to the same direction</strong>, and that fixed direction happens to have cos=0.95 with some &quot;average direction&quot; of the teacher.</p>
+<h3 id="3-5-Microscopic-Mechanism-The-MLP-Is-the-Killer">3.5 Microscopic Mechanism: The MLP Is the Killer</h3>
+<p>Further diagnostic experiments traced effective rank (erank) changes through every sub-component of the network, revealing a more precise collapse mechanism.</p>
+<p><strong>Effective rank in the residual stream:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 (after embedding)</td>
+<td>264</td>
+<td>264</td>
+<td>264</td>
+</tr>
+<tr>
+<td>3</td>
+<td>353</td>
+<td>233</td>
+<td>4.5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>355</td>
+<td>99</td>
+<td>10</td>
+</tr>
+<tr>
+<td>7–16</td>
+<td>65–120</td>
+<td>124–152</td>
+<td>13–14</td>
+</tr>
+<tr>
+<td>35</td>
+<td>301</td>
+<td>57</td>
+<td>25</td>
+</tr>
+<tr>
+<td>36 (after final norm)</td>
+<td>156</td>
+<td><strong>7</strong></td>
+<td><strong>111</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Surprising finding: <strong>Plain SVD collapses MORE severely in intermediate layers</strong> (Block 3 erank=4.5 vs ASVD's 233), yet plain SVD recovers to erank=111 while ASVD collapses to 7.</p>
+<p><strong>The SwiGLU MLP drives the per-block collapse.</strong> Per-block decomposition:</p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Attention contribution</th>
+<th>MLP contribution</th>
+<th>Net change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>+19.5</td>
+<td>-14.5</td>
+<td>+5.0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>+7.5</td>
+<td>-31.1</td>
+<td>-23.5</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>+7.3</td>
+<td><strong>-141.8</strong></td>
+<td><strong>-134.5</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>+5.2</td>
+<td>-23.4</td>
+<td>-18.3</td>
+</tr>
+</tbody>
+</table>
+<p>Block 3's MLP delivers a fatal blow: erank drops from 233 to ~99 in a single step.</p>
+<p><strong>Tracing inside the MLP</strong> (Block 3):</p>
+<table>
+<thead>
+<tr>
+<th>Sub-step</th>
+<th>Teacher erank</th>
+<th>ASVD erank</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP input</td>
+<td>245</td>
+<td>163</td>
+<td></td>
+</tr>
+<tr>
+<td>gate_proj</td>
+<td>53</td>
+<td>20</td>
+<td>Gate projection is inherently low-rank</td>
+</tr>
+<tr>
+<td>SiLU(gate)</td>
+<td>334</td>
+<td>165</td>
+<td>Nonlinearity restores diversity</td>
+</tr>
+<tr>
+<td>up_proj</td>
+<td>315</td>
+<td>148</td>
+<td></td>
+</tr>
+<tr>
+<td>gate×up</td>
+<td>352</td>
+<td><strong>71</strong></td>
+<td>Multiplication squares the error</td>
+</tr>
+<tr>
+<td>MLP output</td>
+<td>329</td>
+<td><strong>28</strong></td>
+<td>down_proj compresses again</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why ASVD cannot recover while plain SVD can:</strong></p>
+<p>The key is not the MLP output magnitude, but <strong>whether the MLP output differs across tokens</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Metric (36-layer average)</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP output pcos</td>
+<td>0.20</td>
+<td><strong>0.73</strong></td>
+<td>0.27</td>
+</tr>
+<tr>
+<td>MLP override ratio</td>
+<td>0.40</td>
+<td>0.30</td>
+<td>1.40</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ASVD's MLP outputs are nearly identical across all tokens</strong> (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).</p>
+<p>In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.</p>
+<p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (high-activation channels) while discarding the <strong>token-specific differences</strong>.</p>
 <h3 id="4-Connection-to-Literature">4. Connection to Literature</h3>
 <p>This phenomenon has theoretical explanations in transformer research:</p>
 <ul>
@@ -615,7 +991,51 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>. This reveals a fundamental tradeoff:</p>
+<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>.</p>
+<p>Further rank-reallocation experiments confirm this — even with substantially more parameters for key components:</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Params</th>
+<th>val loss</th>
+<th>Collapsed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD rank=384 (baseline)</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>Yes (100% comma)</td>
+</tr>
+<tr>
+<td>gate_proj full rank</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>No</td>
+</tr>
+<tr>
+<td>down_proj full rank</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>No</td>
+</tr>
+<tr>
+<td>down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>No</td>
+</tr>
+<tr>
+<td>down_proj rank=768 (budget-matched)</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Every configuration that breaks collapse produces worse loss</strong> — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff:</p>
 <p>$$\text{Collapse} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$</p>
 <p>When the model <strong>genuinely lacks the capacity to distinguish tokens</strong> (rank=384 at 85% compression), collapsing to the highest-frequency token IS the loss-optimal strategy. <strong>Breaking collapse forces the model to attempt what it cannot do → loss increases.</strong></p>
 <h3 id="6-Conclusions">6. Conclusions</h3>
@@ -663,20 +1083,19 @@ function switchLang(lang) {
               <a href="/tags/linear-algebra/" rel="tag"><i class="fa fa-tag"></i> linear-algebra</a>
               <a href="/tags/compression/" rel="tag"><i class="fa fa-tag"></i> compression</a>
               <a href="/tags/representation-collapse/" rel="tag"><i class="fa fa-tag"></i> representation-collapse</a>
+              <a href="/tags/SwiGLU/" rel="tag"><i class="fa fa-tag"></i> SwiGLU</a>
+              <a href="/tags/MLP/" rel="tag"><i class="fa fa-tag"></i> MLP</a>
           </div>
 
         
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/07/13/llm-ontology-construction-survey/" rel="prev" title="LLM&#x2F;Agent-Driven Ontology Construction: A Survey of 18 Papers (2024-2026)">
-                  <i class="fa fa-angle-left"></i> LLM/Agent-Driven Ontology Construction: A Survey of 18 Papers (2024-2026)
+                <a href="/2026/08/08/low-rank-approximation-for-llm-compression/" rel="prev" title="Low-Rank Matrix Approximation: From SVD to Weighted SVD">
+                  <i class="fa fa-angle-left"></i> Low-Rank Matrix Approximation: From SVD to Weighted SVD
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2026/08/08/low-rank-approximation-for-llm-compression/" rel="next" title="Low-Rank Matrix Approximation: From SVD to Weighted SVD">
-                  Low-Rank Matrix Approximation: From SVD to Weighted SVD <i class="fa fa-angle-right"></i>
-                </a>
             </div>
           </div>
     </footer>

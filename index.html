@@ -189,7 +189,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-count">18</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -211,6 +211,865 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/08/17/representation-collapse-in-low-rank-compression/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Xuan Zhou">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Xuan's Blog">
+      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Xuan's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/08/17/representation-collapse-in-low-rank-compression/" class="post-title-link" itemprop="url">Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2026-08-17 00:00:00 / Modified: 02:43:03" itemprop="dateCreated datePublished" datetime="2026-08-17T00:00:00+00:00">2026-08-17</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <div class="lang-switch">
+  <button id="btn-zh" class="lang-btn active" onclick="switchLang('zh')">中文</button>
+  <button id="btn-en" class="lang-btn" onclick="switchLang('en')">English</button>
+</div>
+<!-- Chinese Version -->
+<div class="lang-content lang-zh">
+<h2 id="低秩压缩中的表示坍缩：为什么-val-loss-好不等于模型好">低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好</h2>
+<h3 id="1-一个意外的发现">1. 一个意外的发现</h3>
+<p>对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$，rank=384），使用激活加权 SVD（ASVD）得到的模型 val loss = 8.50。作为对比，plain SVD 的 val loss = 18.65——ASVD 看似好了一倍多。</p>
+<p>但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>val loss</th>
+<th>预测的 unique token 数</th>
+<th>top-1 预测占比</th>
+<th>top-1 是什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>教师（满秩）</td>
+<td>2.11</td>
+<td>1933</td>
+<td>8.2%</td>
+<td>&quot; the&quot;</td>
+</tr>
+<tr>
+<td>Plain SVD</td>
+<td>18.65</td>
+<td>433</td>
+<td>15.9%</td>
+<td>&quot; :\r\n&quot;</td>
+</tr>
+<tr>
+<td>Random 权重</td>
+<td>17.77</td>
+<td>1104</td>
+<td>13.7%</td>
+<td>&quot;fcc&quot;</td>
+</tr>
+<tr>
+<td><strong>ASVD</strong></td>
+<td><strong>8.50</strong></td>
+<td><strong>1</strong></td>
+<td><strong>100%</strong></td>
+<td><strong>&quot;,&quot;</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>ASVD 模型对所有 8191 个位置都预测同一个 token——逗号。</strong></p>
+<h3 id="2-为什么坍缩反而-loss-更低？">2. 为什么坍缩反而 loss 更低？</h3>
+<p>这看似矛盾：一个&quot;更坏&quot;的模型（只能输出一个 token）怎么比&quot;更好&quot;的模型（能输出 433 种 token）loss 更低？</p>
+<p>原因是交叉熵 loss 的性质。当模型<strong>完全没有预测能力</strong>时，最优策略是：</p>
+<p>$$\text{把所有概率集中到出现频率最高的 token 上}$$</p>
+<p>逗号在英文文本中出现频率约 3.6%。如果模型以 ~10% 的概率输出逗号（softmax 后 top-1 prob = 0.0995），这给出 CE ≈ 8.5。而如果模型试图<strong>区分不同 token 但区分得很差</strong>（random/plain SVD），每个预测都高 confidence 指向错误的 token → CE 远超 11.93（均匀分布）甚至到 17~19。</p>
+<p><strong>&quot;全押一个高频 token&quot;是预测能力为零时的 loss-最优退化策略。</strong> ASVD 的 8.50 不代表&quot;逼近得好&quot;，而是代表&quot;模型已经放弃预测，退化成了常数函数&quot;。</p>
+<h3 id="3-坍缩的机制">3. 坍缩的机制</h3>
+<p><strong>为什么 ASVD 导致坍缩而 plain SVD 不会？</strong></p>
+<p>ASVD 对每层用 $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$ 加权。关键观察：<strong>相邻层的 $S$ 高度相似</strong>（因为残差连接让激活分布变化缓慢）。这意味着：</p>
+<ul>
+<li>每一层的 SVD 截断都优先保留 $S$ 大的方向（高激活通道）</li>
+<li>每一层都丢掉 $S$ 小的方向</li>
+<li>36 层叠加后，$S$ 小的方向被<strong>反复压制 36 次</strong></li>
+<li>最终 hidden state 只剩 $S$ 大的那几个方向 → <strong>所有 token 的表示坍缩到同一方向</strong></li>
+</ul>
+<p>Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定——不同层的主方向不同，所以不会系统性地压制同一组方向。</p>
+<p>实验验证了这一点。逐层测量 hidden state 与教师的 cosine 相似度：</p>
+<table>
+<thead>
+<tr>
+<th>层</th>
+<th>ASVD cos</th>
+<th>解释</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0（embedding 后）</td>
+<td>1.000</td>
+<td>输入完美</td>
+</tr>
+<tr>
+<td>1（Block 0 后）</td>
+<td>0.718</td>
+<td>第一层就严重偏离</td>
+</tr>
+<tr>
+<td>10</td>
+<td>0.496</td>
+<td>触底</td>
+</tr>
+<tr>
+<td>11~24</td>
+<td>0.49~0.53</td>
+<td>在 0.5 附近震荡（<strong>平台</strong>）</td>
+</tr>
+<tr>
+<td>35（最后）</td>
+<td>0.830</td>
+<td>恢复</td>
+</tr>
+<tr>
+<td>36（final norm 后）</td>
+<td>0.950</td>
+<td>看似&quot;对齐&quot;</td>
+</tr>
+</tbody>
+</table>
+<p>最后一层 cos=0.95 看起来&quot;对齐得很好&quot;——但这是一个<strong>假象</strong>。不是模型对每个 token 都和教师对齐，而是<strong>所有 token 都坍缩到了同一个方向</strong>，这个固定方向恰好和教师的某个&quot;平均方向&quot; cos=0.95。</p>
+<h3 id="3-5-坍缩的微观机制：MLP-是凶手">3.5 坍缩的微观机制：MLP 是凶手</h3>
+<p>进一步的诊断实验追踪了 effective rank 在网络每个子组件中的变化，揭示了更精确的坍缩机制。</p>
+<p><strong>Effective rank（erank）在 residual stream 中的变化：</strong></p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0（embedding 后）</td>
+<td>264</td>
+<td>264</td>
+<td>264</td>
+</tr>
+<tr>
+<td>3</td>
+<td>353</td>
+<td>233</td>
+<td>4.5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>355</td>
+<td>99</td>
+<td>10</td>
+</tr>
+<tr>
+<td>7~16</td>
+<td>65~120</td>
+<td>124~152</td>
+<td>13~14</td>
+</tr>
+<tr>
+<td>35</td>
+<td>301</td>
+<td>57</td>
+<td>25</td>
+</tr>
+<tr>
+<td>36（final norm 后）</td>
+<td>156</td>
+<td><strong>7</strong></td>
+<td><strong>111</strong></td>
+</tr>
+</tbody>
+</table>
+<p>惊人的发现：<strong>Plain SVD 在中间层比 ASVD 坍缩得更严重</strong>（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。</p>
+<p><strong>SwiGLU MLP 是逐层坍缩的主要驱动力。</strong> 逐 block 分解显示：</p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Attention 贡献</th>
+<th>MLP 贡献</th>
+<th>净变化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>+19.5</td>
+<td>-14.5</td>
+<td>+5.0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>+7.5</td>
+<td>-31.1</td>
+<td>-23.5</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>+7.3</td>
+<td><strong>-141.8</strong></td>
+<td><strong>-134.5</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>+5.2</td>
+<td>-23.4</td>
+<td>-18.3</td>
+</tr>
+</tbody>
+</table>
+<p>Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中最致命的一击。</p>
+<p><strong>MLP 内部的追踪</strong>（以 Block 3 为例）：</p>
+<table>
+<thead>
+<tr>
+<th>子步骤</th>
+<th>Teacher erank</th>
+<th>ASVD erank</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP 输入</td>
+<td>245</td>
+<td>163</td>
+<td></td>
+</tr>
+<tr>
+<td>gate_proj</td>
+<td>53</td>
+<td>20</td>
+<td>gate 投影本身极低秩</td>
+</tr>
+<tr>
+<td>SiLU(gate)</td>
+<td>334</td>
+<td>165</td>
+<td>非线性恢复多样性</td>
+</tr>
+<tr>
+<td>up_proj</td>
+<td>315</td>
+<td>148</td>
+<td></td>
+</tr>
+<tr>
+<td>gate×up</td>
+<td>352</td>
+<td><strong>71</strong></td>
+<td>乘法二次化误差</td>
+</tr>
+<tr>
+<td>MLP 输出</td>
+<td>329</td>
+<td><strong>28</strong></td>
+<td>down_proj 再次压缩</td>
+</tr>
+</tbody>
+</table>
+<p><strong>为什么 ASVD 不能恢复而 plain SVD 可以？</strong></p>
+<p>关键不是 MLP 输出的幅度，而是<strong>MLP 输出对不同 token 是否不同</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP output pcos（36 层平均）</td>
+<td>0.20</td>
+<td><strong>0.73</strong></td>
+<td>0.27</td>
+</tr>
+<tr>
+<td>MLP override ratio（36 层平均）</td>
+<td>0.40</td>
+<td>0.30</td>
+<td>1.40</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ASVD 的 MLP 对所有 token 输出几乎相同的向量</strong>（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。</p>
+<p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。</p>
+<p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留高激活通道），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
+<h3 id="4-文献中的对应">4. 文献中的对应</h3>
+<p>这个现象在 transformer 研究中已有理论解释：</p>
+<ul>
+<li><strong>Signal Propagation in Transformers (2022)</strong>：堆叠 self-attention 层导致 token 表示的 rank collapse</li>
+<li><strong>Attention Masks and LayerNorm (2024)</strong>：&quot;With proper choice of value matrices, sequences may not converge to rank one subspace&quot; —— 暗示 value 矩阵选择不当会导致坍缩</li>
+<li><strong>BA-LoRA (2024)</strong>：在 LoRA 训练中识别出 representation collapse，解决方案是 diversity 正则化</li>
+</ul>
+<p>我们的情况属于&quot;value 矩阵选择不当&quot;的极端版本——低秩截断让所有层的投影方向系统性地对齐，满足了坍缩的条件。</p>
+<h3 id="5-打破坍缩的尝试">5. 打破坍缩的尝试</h3>
+<p>我们尝试了对相邻层的输出方向施加正交约束：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>val loss</th>
+<th>unique 预测</th>
+<th>top-1 占比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD（无约束）</td>
+<td>8.50</td>
+<td>1</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>正交约束 0.3</td>
+<td>12.80</td>
+<td>23</td>
+<td>93.6%</td>
+</tr>
+<tr>
+<td>交替 ASVD/plain SVD</td>
+<td>14.56</td>
+<td>41</td>
+<td>35.2%</td>
+</tr>
+<tr>
+<td>Plain SVD（无加权）</td>
+<td>18.65</td>
+<td>401</td>
+<td>15.9%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。</p>
+<p>进一步的 rank 重分配实验也证实了这一点——即使给关键组件更多参数：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>参数量</th>
+<th>val loss</th>
+<th>是否坍缩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD rank=384（基准）</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>是（100% 逗号）</td>
+</tr>
+<tr>
+<td>gate_proj 满秩</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>否</td>
+</tr>
+<tr>
+<td>down_proj 满秩</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>否</td>
+</tr>
+<tr>
+<td>down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>否</td>
+</tr>
+<tr>
+<td>down_proj rank=768（预算匹配）</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p><strong>所有打破坍缩的配置 loss 都比坍缩态更差</strong>——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：</p>
+<p>$$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$</p>
+<p>在模型<strong>真的没有足够能力区分 token</strong> 的情况下（rank=384 在 85% 压缩率下），坍缩到高频 token 就是 loss-最优的策略。<strong>打破坍缩等于强迫模型做它做不到的事 → loss 变差。</strong></p>
+<h3 id="6-结论">6. 结论</h3>
+<ol>
+<li>
+<p><strong>val loss 不是模型质量的可靠指标</strong>——一个完全坍缩的模型（只输出逗号）可以比一个&quot;有预测多样性但不准&quot;的模型 loss 更低。</p>
+</li>
+<li>
+<p><strong>ASVD 的激活加权在极端压缩率下会导致 representation collapse</strong>——因为所有层的截断方向被系统性地对齐。</p>
+</li>
+<li>
+<p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。</p>
+</li>
+<li>
+<p><strong>要恢复真正的预测能力（从坍缩的 8.50 到有意义的 3.79），必须经过端到端训练</strong>——闭式方法无法同时打破坍缩又降低 loss，因为问题在于<strong>预测能力本身</strong>（需要学习），不在于逼近精度。</p>
+</li>
+<li>
+<p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。</p>
+</li>
+</ol>
+</div>
+<!-- English Version -->
+<div class="lang-content lang-en" style="display:none">
+<h2 id="Representation-Collapse-in-Low-Rank-Compression-When-Low-Loss-Means-a-Broken-Model">Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model</h2>
+<h3 id="1-An-Unexpected-Finding">1. An Unexpected Finding</h3>
+<p>Applying low-rank factorization to a 36-layer LLM (replacing each linear layer $W$ with $AB$, rank=384) using activation-weighted SVD (ASVD) yields a val loss of 8.50. For comparison, plain SVD gives 18.65 — ASVD appears more than twice as good.</p>
+<p>But when we inspect the model's actual token predictions:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>val loss</th>
+<th>Unique tokens predicted</th>
+<th>Top-1 fraction</th>
+<th>Top-1 token</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Teacher (full rank)</td>
+<td>2.11</td>
+<td>1933</td>
+<td>8.2%</td>
+<td>&quot; the&quot;</td>
+</tr>
+<tr>
+<td>Plain SVD</td>
+<td>18.65</td>
+<td>433</td>
+<td>15.9%</td>
+<td>&quot; :\r\n&quot;</td>
+</tr>
+<tr>
+<td>Random weights</td>
+<td>17.77</td>
+<td>1104</td>
+<td>13.7%</td>
+<td>&quot;fcc&quot;</td>
+</tr>
+<tr>
+<td><strong>ASVD</strong></td>
+<td><strong>8.50</strong></td>
+<td><strong>1</strong></td>
+<td><strong>100%</strong></td>
+<td><strong>&quot;,&quot;</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The ASVD model predicts the same token — a comma — for all 8191 positions.</strong></p>
+<h3 id="2-Why-Does-Collapse-Produce-Lower-Loss">2. Why Does Collapse Produce Lower Loss?</h3>
+<p>This seems paradoxical: how can a &quot;worse&quot; model (only one token) have lower loss than a &quot;better&quot; one (433 distinct tokens)?</p>
+<p>The answer lies in the nature of cross-entropy loss. When a model has <strong>zero predictive ability</strong>, the optimal strategy is:</p>
+<p>$$\text{Concentrate all probability on the highest-frequency token}$$</p>
+<p>Commas appear in ~3.6% of positions in English text. If the model outputs ~10% probability for comma (softmax top-1 prob = 0.0995), this gives CE ≈ 8.5. Meanwhile, a model that <strong>tries to distinguish tokens but fails</strong> (random/plain SVD) outputs high-confidence predictions pointing at wrong tokens → CE far exceeds 11.93 (uniform) and reaches 17–19.</p>
+<p><strong>&quot;All-in on one frequent token&quot; is the loss-optimal degenerate strategy when predictive ability is zero.</strong> ASVD's 8.50 does not mean &quot;good approximation&quot; — it means &quot;the model has given up predicting and collapsed to a constant function.&quot;</p>
+<h3 id="3-The-Collapse-Mechanism">3. The Collapse Mechanism</h3>
+<p><strong>Why does ASVD cause collapse while plain SVD does not?</strong></p>
+<p>ASVD weights each layer by $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$. The key observation: <strong>adjacent layers have highly similar $S$</strong> (because residual connections keep activation distributions stable). This means:</p>
+<ul>
+<li>Every layer's SVD truncation preferentially retains directions where $S$ is large</li>
+<li>Every layer discards directions where $S$ is small</li>
+<li>Over 36 layers, small-$S$ directions are <strong>suppressed 36 times over</strong></li>
+<li>The hidden state ultimately retains only the few large-$S$ directions → <strong>all tokens' representations collapse to the same direction</strong></li>
+</ul>
+<p>Plain SVD uses no weighting; the retained directions are determined by each layer's own singular structure — different layers have different principal directions, so there is no systematic suppression of the same set of directions.</p>
+<p>Experiments confirm this. Measuring the cosine similarity between student and teacher hidden states layer by layer:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>ASVD cos</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 (after embedding)</td>
+<td>1.000</td>
+<td>Input is perfect</td>
+</tr>
+<tr>
+<td>1 (after Block 0)</td>
+<td>0.718</td>
+<td>First layer already deviates</td>
+</tr>
+<tr>
+<td>10</td>
+<td>0.496</td>
+<td>Hits bottom</td>
+</tr>
+<tr>
+<td>11–24</td>
+<td>0.49–0.53</td>
+<td>Oscillates on a <strong>plateau</strong></td>
+</tr>
+<tr>
+<td>35 (final block)</td>
+<td>0.830</td>
+<td>Recovers</td>
+</tr>
+<tr>
+<td>36 (after final norm)</td>
+<td>0.950</td>
+<td>Appears &quot;aligned&quot;</td>
+</tr>
+</tbody>
+</table>
+<p>The final cos=0.95 looks like &quot;good alignment&quot; — but it is an <strong>illusion</strong>. It is not that each token aligns with its teacher counterpart, but that <strong>all tokens have collapsed to the same direction</strong>, and that fixed direction happens to have cos=0.95 with some &quot;average direction&quot; of the teacher.</p>
+<h3 id="3-5-Microscopic-Mechanism-The-MLP-Is-the-Killer">3.5 Microscopic Mechanism: The MLP Is the Killer</h3>
+<p>Further diagnostic experiments traced effective rank (erank) changes through every sub-component of the network, revealing a more precise collapse mechanism.</p>
+<p><strong>Effective rank in the residual stream:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 (after embedding)</td>
+<td>264</td>
+<td>264</td>
+<td>264</td>
+</tr>
+<tr>
+<td>3</td>
+<td>353</td>
+<td>233</td>
+<td>4.5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>355</td>
+<td>99</td>
+<td>10</td>
+</tr>
+<tr>
+<td>7–16</td>
+<td>65–120</td>
+<td>124–152</td>
+<td>13–14</td>
+</tr>
+<tr>
+<td>35</td>
+<td>301</td>
+<td>57</td>
+<td>25</td>
+</tr>
+<tr>
+<td>36 (after final norm)</td>
+<td>156</td>
+<td><strong>7</strong></td>
+<td><strong>111</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Surprising finding: <strong>Plain SVD collapses MORE severely in intermediate layers</strong> (Block 3 erank=4.5 vs ASVD's 233), yet plain SVD recovers to erank=111 while ASVD collapses to 7.</p>
+<p><strong>The SwiGLU MLP drives the per-block collapse.</strong> Per-block decomposition:</p>
+<table>
+<thead>
+<tr>
+<th>Block</th>
+<th>Attention contribution</th>
+<th>MLP contribution</th>
+<th>Net change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>+19.5</td>
+<td>-14.5</td>
+<td>+5.0</td>
+</tr>
+<tr>
+<td>2</td>
+<td>+7.5</td>
+<td>-31.1</td>
+<td>-23.5</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>+7.3</td>
+<td><strong>-141.8</strong></td>
+<td><strong>-134.5</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td>+5.2</td>
+<td>-23.4</td>
+<td>-18.3</td>
+</tr>
+</tbody>
+</table>
+<p>Block 3's MLP delivers a fatal blow: erank drops from 233 to ~99 in a single step.</p>
+<p><strong>Tracing inside the MLP</strong> (Block 3):</p>
+<table>
+<thead>
+<tr>
+<th>Sub-step</th>
+<th>Teacher erank</th>
+<th>ASVD erank</th>
+<th>Explanation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP input</td>
+<td>245</td>
+<td>163</td>
+<td></td>
+</tr>
+<tr>
+<td>gate_proj</td>
+<td>53</td>
+<td>20</td>
+<td>Gate projection is inherently low-rank</td>
+</tr>
+<tr>
+<td>SiLU(gate)</td>
+<td>334</td>
+<td>165</td>
+<td>Nonlinearity restores diversity</td>
+</tr>
+<tr>
+<td>up_proj</td>
+<td>315</td>
+<td>148</td>
+<td></td>
+</tr>
+<tr>
+<td>gate×up</td>
+<td>352</td>
+<td><strong>71</strong></td>
+<td>Multiplication squares the error</td>
+</tr>
+<tr>
+<td>MLP output</td>
+<td>329</td>
+<td><strong>28</strong></td>
+<td>down_proj compresses again</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why ASVD cannot recover while plain SVD can:</strong></p>
+<p>The key is not the MLP output magnitude, but <strong>whether the MLP output differs across tokens</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Metric (36-layer average)</th>
+<th>Teacher</th>
+<th>ASVD</th>
+<th>Plain SVD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MLP output pcos</td>
+<td>0.20</td>
+<td><strong>0.73</strong></td>
+<td>0.27</td>
+</tr>
+<tr>
+<td>MLP override ratio</td>
+<td>0.40</td>
+<td>0.30</td>
+<td>1.40</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ASVD's MLP outputs are nearly identical across all tokens</strong> (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).</p>
+<p>In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.</p>
+<p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (high-activation channels) while discarding the <strong>token-specific differences</strong>.</p>
+<h3 id="4-Connection-to-Literature">4. Connection to Literature</h3>
+<p>This phenomenon has theoretical explanations in transformer research:</p>
+<ul>
+<li><strong>Signal Propagation in Transformers (2022)</strong>: Stacking self-attention layers causes rank collapse of token representations</li>
+<li><strong>Attention Masks and LayerNorm (2024)</strong>: &quot;With proper choice of value matrices, sequences may not converge to rank one subspace&quot; — implying that improper value matrices cause collapse</li>
+<li><strong>BA-LoRA (2024)</strong>: Identifies representation collapse in LoRA training; solution is diversity regularization</li>
+</ul>
+<p>Our case is an extreme version of &quot;improper value matrices&quot; — low-rank truncation systematically aligns all layers' projection directions, fulfilling the conditions for collapse.</p>
+<h3 id="5-Attempts-to-Break-the-Collapse">5. Attempts to Break the Collapse</h3>
+<p>We tried imposing orthogonality constraints between adjacent layers' output directions:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>val loss</th>
+<th>Unique predictions</th>
+<th>Top-1 fraction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD (no constraint)</td>
+<td>8.50</td>
+<td>1</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Orthogonality 0.3</td>
+<td>12.80</td>
+<td>23</td>
+<td>93.6%</td>
+</tr>
+<tr>
+<td>Alternating ASVD/plain</td>
+<td>14.56</td>
+<td>41</td>
+<td>35.2%</td>
+</tr>
+<tr>
+<td>Plain SVD (no weighting)</td>
+<td>18.65</td>
+<td>401</td>
+<td>15.9%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>.</p>
+<p>Further rank-reallocation experiments confirm this — even with substantially more parameters for key components:</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Params</th>
+<th>val loss</th>
+<th>Collapsed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD rank=384 (baseline)</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>Yes (100% comma)</td>
+</tr>
+<tr>
+<td>gate_proj full rank</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>No</td>
+</tr>
+<tr>
+<td>down_proj full rank</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>No</td>
+</tr>
+<tr>
+<td>down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>No</td>
+</tr>
+<tr>
+<td>down_proj rank=768 (budget-matched)</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Every configuration that breaks collapse produces worse loss</strong> — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff:</p>
+<p>$$\text{Collapse} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$</p>
+<p>When the model <strong>genuinely lacks the capacity to distinguish tokens</strong> (rank=384 at 85% compression), collapsing to the highest-frequency token IS the loss-optimal strategy. <strong>Breaking collapse forces the model to attempt what it cannot do → loss increases.</strong></p>
+<h3 id="6-Conclusions">6. Conclusions</h3>
+<ol>
+<li>
+<p><strong>Val loss is not a reliable indicator of model quality</strong> — a fully collapsed model (only outputs comma) can have lower loss than a model with prediction diversity but poor accuracy.</p>
+</li>
+<li>
+<p><strong>ASVD's activation weighting causes representation collapse at extreme compression ratios</strong> — because all layers' truncation directions become systematically aligned.</p>
+</li>
+<li>
+<p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot;</p>
+</li>
+<li>
+<p><strong>Recovering true predictive ability (from collapsed 8.50 to meaningful 3.79) requires end-to-end training</strong> — closed-form methods cannot simultaneously break collapse and lower loss, because the problem is about <strong>predictive capacity itself</strong> (which must be learned), not approximation accuracy.</p>
+</li>
+<li>
+<p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead.</p>
+</li>
+</ol>
+</div>
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('.lang-content').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.querySelector('.lang-' + lang).style.display = 'block';
+  document.getElementById('btn-' + lang).classList.add('active');
+}
+</script>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -256,7 +1115,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-13 14:11:13" itemprop="dateModified" datetime="2026-08-13T14:11:13+00:00">2026-08-13</time>
+      <time title="Modified: 2026-08-17 02:43:03" itemprop="dateModified" datetime="2026-08-17T02:43:03+00:00">2026-08-17</time>
     </span>
 
   
@@ -885,447 +1744,6 @@ function switchLang(lang) {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/08/08/representation-collapse-in-low-rank-compression/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.gif">
-      <meta itemprop="name" content="Xuan Zhou">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Xuan's Blog">
-      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
-    </span>
-
-    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content=" | Xuan's Blog">
-      <meta itemprop="description" content="">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          <a href="/2026/08/08/representation-collapse-in-low-rank-compression/" class="post-title-link" itemprop="url">Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model</a>
-        </h2>
-
-        <div class="post-meta-container">
-          <div class="post-meta">
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar"></i>
-      </span>
-      <span class="post-meta-item-text">Posted on</span>
-
-      <time title="Created: 2026-08-08 00:00:00" itemprop="dateCreated datePublished" datetime="2026-08-08T00:00:00+00:00">2026-08-08</time>
-    </span>
-    <span class="post-meta-item">
-      <span class="post-meta-item-icon">
-        <i class="far fa-calendar-check"></i>
-      </span>
-      <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-13 14:11:13" itemprop="dateModified" datetime="2026-08-13T14:11:13+00:00">2026-08-13</time>
-    </span>
-
-  
-</div>
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-          <div class="lang-switch">
-  <button id="btn-zh" class="lang-btn active" onclick="switchLang('zh')">中文</button>
-  <button id="btn-en" class="lang-btn" onclick="switchLang('en')">English</button>
-</div>
-<!-- Chinese Version -->
-<div class="lang-content lang-zh">
-<h2 id="低秩压缩中的表示坍缩：为什么-val-loss-好不等于模型好">低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好</h2>
-<h3 id="1-一个意外的发现">1. 一个意外的发现</h3>
-<p>对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$，rank=384），使用激活加权 SVD（ASVD）得到的模型 val loss = 8.50。作为对比，plain SVD 的 val loss = 18.65——ASVD 看似好了一倍多。</p>
-<p>但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：</p>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>val loss</th>
-<th>预测的 unique token 数</th>
-<th>top-1 预测占比</th>
-<th>top-1 是什么</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>教师（满秩）</td>
-<td>2.11</td>
-<td>1933</td>
-<td>8.2%</td>
-<td>&quot; the&quot;</td>
-</tr>
-<tr>
-<td>Plain SVD</td>
-<td>18.65</td>
-<td>433</td>
-<td>15.9%</td>
-<td>&quot; :\r\n&quot;</td>
-</tr>
-<tr>
-<td>Random 权重</td>
-<td>17.77</td>
-<td>1104</td>
-<td>13.7%</td>
-<td>&quot;fcc&quot;</td>
-</tr>
-<tr>
-<td><strong>ASVD</strong></td>
-<td><strong>8.50</strong></td>
-<td><strong>1</strong></td>
-<td><strong>100%</strong></td>
-<td><strong>&quot;,&quot;</strong></td>
-</tr>
-</tbody>
-</table>
-<p><strong>ASVD 模型对所有 8191 个位置都预测同一个 token——逗号。</strong></p>
-<h3 id="2-为什么坍缩反而-loss-更低？">2. 为什么坍缩反而 loss 更低？</h3>
-<p>这看似矛盾：一个&quot;更坏&quot;的模型（只能输出一个 token）怎么比&quot;更好&quot;的模型（能输出 433 种 token）loss 更低？</p>
-<p>原因是交叉熵 loss 的性质。当模型<strong>完全没有预测能力</strong>时，最优策略是：</p>
-<p>$$\text{把所有概率集中到出现频率最高的 token 上}$$</p>
-<p>逗号在英文文本中出现频率约 3.6%。如果模型以 ~10% 的概率输出逗号（softmax 后 top-1 prob = 0.0995），这给出 CE ≈ 8.5。而如果模型试图<strong>区分不同 token 但区分得很差</strong>（random/plain SVD），每个预测都高 confidence 指向错误的 token → CE 远超 11.93（均匀分布）甚至到 17~19。</p>
-<p><strong>&quot;全押一个高频 token&quot;是预测能力为零时的 loss-最优退化策略。</strong> ASVD 的 8.50 不代表&quot;逼近得好&quot;，而是代表&quot;模型已经放弃预测，退化成了常数函数&quot;。</p>
-<h3 id="3-坍缩的机制">3. 坍缩的机制</h3>
-<p><strong>为什么 ASVD 导致坍缩而 plain SVD 不会？</strong></p>
-<p>ASVD 对每层用 $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$ 加权。关键观察：<strong>相邻层的 $S$ 高度相似</strong>（因为残差连接让激活分布变化缓慢）。这意味着：</p>
-<ul>
-<li>每一层的 SVD 截断都优先保留 $S$ 大的方向（高激活通道）</li>
-<li>每一层都丢掉 $S$ 小的方向</li>
-<li>36 层叠加后，$S$ 小的方向被<strong>反复压制 36 次</strong></li>
-<li>最终 hidden state 只剩 $S$ 大的那几个方向 → <strong>所有 token 的表示坍缩到同一方向</strong></li>
-</ul>
-<p>Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定——不同层的主方向不同，所以不会系统性地压制同一组方向。</p>
-<p>实验验证了这一点。逐层测量 hidden state 与教师的 cosine 相似度：</p>
-<table>
-<thead>
-<tr>
-<th>层</th>
-<th>ASVD cos</th>
-<th>解释</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0（embedding 后）</td>
-<td>1.000</td>
-<td>输入完美</td>
-</tr>
-<tr>
-<td>1（Block 0 后）</td>
-<td>0.718</td>
-<td>第一层就严重偏离</td>
-</tr>
-<tr>
-<td>10</td>
-<td>0.496</td>
-<td>触底</td>
-</tr>
-<tr>
-<td>11~24</td>
-<td>0.49~0.53</td>
-<td>在 0.5 附近震荡（<strong>平台</strong>）</td>
-</tr>
-<tr>
-<td>35（最后）</td>
-<td>0.830</td>
-<td>恢复</td>
-</tr>
-<tr>
-<td>36（final norm 后）</td>
-<td>0.950</td>
-<td>看似&quot;对齐&quot;</td>
-</tr>
-</tbody>
-</table>
-<p>最后一层 cos=0.95 看起来&quot;对齐得很好&quot;——但这是一个<strong>假象</strong>。不是模型对每个 token 都和教师对齐，而是<strong>所有 token 都坍缩到了同一个方向</strong>，这个固定方向恰好和教师的某个&quot;平均方向&quot; cos=0.95。</p>
-<h3 id="4-文献中的对应">4. 文献中的对应</h3>
-<p>这个现象在 transformer 研究中已有理论解释：</p>
-<ul>
-<li><strong>Signal Propagation in Transformers (2022)</strong>：堆叠 self-attention 层导致 token 表示的 rank collapse</li>
-<li><strong>Attention Masks and LayerNorm (2024)</strong>：&quot;With proper choice of value matrices, sequences may not converge to rank one subspace&quot; —— 暗示 value 矩阵选择不当会导致坍缩</li>
-<li><strong>BA-LoRA (2024)</strong>：在 LoRA 训练中识别出 representation collapse，解决方案是 diversity 正则化</li>
-</ul>
-<p>我们的情况属于&quot;value 矩阵选择不当&quot;的极端版本——低秩截断让所有层的投影方向系统性地对齐，满足了坍缩的条件。</p>
-<h3 id="5-打破坍缩的尝试">5. 打破坍缩的尝试</h3>
-<p>我们尝试了对相邻层的输出方向施加正交约束：</p>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>val loss</th>
-<th>unique 预测</th>
-<th>top-1 占比</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ASVD（无约束）</td>
-<td>8.50</td>
-<td>1</td>
-<td>100%</td>
-</tr>
-<tr>
-<td>正交约束 0.3</td>
-<td>12.80</td>
-<td>23</td>
-<td>93.6%</td>
-</tr>
-<tr>
-<td>交替 ASVD/plain SVD</td>
-<td>14.56</td>
-<td>41</td>
-<td>35.2%</td>
-</tr>
-<tr>
-<td>Plain SVD（无加权）</td>
-<td>18.65</td>
-<td>401</td>
-<td>15.9%</td>
-</tr>
-</tbody>
-</table>
-<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。这揭示了一个根本的 tradeoff：</p>
-<p>$$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$</p>
-<p>在模型<strong>真的没有足够能力区分 token</strong> 的情况下（rank=384 在 85% 压缩率下），坍缩到高频 token 就是 loss-最优的策略。<strong>打破坍缩等于强迫模型做它做不到的事 → loss 变差。</strong></p>
-<h3 id="6-结论">6. 结论</h3>
-<ol>
-<li>
-<p><strong>val loss 不是模型质量的可靠指标</strong>——一个完全坍缩的模型（只输出逗号）可以比一个&quot;有预测多样性但不准&quot;的模型 loss 更低。</p>
-</li>
-<li>
-<p><strong>ASVD 的激活加权在极端压缩率下会导致 representation collapse</strong>——因为所有层的截断方向被系统性地对齐。</p>
-</li>
-<li>
-<p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。</p>
-</li>
-<li>
-<p><strong>要恢复真正的预测能力（从坍缩的 8.50 到有意义的 3.79），必须经过端到端训练</strong>——闭式方法无法同时打破坍缩又降低 loss，因为问题在于<strong>预测能力本身</strong>（需要学习），不在于逼近精度。</p>
-</li>
-<li>
-<p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。</p>
-</li>
-</ol>
-</div>
-<!-- English Version -->
-<div class="lang-content lang-en" style="display:none">
-<h2 id="Representation-Collapse-in-Low-Rank-Compression-When-Low-Loss-Means-a-Broken-Model">Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model</h2>
-<h3 id="1-An-Unexpected-Finding">1. An Unexpected Finding</h3>
-<p>Applying low-rank factorization to a 36-layer LLM (replacing each linear layer $W$ with $AB$, rank=384) using activation-weighted SVD (ASVD) yields a val loss of 8.50. For comparison, plain SVD gives 18.65 — ASVD appears more than twice as good.</p>
-<p>But when we inspect the model's actual token predictions:</p>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>val loss</th>
-<th>Unique tokens predicted</th>
-<th>Top-1 fraction</th>
-<th>Top-1 token</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Teacher (full rank)</td>
-<td>2.11</td>
-<td>1933</td>
-<td>8.2%</td>
-<td>&quot; the&quot;</td>
-</tr>
-<tr>
-<td>Plain SVD</td>
-<td>18.65</td>
-<td>433</td>
-<td>15.9%</td>
-<td>&quot; :\r\n&quot;</td>
-</tr>
-<tr>
-<td>Random weights</td>
-<td>17.77</td>
-<td>1104</td>
-<td>13.7%</td>
-<td>&quot;fcc&quot;</td>
-</tr>
-<tr>
-<td><strong>ASVD</strong></td>
-<td><strong>8.50</strong></td>
-<td><strong>1</strong></td>
-<td><strong>100%</strong></td>
-<td><strong>&quot;,&quot;</strong></td>
-</tr>
-</tbody>
-</table>
-<p><strong>The ASVD model predicts the same token — a comma — for all 8191 positions.</strong></p>
-<h3 id="2-Why-Does-Collapse-Produce-Lower-Loss">2. Why Does Collapse Produce Lower Loss?</h3>
-<p>This seems paradoxical: how can a &quot;worse&quot; model (only one token) have lower loss than a &quot;better&quot; one (433 distinct tokens)?</p>
-<p>The answer lies in the nature of cross-entropy loss. When a model has <strong>zero predictive ability</strong>, the optimal strategy is:</p>
-<p>$$\text{Concentrate all probability on the highest-frequency token}$$</p>
-<p>Commas appear in ~3.6% of positions in English text. If the model outputs ~10% probability for comma (softmax top-1 prob = 0.0995), this gives CE ≈ 8.5. Meanwhile, a model that <strong>tries to distinguish tokens but fails</strong> (random/plain SVD) outputs high-confidence predictions pointing at wrong tokens → CE far exceeds 11.93 (uniform) and reaches 17–19.</p>
-<p><strong>&quot;All-in on one frequent token&quot; is the loss-optimal degenerate strategy when predictive ability is zero.</strong> ASVD's 8.50 does not mean &quot;good approximation&quot; — it means &quot;the model has given up predicting and collapsed to a constant function.&quot;</p>
-<h3 id="3-The-Collapse-Mechanism">3. The Collapse Mechanism</h3>
-<p><strong>Why does ASVD cause collapse while plain SVD does not?</strong></p>
-<p>ASVD weights each layer by $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$. The key observation: <strong>adjacent layers have highly similar $S$</strong> (because residual connections keep activation distributions stable). This means:</p>
-<ul>
-<li>Every layer's SVD truncation preferentially retains directions where $S$ is large</li>
-<li>Every layer discards directions where $S$ is small</li>
-<li>Over 36 layers, small-$S$ directions are <strong>suppressed 36 times over</strong></li>
-<li>The hidden state ultimately retains only the few large-$S$ directions → <strong>all tokens' representations collapse to the same direction</strong></li>
-</ul>
-<p>Plain SVD uses no weighting; the retained directions are determined by each layer's own singular structure — different layers have different principal directions, so there is no systematic suppression of the same set of directions.</p>
-<p>Experiments confirm this. Measuring the cosine similarity between student and teacher hidden states layer by layer:</p>
-<table>
-<thead>
-<tr>
-<th>Layer</th>
-<th>ASVD cos</th>
-<th>Interpretation</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0 (after embedding)</td>
-<td>1.000</td>
-<td>Input is perfect</td>
-</tr>
-<tr>
-<td>1 (after Block 0)</td>
-<td>0.718</td>
-<td>First layer already deviates</td>
-</tr>
-<tr>
-<td>10</td>
-<td>0.496</td>
-<td>Hits bottom</td>
-</tr>
-<tr>
-<td>11–24</td>
-<td>0.49–0.53</td>
-<td>Oscillates on a <strong>plateau</strong></td>
-</tr>
-<tr>
-<td>35 (final block)</td>
-<td>0.830</td>
-<td>Recovers</td>
-</tr>
-<tr>
-<td>36 (after final norm)</td>
-<td>0.950</td>
-<td>Appears &quot;aligned&quot;</td>
-</tr>
-</tbody>
-</table>
-<p>The final cos=0.95 looks like &quot;good alignment&quot; — but it is an <strong>illusion</strong>. It is not that each token aligns with its teacher counterpart, but that <strong>all tokens have collapsed to the same direction</strong>, and that fixed direction happens to have cos=0.95 with some &quot;average direction&quot; of the teacher.</p>
-<h3 id="4-Connection-to-Literature">4. Connection to Literature</h3>
-<p>This phenomenon has theoretical explanations in transformer research:</p>
-<ul>
-<li><strong>Signal Propagation in Transformers (2022)</strong>: Stacking self-attention layers causes rank collapse of token representations</li>
-<li><strong>Attention Masks and LayerNorm (2024)</strong>: &quot;With proper choice of value matrices, sequences may not converge to rank one subspace&quot; — implying that improper value matrices cause collapse</li>
-<li><strong>BA-LoRA (2024)</strong>: Identifies representation collapse in LoRA training; solution is diversity regularization</li>
-</ul>
-<p>Our case is an extreme version of &quot;improper value matrices&quot; — low-rank truncation systematically aligns all layers' projection directions, fulfilling the conditions for collapse.</p>
-<h3 id="5-Attempts-to-Break-the-Collapse">5. Attempts to Break the Collapse</h3>
-<p>We tried imposing orthogonality constraints between adjacent layers' output directions:</p>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>val loss</th>
-<th>Unique predictions</th>
-<th>Top-1 fraction</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ASVD (no constraint)</td>
-<td>8.50</td>
-<td>1</td>
-<td>100%</td>
-</tr>
-<tr>
-<td>Orthogonality 0.3</td>
-<td>12.80</td>
-<td>23</td>
-<td>93.6%</td>
-</tr>
-<tr>
-<td>Alternating ASVD/plain</td>
-<td>14.56</td>
-<td>41</td>
-<td>35.2%</td>
-</tr>
-<tr>
-<td>Plain SVD (no weighting)</td>
-<td>18.65</td>
-<td>401</td>
-<td>15.9%</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>. This reveals a fundamental tradeoff:</p>
-<p>$$\text{Collapse} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$</p>
-<p>When the model <strong>genuinely lacks the capacity to distinguish tokens</strong> (rank=384 at 85% compression), collapsing to the highest-frequency token IS the loss-optimal strategy. <strong>Breaking collapse forces the model to attempt what it cannot do → loss increases.</strong></p>
-<h3 id="6-Conclusions">6. Conclusions</h3>
-<ol>
-<li>
-<p><strong>Val loss is not a reliable indicator of model quality</strong> — a fully collapsed model (only outputs comma) can have lower loss than a model with prediction diversity but poor accuracy.</p>
-</li>
-<li>
-<p><strong>ASVD's activation weighting causes representation collapse at extreme compression ratios</strong> — because all layers' truncation directions become systematically aligned.</p>
-</li>
-<li>
-<p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot;</p>
-</li>
-<li>
-<p><strong>Recovering true predictive ability (from collapsed 8.50 to meaningful 3.79) requires end-to-end training</strong> — closed-form methods cannot simultaneously break collapse and lower loss, because the problem is about <strong>predictive capacity itself</strong> (which must be learned), not approximation accuracy.</p>
-</li>
-<li>
-<p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead.</p>
-</li>
-</ol>
-</div>
-<script>
-function switchLang(lang) {
-  document.querySelectorAll('.lang-content').forEach(function(el) {
-    el.style.display = 'none';
-  });
-  document.querySelectorAll('.lang-btn').forEach(function(el) {
-    el.classList.remove('active');
-  });
-  document.querySelector('.lang-' + lang).style.display = 'block';
-  document.getElementById('btn-' + lang).classList.add('active');
-}
-</script>
-
-      
-    </div>
-
-    
-    
-    
-
-    <footer class="post-footer">
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-</div>
-
-
-
-
-    
-
-
-<div class="post-block">
-  
-  
-
-  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
     <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/07/13/llm-ontology-construction-survey/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1362,7 +1780,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-13 14:11:13" itemprop="dateModified" datetime="2026-08-13T14:11:13+00:00">2026-08-13</time>
+      <time title="Modified: 2026-08-17 02:43:03" itemprop="dateModified" datetime="2026-08-17T02:43:03+00:00">2026-08-17</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -1459,7 +1877,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-13 14:11:13" itemprop="dateModified" datetime="2026-08-13T14:11:13+00:00">2026-08-13</time>
+      <time title="Modified: 2026-08-17 02:43:03" itemprop="dateModified" datetime="2026-08-17T02:43:03+00:00">2026-08-17</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -1557,7 +1975,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-13 14:11:13" itemprop="dateModified" datetime="2026-08-13T14:11:13+00:00">2026-08-13</time>
+      <time title="Modified: 2026-08-17 02:43:03" itemprop="dateModified" datetime="2026-08-17T02:43:03+00:00">2026-08-17</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
