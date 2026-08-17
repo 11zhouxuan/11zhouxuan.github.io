@@ -1,8 +1,8 @@
 ---
 title: "Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model"
-date: 2026-08-08
+date: 2026-08-17
 mathjax: true
-tags: [math, linear-algebra, LLM, compression, representation-collapse]
+tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, MLP]
 ---
 
 <div class="lang-switch">
@@ -68,6 +68,60 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 
 最后一层 cos=0.95 看起来"对齐得很好"——但这是一个**假象**。不是模型对每个 token 都和教师对齐，而是**所有 token 都坍缩到了同一个方向**，这个固定方向恰好和教师的某个"平均方向" cos=0.95。
 
+### 3.5 坍缩的微观机制：MLP 是凶手
+
+进一步的诊断实验追踪了 effective rank 在网络每个子组件中的变化，揭示了更精确的坍缩机制。
+
+**Effective rank（erank）在 residual stream 中的变化：**
+
+| Block | Teacher | ASVD | Plain SVD |
+|---|---|---|---|
+| 0（embedding 后） | 264 | 264 | 264 |
+| 3 | 353 | 233 | 4.5 |
+| 4 | 355 | 99 | 10 |
+| 7~16 | 65~120 | 124~152 | 13~14 |
+| 35 | 301 | 57 | 25 |
+| 36（final norm 后） | 156 | **7** | **111** |
+
+惊人的发现：**Plain SVD 在中间层比 ASVD 坍缩得更严重**（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。
+
+**SwiGLU MLP 是逐层坍缩的主要驱动力。** 逐 block 分解显示：
+
+| Block | Attention 贡献 | MLP 贡献 | 净变化 |
+|---|---|---|---|
+| 0 | +19.5 | -14.5 | +5.0 |
+| 2 | +7.5 | -31.1 | -23.5 |
+| **3** | +7.3 | **-141.8** | **-134.5** |
+| 4 | +5.2 | -23.4 | -18.3 |
+
+Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中最致命的一击。
+
+**MLP 内部的追踪**（以 Block 3 为例）：
+
+| 子步骤 | Teacher erank | ASVD erank | 说明 |
+|---|---|---|---|
+| MLP 输入 | 245 | 163 | |
+| gate\_proj | 53 | 20 | gate 投影本身极低秩 |
+| SiLU(gate) | 334 | 165 | 非线性恢复多样性 |
+| up\_proj | 315 | 148 | |
+| gate×up | 352 | **71** | 乘法二次化误差 |
+| MLP 输出 | 329 | **28** | down\_proj 再次压缩 |
+
+**为什么 ASVD 不能恢复而 plain SVD 可以？**
+
+关键不是 MLP 输出的幅度，而是**MLP 输出对不同 token 是否不同**：
+
+| 指标 | Teacher | ASVD | Plain SVD |
+|---|---|---|---|
+| MLP output pcos（36 层平均） | 0.20 | **0.73** | 0.27 |
+| MLP override ratio（36 层平均） | 0.40 | 0.30 | 1.40 |
+
+**ASVD 的 MLP 对所有 token 输出几乎相同的向量**（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。
+
+这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。
+
+**根本原因**：down\_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down\_proj 只保留了 384 个线性组合——这些组合恰好是所有 token **共享的成分**（因为 ASVD 的加权偏好保留高激活通道），而 **token-specific 的差异成分被丢弃**。
+
 ### 4. 文献中的对应
 
 这个现象在 transformer 研究中已有理论解释：
@@ -89,7 +143,19 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 | 交替 ASVD/plain SVD | 14.56 | 41 | 35.2% |
 | Plain SVD（无加权） | 18.65 | 401 | 15.9% |
 
-**正交约束确实打破了坍缩**（预测多样性从 1 到 23 到 401），但 **val loss 同时变差**。这揭示了一个根本的 tradeoff：
+**正交约束确实打破了坍缩**（预测多样性从 1 到 23 到 401），但 **val loss 同时变差**。
+
+进一步的 rank 重分配实验也证实了这一点——即使给关键组件更多参数：
+
+| 配置 | 参数量 | val loss | 是否坍缩 |
+|---|---|---|---|
+| ASVD rank=384（基准） | 2.29B | **8.50** | 是（100% 逗号） |
+| gate\_proj 满秩 | 3.88B | 14.22 | 否 |
+| down\_proj 满秩 | 3.88B | 11.32 | 否 |
+| down\_proj rank=1024 | 2.67B | 11.33 | 否 |
+| down\_proj rank=768（预算匹配） | 2.29B | 12.31 | 否 |
+
+**所有打破坍缩的配置 loss 都比坍缩态更差**——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：
 
 $$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$
 
@@ -167,6 +233,60 @@ Experiments confirm this. Measuring the cosine similarity between student and te
 
 The final cos=0.95 looks like "good alignment" — but it is an **illusion**. It is not that each token aligns with its teacher counterpart, but that **all tokens have collapsed to the same direction**, and that fixed direction happens to have cos=0.95 with some "average direction" of the teacher.
 
+### 3.5 Microscopic Mechanism: The MLP Is the Killer
+
+Further diagnostic experiments traced effective rank (erank) changes through every sub-component of the network, revealing a more precise collapse mechanism.
+
+**Effective rank in the residual stream:**
+
+| Block | Teacher | ASVD | Plain SVD |
+|---|---|---|---|
+| 0 (after embedding) | 264 | 264 | 264 |
+| 3 | 353 | 233 | 4.5 |
+| 4 | 355 | 99 | 10 |
+| 7–16 | 65–120 | 124–152 | 13–14 |
+| 35 | 301 | 57 | 25 |
+| 36 (after final norm) | 156 | **7** | **111** |
+
+Surprising finding: **Plain SVD collapses MORE severely in intermediate layers** (Block 3 erank=4.5 vs ASVD's 233), yet plain SVD recovers to erank=111 while ASVD collapses to 7.
+
+**The SwiGLU MLP drives the per-block collapse.** Per-block decomposition:
+
+| Block | Attention contribution | MLP contribution | Net change |
+|---|---|---|---|
+| 0 | +19.5 | -14.5 | +5.0 |
+| 2 | +7.5 | -31.1 | -23.5 |
+| **3** | +7.3 | **-141.8** | **-134.5** |
+| 4 | +5.2 | -23.4 | -18.3 |
+
+Block 3's MLP delivers a fatal blow: erank drops from 233 to ~99 in a single step.
+
+**Tracing inside the MLP** (Block 3):
+
+| Sub-step | Teacher erank | ASVD erank | Explanation |
+|---|---|---|---|
+| MLP input | 245 | 163 | |
+| gate\_proj | 53 | 20 | Gate projection is inherently low-rank |
+| SiLU(gate) | 334 | 165 | Nonlinearity restores diversity |
+| up\_proj | 315 | 148 | |
+| gate×up | 352 | **71** | Multiplication squares the error |
+| MLP output | 329 | **28** | down\_proj compresses again |
+
+**Why ASVD cannot recover while plain SVD can:**
+
+The key is not the MLP output magnitude, but **whether the MLP output differs across tokens**:
+
+| Metric (36-layer average) | Teacher | ASVD | Plain SVD |
+|---|---|---|---|
+| MLP output pcos | 0.20 | **0.73** | 0.27 |
+| MLP override ratio | 0.40 | 0.30 | 1.40 |
+
+**ASVD's MLP outputs are nearly identical across all tokens** (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).
+
+In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.
+
+**Root cause**: When down\_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the **shared components** across tokens (high-activation channels) while discarding the **token-specific differences**.
+
 ### 4. Connection to Literature
 
 This phenomenon has theoretical explanations in transformer research:
@@ -188,7 +308,19 @@ We tried imposing orthogonality constraints between adjacent layers' output dire
 | Alternating ASVD/plain | 14.56 | 41 | 35.2% |
 | Plain SVD (no weighting) | 18.65 | 401 | 15.9% |
 
-**Orthogonality constraints do break the collapse** (diversity goes from 1 to 23 to 401), but **val loss simultaneously worsens**. This reveals a fundamental tradeoff:
+**Orthogonality constraints do break the collapse** (diversity goes from 1 to 23 to 401), but **val loss simultaneously worsens**.
+
+Further rank-reallocation experiments confirm this — even with substantially more parameters for key components:
+
+| Configuration | Params | val loss | Collapsed? |
+|---|---|---|---|
+| ASVD rank=384 (baseline) | 2.29B | **8.50** | Yes (100% comma) |
+| gate\_proj full rank | 3.88B | 14.22 | No |
+| down\_proj full rank | 3.88B | 11.32 | No |
+| down\_proj rank=1024 | 2.67B | 11.33 | No |
+| down\_proj rank=768 (budget-matched) | 2.29B | 12.31 | No |
+
+**Every configuration that breaks collapse produces worse loss** — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff:
 
 $$\text{Collapse} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$
 
