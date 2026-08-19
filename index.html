@@ -178,7 +178,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-count">6</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -189,7 +189,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">18</span>
+        <span class="site-state-item-count">21</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -211,6 +211,385 @@
     </div>
 
     <div class="main-inner index posts-expand">
+
+    
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/08/19/trajectory-correcting-linear-distillation/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Xuan Zhou">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Xuan's Blog">
+      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Xuan's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2026/08/19/trajectory-correcting-linear-distillation/" class="post-title-link" itemprop="url">Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+      
+
+      <time title="Created: 2026-08-19 00:00:00 / Modified: 15:36:28" itemprop="dateCreated datePublished" datetime="2026-08-19T00:00:00+00:00">2026-08-19</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <div class="lang-switch">
+  <button id="btn-zh" class="lang-btn active" onclick="switchLang('zh')">中文</button>
+  <button id="btn-en" class="lang-btn" onclick="switchLang('en')">English</button>
+</div>
+<!-- Chinese Version -->
+<div class="lang-content lang-zh">
+<h2 id="轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界">轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界</h2>
+<h3 id="1-问题：闭式方法卡在一堵-坍缩墙-上">1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上</h3>
+<p><a href="/2026/08/17/representation-collapse-in-low-rank-compression/">上一篇</a>里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练）方法卡在一条边界上：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>val loss</th>
+<th>实质</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain SVD</td>
+<td>18.65</td>
+<td>噪声压倒信号</td>
+</tr>
+<tr>
+<td>ASVD（激活加权）</td>
+<td>10.83</td>
+<td>部分退化</td>
+</tr>
+<tr>
+<td>坍缩 ASVD</td>
+<td>8.50</td>
+<td><strong>常数函数</strong>（98.6% 预测逗号）</td>
+</tr>
+<tr>
+<td>常数预测器理论下界</td>
+<td>7.51</td>
+<td>$H(\text{unigram})$</td>
+</tr>
+</tbody>
+</table>
+<p>8.50 看似最好，实为假象：它是&quot;放弃预测、输出接近 unigram 分布&quot;的退化策略，离常数预测器的信息论下界只有 1 nat。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。</p>
+<p>但有一个关键事实说明这堵墙不是低秩本身的极限：<strong>从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构</strong>。也就是说，rank-384 参数空间里存在好得多的点，只是&quot;逐层逼近 $W$&quot;这类局部目标找不到它。</p>
+<h3 id="2-洞察：错的不是低秩，是逐层目标">2. 洞察：错的不是低秩，是逐层目标</h3>
+<p>所有失败的闭式方法都在解同一类问题——用某种范数逼近教师权重：</p>
+<p>$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$</p>
+<p>这个目标有一个隐含假设：这一层在推理时会收到<strong>教师轨迹上的干净输入</strong>。但压缩后的模型里，第 $i$ 层收到的是<strong>已经被前 $i-1$ 层的压缩误差污染的输入</strong>。误差逐层累积，36 层后不是坍缩就是爆炸。</p>
+<p>三个&quot;考虑误差传播&quot;的目标，只差一个符号位置，结果天壤之别：</p>
+<table>
+<thead>
+<tr>
+<th>逐层目标</th>
+<th>含义</th>
+<th>val loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>逼近 $W$，按漂移分布加权</td>
+<td>追逐腐化的分布</td>
+<td>19.40</td>
+</tr>
+<tr>
+<td>匹配 $W x_{s}$</td>
+<td>教师权重作用在脏输入上——<strong>顺从漂移</strong></td>
+<td>12.22</td>
+</tr>
+<tr>
+<td>匹配 $W x_{t}$</td>
+<td><strong>把激活拉回教师轨迹</strong></td>
+<td><strong>6.72</strong></td>
+</tr>
+</tbody>
+</table>
+<p>只有第三种在<strong>矫正</strong>漂移。每一层不再模仿 $W$，而是成为一个矫正器：接住漂移的输入，输出教师轨迹上本该有的结果。</p>
+<h3 id="3-方法：逐层仿射岭回归">3. 方法：逐层仿射岭回归</h3>
+<p>从 Block 0 到 35 顺序处理。处理第 $i$ 层时（前面各层已压缩）：</p>
+<p><strong>第 1 步</strong>：教师和学生对同样的数据前向，在该层入口配对采集 $x_t$（教师轨迹输入）和 $x_s$（学生轨迹输入），累积互协方差 $\Sigma_{ts} = \sum x_t x_s^T$ 和自协方差 $\Sigma_{ss} = \sum x_s x_s^T$（中心化版本）。</p>
+<p><strong>第 2 步</strong>：解仿射岭回归</p>
+<p>$$\min_{M,b}; \mathbb{E}\lVert W x_t - M x_s - b \rVert^2 \quad\Longrightarrow\quad M^* = W\Sigma_{ts}(\Sigma_{ss} + \lambda I)^{-1}$$</p>
+<p>直觉：$\Sigma_{ts}\Sigma_{ss}^{-1}$ 是&quot;从脏输入线性还原干净输入&quot;的最优算子，再与 $W$ 复合——还原与变换合成在一个矩阵里。</p>
+<p><strong>第 3 步</strong>：白化截断到 rank $r$。取 $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$，对 $M^*L$ 做 SVD 截断——这在 $x_s$ 的真实分布下是可证最优的截断（白化坐标里的 Eckart–Young）。截断后重算 $b = W\bar{x}_t - AB\bar{x}_s$，让 bias 顺带吸收截断在均值处的误差。</p>
+<p><strong>第 4 步</strong>：替换该层，处理下一层。下一层采集到的 $x_s$ 自动包含新换上的层的误差，于是被下一层矫正。</p>
+<h3 id="4-结果">4. 结果</h3>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>held-out val loss</th>
+<th>预测多样性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v1（8 个统计 batch，无 bias）</td>
+<td>6.72</td>
+<td>773 个 unique token</td>
+</tr>
+<tr>
+<td><strong>v2（32 个 train batch + bias）</strong></td>
+<td><strong>5.59</strong></td>
+<td>1264 个 unique，top-1 为 &quot; the&quot;，位置间 KL=5.4</td>
+</tr>
+</tbody>
+</table>
+<p>完整版图：</p>
+<p>$$18.65 \to 10.83 \to \underbrace{8.50}<em>{\text{坍缩假象}} \to \underbrace{7.51}</em>{\text{常数下界}} \to \mathbf{5.59} \to \underbrace{3.79}<em>{\text{训练}} \to \underbrace{2.11}</em>{\text{教师}}$$</p>
+<p>5.59 <strong>低于常数预测器的信息论下界</strong>——模型真正携带 context→token 的互信息，这是所有闭式方法中的第一次。预测行为完全健康：top-1 是正确的高频词 &quot; the&quot;（教师也是），位置间分布 KL=5.4（坍缩模型是 0.007）。</p>
+<h3 id="5-方法的平台：三个负结果">5. 方法的平台：三个负结果</h3>
+<p>进一步的优化尝试全部失败，方法在 ~5.6 收敛：</p>
+<ol>
+<li><strong>不动点迭代 → 5.94（变差）</strong>。用第一遍的学生重新采集统计、重解所有层，反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍 sequential 就是甜点。</strong></li>
+<li><strong>谱驱动的 per-layer rank 分配 → 5.72（略差）</strong>。均匀 rank 已是甜点；从均匀运行算出的分配无法迁移到新运行（漂移模式随分配改变）。</li>
+<li><strong>λ 不敏感</strong>：$10^{-3}$ 与 $10^{-4}$ 差 0.01。</li>
+</ol>
+<h3 id="6-剩下的差距在哪：R²-诊断">6. 剩下的差距在哪：R² 诊断</h3>
+<p>逐层测量&quot;教师输入能从学生输入线性恢复的比例&quot;（回归的 $R^2$）：</p>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>$R^2$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>前几层</td>
+<td>0.65~0.80</td>
+</tr>
+<tr>
+<td>中段（q/k/v 输入）</td>
+<td>0.52~0.60</td>
+</tr>
+<tr>
+<td>中段（down_proj 输入，即 SwiGLU 乘积）</td>
+<td><strong>0.25~0.40</strong></td>
+</tr>
+<tr>
+<td>尾段</td>
+<td>回升至 ~0.6</td>
+</tr>
+</tbody>
+</table>
+<p>中段网络的漂移有一半以上是<strong>非线性</strong>的，其中 SwiGLU 的 gate×up 乘积处最严重——乘法把上游的线性误差二次化，产生了线性算子无法还原的成分。这就是 5.6 平台的成因：<strong>逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距属于非线性漂移</strong>，原理上需要非线性矫正器或全局优化（训练）才能跨越。</p>
+<h3 id="7-结论">7. 结论</h3>
+<ol>
+<li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.59。</li>
+<li><strong>闭式方法的正确姿势是回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
+<li><strong>逐层线性方法的天花板约为 5.6</strong>（85% 压缩率下），由漂移的非线性成分决定，SwiGLU 乘法是主要来源。</li>
+<li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
+</ol>
+</div>
+<!-- English Version -->
+<div class="lang-content lang-en" style="display:none">
+<h2 id="Trajectory-Correcting-Linear-Distillation-Breaking-the-Closed-Form-Frontier-in-Low-Rank-LLM-Compression">Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression</h2>
+<h3 id="1-The-Problem-A-Collapse-Wall-for-Closed-Form-Methods">1. The Problem: A &quot;Collapse Wall&quot; for Closed-Form Methods</h3>
+<p>In the <a href="/2026/08/17/representation-collapse-in-low-rank-compression/">previous post</a> we replaced every linear layer of Qwen3-8B with a rank-384 factorization $AB$ (85% compression) and found all closed-form (training-free) methods stuck at a frontier:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>val loss</th>
+<th>Reality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain SVD</td>
+<td>18.65</td>
+<td>Noise overwhelms signal</td>
+</tr>
+<tr>
+<td>ASVD (activation-weighted)</td>
+<td>10.83</td>
+<td>Partially degenerate</td>
+</tr>
+<tr>
+<td>Collapsed ASVD</td>
+<td>8.50</td>
+<td><strong>Constant function</strong> (98.6% commas)</td>
+</tr>
+<tr>
+<td>Constant-predictor floor</td>
+<td>7.51</td>
+<td>$H(\text{unigram})$</td>
+</tr>
+</tbody>
+</table>
+<p>The 8.50 is an illusion: a &quot;give up and emit the unigram distribution&quot; strategy sitting 1 nat above the information-theoretic floor for constant predictors. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.</p>
+<p>One fact showed the wall is not intrinsic to low rank: <strong>end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure</strong>. A far better point exists in the same parameter space; layerwise &quot;approximate $W$&quot; objectives simply cannot find it.</p>
+<h3 id="2-The-Insight-Low-Rank-Isn-t-Wrong-—-the-Layerwise-Objective-Is">2. The Insight: Low Rank Isn't Wrong — the Layerwise Objective Is</h3>
+<p>Every failed closed-form method solves some version of</p>
+<p>$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$</p>
+<p>with a hidden assumption: at inference this layer will receive <strong>clean inputs from the teacher's trajectory</strong>. In the compressed model, layer $i$ actually receives inputs <strong>corrupted by the accumulated error of layers $0..i-1$</strong>. Over 36 layers the error either collapses or explodes.</p>
+<p>Three &quot;error-propagation-aware&quot; objectives differ only in where one symbol sits — with wildly different outcomes:</p>
+<table>
+<thead>
+<tr>
+<th>Layerwise objective</th>
+<th>Meaning</th>
+<th>val loss</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Approximate $W$, weighted by drifted stats</td>
+<td>Chases the corrupted distribution</td>
+<td>19.40</td>
+</tr>
+<tr>
+<td>Match $W x_s$</td>
+<td>Teacher weight on corrupted input — <strong>follows the drift</strong></td>
+<td>12.22</td>
+</tr>
+<tr>
+<td>Match $W x_t$</td>
+<td><strong>Pulls activations back to the teacher trajectory</strong></td>
+<td><strong>6.72</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Only the third CORRECTS drift. Each layer stops imitating $W$ and becomes a corrector: take the drifted input, emit what the teacher's trajectory would have produced.</p>
+<h3 id="3-The-Method-Layerwise-Affine-Ridge-Regression">3. The Method: Layerwise Affine Ridge Regression</h3>
+<p>Process blocks 0→35 sequentially. For layer $i$ (upstream already compressed):</p>
+<p><strong>Step 1</strong>: Run teacher and student on the same data; capture paired inputs $x_t$ (teacher trajectory) and $x_s$ (student trajectory) at the layer's entrance; accumulate the cross-covariance $\Sigma_{ts} = \sum x_t x_s^T$ and self-covariance $\Sigma_{ss} = \sum x_s x_s^T$ (centered).</p>
+<p><strong>Step 2</strong>: Solve the affine ridge regression</p>
+<p>$$\min_{M,b}; \mathbb{E}\lVert W x_t - M x_s - b \rVert^2 \quad\Longrightarrow\quad M^* = W\Sigma_{ts}(\Sigma_{ss} + \lambda I)^{-1}$$</p>
+<p>Intuition: $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, composed with $W$ — restoration and transformation fused into one matrix.</p>
+<p><strong>Step 3</strong>: Whitened rank-$r$ truncation. With $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$, SVD-truncate $M^*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates). Recompute $b = W\bar{x}_t - AB\bar{x}_s$ afterwards so the bias also absorbs the truncation error at the mean.</p>
+<p><strong>Step 4</strong>: Replace the layer, move on. The next layer's $x_s$ automatically includes the newly introduced error, which the next regression corrects.</p>
+<h3 id="4-Results">4. Results</h3>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>held-out val loss</th>
+<th>Prediction diversity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v1 (8 stat batches, no bias)</td>
+<td>6.72</td>
+<td>773 unique tokens</td>
+</tr>
+<tr>
+<td><strong>v2 (32 train batches + bias)</strong></td>
+<td><strong>5.59</strong></td>
+<td>1264 unique, top-1 &quot; the&quot;, cross-position KL 5.4</td>
+</tr>
+</tbody>
+</table>
+<p>The full landscape:</p>
+<p>$$18.65 \to 10.83 \to \underbrace{8.50}<em>{\text{collapse illusion}} \to \underbrace{7.51}</em>{\text{constant floor}} \to \mathbf{5.59} \to \underbrace{3.79}<em>{\text{trained}} \to \underbrace{2.11}</em>{\text{teacher}}$$</p>
+<p>5.59 is <strong>below the constant-predictor floor</strong> — the model genuinely carries context→token mutual information, a first among all closed-form methods. Its behavior is healthy: top-1 is the correct high-frequency word &quot; the&quot; (same as the teacher), cross-position KL 5.4 (the collapsed model: 0.007).</p>
+<h3 id="5-The-Plateau-Three-Negative-Results">5. The Plateau: Three Negative Results</h3>
+<p>Further optimization attempts all failed; the method converges at ~5.6:</p>
+<ol>
+<li><strong>Fixed-point iteration → 5.94 (worse)</strong>. Re-collecting stats with the pass-1 student and re-solving destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. <strong>A single sequential sweep is the sweet spot.</strong></li>
+<li><strong>Spectrum-driven per-layer rank allocation → 5.72 (slightly worse)</strong>. Uniform ranks are already the sweet spot; an allocation computed from a uniform run does not transfer.</li>
+<li><strong>λ-insensitive</strong>: $10^{-3}$ vs $10^{-4}$ differ by 0.01.</li>
+</ol>
+<h3 id="6-Where-the-Remaining-Gap-Lives-the-R²-Diagnostic">6. Where the Remaining Gap Lives: the R² Diagnostic</h3>
+<p>Per layer, measure the fraction of the teacher input linearly recoverable from the student input (the regression $R^2$):</p>
+<table>
+<thead>
+<tr>
+<th>Location</th>
+<th>$R^2$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Early blocks</td>
+<td>0.65–0.80</td>
+</tr>
+<tr>
+<td>Mid-network (q/k/v inputs)</td>
+<td>0.52–0.60</td>
+</tr>
+<tr>
+<td>Mid-network (down_proj input = SwiGLU product)</td>
+<td><strong>0.25–0.40</strong></td>
+</tr>
+<tr>
+<td>Late blocks</td>
+<td>recovers to ~0.6</td>
+</tr>
+</tbody>
+</table>
+<p>More than half of the mid-network drift is <strong>nonlinear</strong>, worst at the SwiGLU gate×up product — the multiplication squares upstream linear errors into components no linear operator can undo. This explains the 5.6 plateau: <strong>layerwise linear correction has extracted all the linearly recoverable drift; the remaining 1.8-nat gap is nonlinear drift</strong>, requiring nonlinear correctors or global optimization (training) to cross.</p>
+<h3 id="7-Conclusions">7. Conclusions</h3>
+<ol>
+<li><strong>The bottleneck of low-rank compression is not expressiveness but the optimization objective.</strong> A 3.79 point exists in the rank-384 space; &quot;approximate $W$ per layer&quot; cannot find it, while &quot;correct the trajectory per layer&quot; reaches 5.59.</li>
+<li><strong>The right closed-form primitive is regression, not factorization</strong>: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.</li>
+<li><strong>The ceiling for layerwise-linear methods is ≈5.6</strong> (at 85% compression), set by the nonlinear component of the drift, primarily the SwiGLU multiplication.</li>
+<li>A correction to the previous post: &quot;closed-form methods cannot simultaneously break collapse and lower loss&quot; was wrong — what was broken was the shared &quot;approximate $W$&quot; objective of every method tested then, not closed-form itself.</li>
+</ol>
+</div>
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('.lang-content').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.querySelector('.lang-' + lang).style.display = 'block';
+  document.getElementById('btn-' + lang).classList.add('active');
+}
+</script>
+
+      
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+</div>
+
+
+
 
     
 
@@ -248,9 +627,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-08-17 00:00:00 / Modified: 09:20:07" itemprop="dateCreated datePublished" datetime="2026-08-17T00:00:00+00:00">2026-08-17</time>
+      <time title="Created: 2026-08-17 00:00:00" itemprop="dateCreated datePublished" datetime="2026-08-17T00:00:00+00:00">2026-08-17</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-08-19 15:36:28" itemprop="dateModified" datetime="2026-08-19T15:36:28+00:00">2026-08-19</time>
     </span>
 
   
@@ -689,7 +1074,7 @@
 <p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。</p>
 </li>
 <li>
-<p><strong>要恢复真正的预测能力（从坍缩的 8.50 到有意义的 3.79），必须经过端到端训练</strong>——闭式方法无法同时打破坍缩又降低 loss，因为问题在于<strong>预测能力本身</strong>（需要学习），不在于逼近精度。</p>
+<p><s>要恢复真正的预测能力，必须经过端到端训练——闭式方法无法同时打破坍缩又降低 loss。</s> <strong>【后续更正】这个结论被推翻了</strong>：错的不是闭式本身，而是当时所有方法共享的&quot;逐层逼近 $W$&quot;目标。把逐层目标换成&quot;从学生的漂移输入回归教师轨迹的干净输出&quot;，闭式方法可以同时打破坍缩并把 loss 降到 <strong>5.59</strong>（低于常数预测器下界 7.51，携带真实互信息）。详见<a href="/2026/08/19/trajectory-correcting-linear-distillation/">《轨迹矫正线性蒸馏》</a>。</p>
 </li>
 <li>
 <p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。同样，<strong>对比不同压缩方法时必须固定全部配置</strong>（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。</p>
@@ -1118,7 +1503,7 @@
 <p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot; Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).</p>
 </li>
 <li>
-<p><strong>Recovering true predictive ability (from collapsed 8.50 to meaningful 3.79) requires end-to-end training</strong> — closed-form methods cannot simultaneously break collapse and lower loss, because the problem is about <strong>predictive capacity itself</strong> (which must be learned), not approximation accuracy.</p>
+<p><s>Recovering true predictive ability requires end-to-end training — closed-form methods cannot simultaneously break collapse and lower loss.</s> <strong>[Later correction] This conclusion was overturned</strong>: the flaw was not closed-form methods per se, but the &quot;approximate $W$ per layer&quot; objective every tested method shared. Switching the layerwise objective to &quot;regress the teacher-trajectory output from the student's drifted input&quot; lets a closed-form method break the collapse AND reach <strong>5.59</strong> (below the constant-predictor floor 7.51, carrying genuine mutual information). See <a href="/2026/08/19/trajectory-correcting-linear-distillation/">Trajectory-Correcting Linear Distillation</a>.</p>
 </li>
 <li>
 <p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead. Likewise, <strong>when comparing compression methods, every configuration knob must be held fixed</strong> (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.</p>
@@ -1199,7 +1584,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-17 09:20:07" itemprop="dateModified" datetime="2026-08-17T09:20:07+00:00">2026-08-17</time>
+      <time title="Modified: 2026-08-19 15:36:28" itemprop="dateModified" datetime="2026-08-19T15:36:28+00:00">2026-08-19</time>
     </span>
 
   
@@ -1864,7 +2249,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-17 09:20:07" itemprop="dateModified" datetime="2026-08-17T09:20:07+00:00">2026-08-17</time>
+      <time title="Modified: 2026-08-19 15:36:28" itemprop="dateModified" datetime="2026-08-19T15:36:28+00:00">2026-08-19</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -1961,7 +2346,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-17 09:20:07" itemprop="dateModified" datetime="2026-08-17T09:20:07+00:00">2026-08-17</time>
+      <time title="Modified: 2026-08-19 15:36:28" itemprop="dateModified" datetime="2026-08-19T15:36:28+00:00">2026-08-19</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -2059,7 +2444,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-17 09:20:07" itemprop="dateModified" datetime="2026-08-17T09:20:07+00:00">2026-08-17</time>
+      <time title="Modified: 2026-08-19 15:36:28" itemprop="dateModified" datetime="2026-08-19T15:36:28+00:00">2026-08-19</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
