@@ -192,7 +192,7 @@ $$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \
 
 3. **这个 collapse 是 loss-optimal 的退化**——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的"放弃策略"。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。
 
-4. **要恢复真正的预测能力（从坍缩的 8.50 到有意义的 3.79），必须经过端到端训练**——闭式方法无法同时打破坍缩又降低 loss，因为问题在于**预测能力本身**（需要学习），不在于逼近精度。
+4. ~~要恢复真正的预测能力，必须经过端到端训练——闭式方法无法同时打破坍缩又降低 loss。~~ **【后续更正】这个结论被推翻了**：错的不是闭式本身，而是当时所有方法共享的"逐层逼近 $W$"目标。把逐层目标换成"从学生的漂移输入回归教师轨迹的干净输出"，闭式方法可以同时打破坍缩并把 loss 降到 **5.59**（低于常数预测器下界 7.51，携带真实互信息）。详见[《轨迹矫正线性蒸馏》](/2026/08/19/trajectory-correcting-linear-distillation/)。
 
 5. **在评估压缩模型时，除了 val loss 还必须检查预测多样性**——否则可能被"坍缩到高频 token"的假象误导。同样，**对比不同压缩方法时必须固定全部配置**（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。
 
@@ -380,7 +380,7 @@ Only the combination "stronger activation weighting ($\alpha=1.0$) + a starved B
 
 3. **This collapse is a loss-optimal degeneration** — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational "give-up strategy." Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).
 
-4. **Recovering true predictive ability (from collapsed 8.50 to meaningful 3.79) requires end-to-end training** — closed-form methods cannot simultaneously break collapse and lower loss, because the problem is about **predictive capacity itself** (which must be learned), not approximation accuracy.
+4. ~~Recovering true predictive ability requires end-to-end training — closed-form methods cannot simultaneously break collapse and lower loss.~~ **[Later correction] This conclusion was overturned**: the flaw was not closed-form methods per se, but the "approximate $W$ per layer" objective every tested method shared. Switching the layerwise objective to "regress the teacher-trajectory output from the student's drifted input" lets a closed-form method break the collapse AND reach **5.59** (below the constant-predictor floor 7.51, carrying genuine mutual information). See [Trajectory-Correcting Linear Distillation](/2026/08/19/trajectory-correcting-linear-distillation/).
 
 5. **When evaluating compressed models, prediction diversity must be checked alongside val loss** — otherwise the "collapse to frequent token" illusion may mislead. Likewise, **when comparing compression methods, every configuration knob must be held fixed** (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.
 
