@@ -102,7 +102,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \underbrace{7.
 
 1. **低秩压缩的瓶颈不在表达能力，在优化目标**。rank-384 空间中存在 3.79 的点；"逐层逼近 W"找不到它，"逐层矫正轨迹"能走到 5.59。
 2. **闭式方法的正确姿势是回归而不是分解**：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。
-3. **逐层线性方法的天花板约为 5.6**（85% 压缩率下），由漂移的非线性成分决定，SwiGLU 乘法是主要来源。
+3. ~~逐层线性方法的天花板约为 5.6。~~ **【后续更新】** 5.6 平台随后被「免税矫正器」（lm_head 矫正 + 残差流全秩矫正器，均为零/低参数成本）推进到 **5.09**，并且我们用 oracle 实验测出了整个逐层范式的硬地板（≈4.0）。详见[完结篇《闭式压缩的天花板》](/2026/08/22/closed-form-ceiling/)。
 4. 更正上一篇的结论："闭式方法无法同时打破坍缩又降低 loss"是错的——错的是当时测试的所有方法共享的"逼近 W"目标，而不是闭式本身。
 
 </div>
@@ -199,7 +199,7 @@ More than half of the mid-network drift is **nonlinear**, worst at the SwiGLU ga
 
 1. **The bottleneck of low-rank compression is not expressiveness but the optimization objective.** A 3.79 point exists in the rank-384 space; "approximate $W$ per layer" cannot find it, while "correct the trajectory per layer" reaches 5.59.
 2. **The right closed-form primitive is regression, not factorization**: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.
-3. **The ceiling for layerwise-linear methods is ≈5.6** (at 85% compression), set by the nonlinear component of the drift, primarily the SwiGLU multiplication.
+3. ~~The ceiling for layerwise-linear methods is ≈5.6.~~ **[Later update]** The 5.6 plateau was subsequently pushed to **5.09** by 'tax-free correctors' (the lm_head fix plus full-rank residual-stream correctors, at zero/low parameter cost), and an oracle experiment established the hard floor of the entire layerwise paradigm (≈4.0). See [the finale: The Closed-Form Ceiling](/2026/08/22/closed-form-ceiling/).
 4. A correction to the previous post: "closed-form methods cannot simultaneously break collapse and lower loss" was wrong — what was broken was the shared "approximate $W$" objective of every method tested then, not closed-form itself.
 
 </div>
