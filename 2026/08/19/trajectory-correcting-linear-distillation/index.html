@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界 1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练）方法卡在一条边界上：    方法 val loss 实质     Plain SVD 18.65 噪声压倒信号   ASVD（激">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-19T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-19T15:43:41.842Z">
+<meta property="article:modified_time" content="2026-08-23T01:26:23.767Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -187,7 +187,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">6</span>
+          <span class="site-state-item-count">7</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -198,7 +198,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-count">22</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -258,9 +258,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-08-19 00:00:00 / Modified: 15:43:41" itemprop="dateCreated datePublished" datetime="2026-08-19T00:00:00+00:00">2026-08-19</time>
+      <time title="Created: 2026-08-19 00:00:00" itemprop="dateCreated datePublished" datetime="2026-08-19T00:00:00+00:00">2026-08-19</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-08-23 01:26:23" itemprop="dateModified" datetime="2026-08-23T01:26:23+00:00">2026-08-23</time>
     </span>
 
   
@@ -426,7 +432,7 @@
 <ol>
 <li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.59。</li>
 <li><strong>闭式方法的正确姿势是回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
-<li><strong>逐层线性方法的天花板约为 5.6</strong>（85% 压缩率下），由漂移的非线性成分决定，SwiGLU 乘法是主要来源。</li>
+<li><s>逐层线性方法的天花板约为 5.6。</s> <strong>【后续更新】</strong> 5.6 平台随后被「免税矫正器」（lm_head 矫正 + 残差流全秩矫正器，均为零/低参数成本）推进到 <strong>5.09</strong>，并且我们用 oracle 实验测出了整个逐层范式的硬地板（≈4.0）。详见<a href="/2026/08/22/closed-form-ceiling/">完结篇《闭式压缩的天花板》</a>。</li>
 <li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
 </ol>
 </div>
@@ -573,7 +579,7 @@
 <ol>
 <li><strong>The bottleneck of low-rank compression is not expressiveness but the optimization objective.</strong> A 3.79 point exists in the rank-384 space; &quot;approximate $W$ per layer&quot; cannot find it, while &quot;correct the trajectory per layer&quot; reaches 5.59.</li>
 <li><strong>The right closed-form primitive is regression, not factorization</strong>: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.</li>
-<li><strong>The ceiling for layerwise-linear methods is ≈5.6</strong> (at 85% compression), set by the nonlinear component of the drift, primarily the SwiGLU multiplication.</li>
+<li><s>The ceiling for layerwise-linear methods is ≈5.6.</s> <strong>[Later update]</strong> The 5.6 plateau was subsequently pushed to <strong>5.09</strong> by 'tax-free correctors' (the lm_head fix plus full-rank residual-stream correctors, at zero/low parameter cost), and an oracle experiment established the hard floor of the entire layerwise paradigm (≈4.0). See <a href="/2026/08/22/closed-form-ceiling/">the finale: The Closed-Form Ceiling</a>.</li>
 <li>A correction to the previous post: &quot;closed-form methods cannot simultaneously break collapse and lower loss&quot; was wrong — what was broken was the shared &quot;approximate $W$&quot; objective of every method tested then, not closed-form itself.</li>
 </ol>
 </div>
@@ -616,6 +622,9 @@ function switchLang(lang) {
                 </a>
             </div>
             <div class="post-nav-item">
+                <a href="/2026/08/22/closed-form-ceiling/" rel="next" title="The Closed-Form Ceiling: Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier">
+                  The Closed-Form Ceiling: Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier <i class="fa fa-angle-right"></i>
+                </a>
             </div>
           </div>
     </footer>
