@@ -100,6 +100,8 @@ lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 �
 
 $$8.50_{\text{坍缩假象}} \to \mathbf{5.09}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 界}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$
 
+**【后续更新】** 纪录随后被 loss-aware rank 分配与 back-load 深度倾斜推进到 **5.02**，并且 oracle 分解实验揭示了截断税的深度分布（几乎全部在 block 18-35）。详见[第四篇《闭式天花板的解剖》](/2026/08/25/closed-form-anatomy/)。
+
 2. **三条可迁移的原理**：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在**免截断税**的位置（lm\_head、残差流）；动手设计精巧特征之前，先**审计所有"没被压缩所以没人管"的环节**——收益最大的一击往往在盲区里。
 
 3. **闭式极限的成因链**：实际 5.09 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 < 4.0）。
@@ -197,6 +199,8 @@ The fading of repetition matches the prediction that degenerate strategies (coll
 1. **The final closed-form landscape** (85% compression, equal 2.29B budget):
 
 $$8.50_{\text{collapse illusion}} \to \mathbf{5.09}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle bound}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$
+
+**[Later update]** The record was subsequently pushed to **5.02** by loss-aware rank allocation and back-loaded depth tilting, and an oracle-decomposition experiment revealed the depth distribution of the truncation tax (almost entirely in blocks 18-35). See [part 4: Anatomy of the Closed-Form Ceiling](/2026/08/25/closed-form-anatomy/).
 
 2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget at **truncation-tax-free** spots (lm\_head, residual stream); before engineering clever features, **audit every "uncompressed, so unmanaged" station** — the biggest win tends to hide in the blind spot.
 
