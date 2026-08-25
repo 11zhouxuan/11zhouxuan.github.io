@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    闭式压缩的天花板：免税矫正器、oracle 上界与非线性放大器 这是低秩压缩三部曲的完结篇（第一篇：表示坍缩，第二篇：轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.59。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对&quot;闭式 init + 训练&quot;的完整路线意味着什么。 1. 消融的意外：便宜的赢">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-23T01:26:23.767Z">
+<meta property="article:modified_time" content="2026-08-25T13:57:12.293Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -187,7 +187,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">7</span>
+          <span class="site-state-item-count">8</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -198,7 +198,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">22</span>
+        <span class="site-state-item-count">23</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-23 01:26:23" itemprop="dateModified" datetime="2026-08-23T01:26:23+00:00">2026-08-23</time>
+      <time title="Modified: 2026-08-25 13:57:12" itemprop="dateModified" datetime="2026-08-25T13:57:12+00:00">2026-08-25</time>
     </span>
 
   
@@ -430,6 +430,7 @@
 <li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
 </ol>
 <p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.09}<em>{\text{闭式冠军}} \to \underbrace{\approx 4.0}</em>{\text{逐层范式 oracle 界}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p><strong>【后续更新】</strong> 纪录随后被 loss-aware rank 分配与 back-load 深度倾斜推进到 <strong>5.02</strong>，并且 oracle 分解实验揭示了截断税的深度分布（几乎全部在 block 18-35）。详见<a href="/2026/08/25/closed-form-anatomy/">第四篇《闭式天花板的解剖》</a>。</p>
 <ol start="2">
 <li>
 <p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
@@ -583,6 +584,7 @@
 <li><strong>The final closed-form landscape</strong> (85% compression, equal 2.29B budget):</li>
 </ol>
 <p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.09}<em>{\text{closed-form champion}} \to \underbrace{\approx 4.0}</em>{\text{layerwise oracle bound}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p><strong>[Later update]</strong> The record was subsequently pushed to <strong>5.02</strong> by loss-aware rank allocation and back-loaded depth tilting, and an oracle-decomposition experiment revealed the depth distribution of the truncation tax (almost entirely in blocks 18-35). See <a href="/2026/08/25/closed-form-anatomy/">part 4: Anatomy of the Closed-Form Ceiling</a>.</p>
 <ol start="2">
 <li>
 <p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget at <strong>truncation-tax-free</strong> spots (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
@@ -634,6 +636,9 @@ function switchLang(lang) {
                 </a>
             </div>
             <div class="post-nav-item">
+                <a href="/2026/08/25/closed-form-anatomy/" rel="next" title="Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don&#39;t Stack">
+                  Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack <i class="fa fa-angle-right"></i>
+                </a>
             </div>
           </div>
     </footer>
