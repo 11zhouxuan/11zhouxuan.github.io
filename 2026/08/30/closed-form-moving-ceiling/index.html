@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    会移动的天花板：稀疏残差、换一把尺子与校准数据工程  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  第四篇以&quot;三把锁&quot;的解剖宣布闭式赛道收官于 5.02。然后它在一周内被推到了 4.71 &#x2F; 4.53（双验证窗口）——又砍掉近 0.5 nat，距离一个端到端蒸">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-30T14:35:45.192Z">
+<meta property="article:modified_time" content="2026-08-30T14:44:05.319Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="calibration">
@@ -261,7 +261,7 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2026-08-30 00:00:00 / Modified: 14:35:45" itemprop="dateCreated datePublished" datetime="2026-08-30T00:00:00+00:00">2026-08-30</time>
+      <time title="Created: 2026-08-30 00:00:00 / Modified: 14:44:05" itemprop="dateCreated datePublished" datetime="2026-08-30T00:00:00+00:00">2026-08-30</time>
     </span>
 
   
@@ -324,7 +324,7 @@
 <h3 id="2-换一把尺子：输出敏感度加权截断">2. 换一把尺子：输出敏感度加权截断</h3>
 <p>第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下&quot;几乎无损&quot;（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：<strong>我们的截断在错误的目标函数下最优</strong>。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。</p>
 <p>修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
-<p>$$\min_{AB}\ \lVert \mathrm{diag}(w),(M^*-AB),L \rVert_F^2$$</p>
+<p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
 <p>SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。<strong>单独 −0.06（5.055/4.959），零参数成本</strong>——headfix 以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个&quot;邻近&quot;的 artifact 上测一次即可（见第 5 节的迭代失败）。</p>
 <h3 id="3-超线性叠加：修正-红利不叠加定律">3. 超线性叠加：修正&quot;红利不叠加定律&quot;</h3>
 <p>第四篇提出过&quot;小红利不叠加定律&quot;（0.02 级的改进合并时互相侵蚀）。这次的组合实验修正了它：</p>
@@ -493,7 +493,7 @@
 <h3 id="2-Changing-the-Ruler-Output-Sensitivity-Weighted-Truncation">2. Changing the Ruler: Output-Sensitivity-Weighted Truncation</h3>
 <p>Part 4's tax map left one anomaly unexplained: qkv@late looks &quot;nearly lossless&quot; in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: <strong>our truncation was optimal under the wrong objective</strong>. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.</p>
 <p>The fix stays closed-form. Measure each output channel's loss-gradient second moment $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
-<p>$$\min_{AB}\ \lVert \mathrm{diag}(w),(M^*-AB),L \rVert_F^2$$</p>
+<p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
 <p>— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. <strong>−0.06 on its own (5.055/4.959) at zero parameter cost</strong>, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a &quot;nearby&quot; artifact suffices (see Section 5's iteration failure).</p>
 <h3 id="3-Super-Additive-Stacking-Amending-the-Dividends-Law">3. Super-Additive Stacking: Amending the Dividends Law</h3>
 <p>Part 4 proposed a &quot;small dividends don't stack&quot; law (0.02-level improvements erode each other on combination). The combination experiment this time amended it:</p>

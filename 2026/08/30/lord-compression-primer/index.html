@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    预备知识：读懂&quot;低秩压缩&quot;系列需要的一切 这个系列讲的是一件事：把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 8 节的速查">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T08:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-30T14:35:45.192Z">
+<meta property="article:modified_time" content="2026-08-30T14:44:05.319Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -258,7 +258,7 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2026-08-30 08:00:00 / Modified: 14:35:45" itemprop="dateCreated datePublished" datetime="2026-08-30T08:00:00+00:00">2026-08-30</time>
+      <time title="Created: 2026-08-30 08:00:00 / Modified: 14:44:05" itemprop="dateCreated datePublished" datetime="2026-08-30T08:00:00+00:00">2026-08-30</time>
     </span>
 
   
@@ -426,9 +426,9 @@
 <h3 id="6-闭式方法的数学核心：一次最小二乘">6. 闭式方法的数学核心：一次最小二乘</h3>
 <p>系列里反复出现一个公式，这里推一遍——只用到线性代数。</p>
 <p>问题：学生某一层收到输入向量 $x$，我们希望这一层的输出尽量接近某个目标 $y$（比如&quot;教师在同样位置的输出&quot;）。找一个矩阵 $M$，最小化在大量样本上的平均误差：</p>
-<p>$$\min_M\ \mathbb{E},\lVert y - Mx \rVert^2$$</p>
+<p>$$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$</p>
 <p>这就是<strong>最小二乘回归</strong>。对 $M$ 求导置零，得到解（一行推导，展开平方、逐项求导即可）：</p>
-<p>$$M^* = \Sigma_{yx},\Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$</p>
+<p>$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$</p>
 <p>$\Sigma_{xx}$ 叫 $x$ 的<strong>协方差矩阵</strong>（描述输入在各方向上的分布强度），$\Sigma_{yx}$ 是<strong>互协方差</strong>。实际中 $\Sigma_{xx}$ 可能接近奇异（不可逆），所以给对角线加一个小量 $\lambda I$ 再求逆——这个稳定化技巧叫<strong>岭回归</strong>（ridge regression），$\lambda$ 是它唯一的超参数。</p>
 <p>两个引申：</p>
 <ul>
@@ -652,9 +652,9 @@
 <h3 id="6-The-Mathematical-Core-of-Closed-Form-One-Least-Squares-Solve">6. The Mathematical Core of Closed-Form: One Least-Squares Solve</h3>
 <p>One formula recurs throughout; here is its derivation, using only linear algebra.</p>
 <p>Problem: a student layer receives input $x$ and we want its output to approximate a target $y$ (e.g. the teacher's output at the same position). Find the matrix $M$ minimizing the average error</p>
-<p>$$\min_M\ \mathbb{E},\lVert y - Mx \rVert^2$$</p>
+<p>$$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$</p>
 <p>This is <strong>least-squares regression</strong>. Setting the derivative in $M$ to zero gives</p>
-<p>$$M^* = \Sigma_{yx},\Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$</p>
+<p>$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$</p>
 <p>$\Sigma_{xx}$ is the input <strong>covariance matrix</strong>; $\Sigma_{yx}$ the cross-covariance. In practice $\Sigma_{xx}$ can be near-singular, so a small $\lambda I$ is added before inverting — the stabilization known as <strong>ridge regression</strong>.</p>
 <p>Two extensions:</p>
 <ul>
