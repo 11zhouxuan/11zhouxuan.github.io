@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利 三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四场战役，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这最后 0.07 nat 是怎么挣的——以及一路上收获的四个比 0.07 值钱得多的机制发现：loss 敏感度的模式&#x2F;内容通路二分、">
+    <meta name="description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四场战役，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don&#39;t Stack">
 <meta property="og:url" content="https://11zhouxuan.github.io/2026/08/25/closed-form-anatomy/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利 三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四场战役，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这最后 0.07 nat 是怎么挣的——以及一路上收获的四个比 0.07 值钱得多的机制发现：loss 敏感度的模式&#x2F;内容通路二分、">
+<meta property="og:description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四场战役，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-25T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-30T01:53:02.047Z">
+<meta property="article:modified_time" content="2026-08-30T03:25:18.220Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -188,7 +188,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -199,7 +199,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">25</span>
+        <span class="site-state-item-count">27</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-30 01:53:02" itemprop="dateModified" datetime="2026-08-30T01:53:02+00:00">2026-08-30</time>
+      <time title="Modified: 2026-08-30 03:25:18" itemprop="dateModified" datetime="2026-08-30T03:25:18+00:00">2026-08-30</time>
     </span>
 
   
@@ -293,6 +293,9 @@
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 <h2 id="闭式天花板的解剖：三笔账、oracle-分解与不可叠加的红利">闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利</h2>
+<blockquote>
+<p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
+</blockquote>
 <p><a href="/2026/08/22/closed-form-ceiling/">三部曲的完结篇</a>宣布闭式赛道在 5.09 收官。然后我们又打了四场战役，把等预算纪录推到 <strong>5.02</strong>，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这最后 0.07 nat 是怎么挣的——以及一路上收获的四个比 0.07 值钱得多的机制发现：loss 敏感度的模式/内容通路二分、RMSNorm×巨通道的乘性放大器、<strong>截断税的深度分布</strong>（一个 oracle 分解实验），和&quot;小红利不叠加定律&quot;。</p>
 <p>背景（一句话版）：Qwen3-8B（val loss 2.11）→ 每个 linear 换 rank-384 的 $AB$（2.29B，删 72% 参数），闭式方法 = 逐层轨迹矫正回归 + lm_head 矫正 + 残差流矫正器，起点 5.09。</p>
 <h3 id="1-三笔账：5-05-到-2-11-之间的钱花在哪了">1. 三笔账：5.05 到 2.11 之间的钱花在哪了</h3>
@@ -508,6 +511,9 @@
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 <h2 id="Anatomy-of-the-Closed-Form-Ceiling-Three-Ledgers-an-Oracle-Decomposition-and-Dividends-That-Don-t-Stack">Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack</h2>
+<blockquote>
+<p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
+</blockquote>
 <p><a href="/2026/08/22/closed-form-ceiling/">The trilogy finale</a> declared the closed-form track finished at 5.09. We then fought four more campaigns, pushed the equal-budget record to <strong>5.02</strong>, and — this time — obtained structural evidence that it is truly over. This post covers how that last 0.07 nat was earned, and four mechanistic findings worth far more than the 0.07: the pattern/content pathway split in loss sensitivity, the RMSNorm×massive-channel multiplicative amplifier, <strong>the depth distribution of the truncation tax</strong> (an oracle-decomposition experiment), and the &quot;small dividends don't stack&quot; law.</p>
 <p>Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by rank-384 $AB$ (2.29B params, 72% removed); closed-form = layerwise trajectory-correcting regression + lm_head fix + residual-stream correctors, starting at 5.09.</p>
 <h3 id="1-Three-Ledgers-Where-the-Nats-Between-5-05-and-2-11-Are-Spent">1. Three Ledgers: Where the Nats Between 5.05 and 2.11 Are Spent</h3>
