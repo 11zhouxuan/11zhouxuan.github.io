@@ -25,7 +25,7 @@ tags: [primer, LLM, compression, linear-algebra, tutorial]
 
 两个词汇：
 
-- **token**：模型处理文本的最小单位。不完全等于"词"——英文里常见词是一个 token，长词会被拆成几段；中文常见字大约一字一个 token。本系列的模型认识 **151936** 种不同的 token，这张总表叫**词表**（vocabulary）。
+- **token**：模型处理文本的最小单位。不完全等于"词"——英文里常见词是一个 token，长词会被拆成几段；中文常见字大约一字一个 token。每个模型有自己固定的 token 总表，叫**词表**（vocabulary）；词表大小因模型而异，本系列压缩的对象是阿里开源的 **Qwen3-8B**，它的词表有 **151936** 种 token——后文所有出现 151936 的地方都是这个来历。
 - **logits**：模型对每种 token 打的原始分数（151936 个实数），经过 **softmax** 函数（$p_i = e^{z_i}/\sum_j e^{z_j}$，把任意实数组变成总和为 1 的概率）变成上面那张概率表。
 
 ### 2. 怎么给模型打分：交叉熵和 nat
@@ -205,7 +205,7 @@ Feed in "The weather today is really", and the model outputs a probability table
 
 Two words of vocabulary:
 
-- **token**: the smallest unit of text the model handles. Not exactly a word — common English words are one token, long words get split. Our model knows **151,936** distinct tokens; the full list is the **vocabulary**.
+- **token**: the smallest unit of text the model handles. Not exactly a word — common English words are one token, long words get split. Each model has its own fixed token inventory, the **vocabulary**, whose size varies by model. The model this series compresses is Alibaba's open-source **Qwen3-8B**, whose vocabulary has **151,936** tokens — every later appearance of 151,936 traces back to this.
 - **logits**: the raw scores the model assigns to every token (151,936 real numbers), turned into the probability table by the **softmax** function ($p_i = e^{z_i}/\sum_j e^{z_j}$, which maps any real vector to probabilities summing to 1).
 
 ### 2. Scoring a Model: Cross-Entropy and Nats
