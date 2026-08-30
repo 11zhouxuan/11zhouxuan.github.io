@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利 三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四场战役，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这最后 0.07 nat 是怎么挣的——以及一路上收获的四个比 0.07 值钱得多的机制发现：loss 敏感度的模式&#x2F;内容通路二分、">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-25T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-25T13:57:12.293Z">
+<meta property="article:modified_time" content="2026-08-30T01:53:02.047Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -188,7 +188,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">8</span>
+          <span class="site-state-item-count">9</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -199,7 +199,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">23</span>
+        <span class="site-state-item-count">25</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -259,9 +259,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-08-25 00:00:00 / Modified: 13:57:12" itemprop="dateCreated datePublished" datetime="2026-08-25T00:00:00+00:00">2026-08-25</time>
+      <time title="Created: 2026-08-25 00:00:00" itemprop="dateCreated datePublished" datetime="2026-08-25T00:00:00+00:00">2026-08-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-08-30 01:53:02" itemprop="dateModified" datetime="2026-08-30T01:53:02+00:00">2026-08-30</time>
     </span>
 
   
@@ -464,6 +470,7 @@
 <h3 id="7-结论：三把锁、三把钥匙与三条定律">7. 结论：三把锁、三把钥匙与三条定律</h3>
 <p><strong>最终版图</strong>（85% 压缩率、等预算 2.29B，held-out）：</p>
 <p>$$8.50_{\text{坍缩假象}} \to 5.59_{\text{轨迹矫正}} \to 5.09_{\text{免税矫正器}} \to \mathbf{5.02}<em>{\text{+分配+back-load}} \to 4.15</em>{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p><strong>【后续更新】</strong> 这个&quot;终点&quot;随后又被推到 <strong>4.71/4.53</strong>：稀疏残差与度量修正的超线性组合 + 校准数据工程。详见<a href="/2026/08/30/closed-form-moving-ceiling/">第五篇《会移动的天花板》</a>。</p>
 <table>
 <thead>
 <tr>
@@ -678,6 +685,7 @@
 <h3 id="7-Conclusions-Three-Locks-Three-Keys-Three-Laws">7. Conclusions: Three Locks, Three Keys, Three Laws</h3>
 <p><strong>The final landscape</strong> (85% compression, equal 2.29B budget, held-out):</p>
 <p>$$8.50_{\text{collapse illusion}} \to 5.59_{\text{traj. correction}} \to 5.09_{\text{tax-free correctors}} \to \mathbf{5.02}<em>{\text{+alloc+backload}} \to 4.15</em>{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p><strong>[Later update]</strong> This &quot;endpoint&quot; was subsequently pushed to <strong>4.71/4.53</strong> by the super-additive combination of sparse residuals and the metric fix, plus calibration-data engineering. See <a href="/2026/08/30/closed-form-moving-ceiling/">part 5: The Ceiling That Kept Moving</a>.</p>
 <table>
 <thead>
 <tr>
@@ -752,6 +760,9 @@ function switchLang(lang) {
                 </a>
             </div>
             <div class="post-nav-item">
+                <a href="/2026/08/30/closed-form-moving-ceiling/" rel="next" title="The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering">
+                  The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering <i class="fa fa-angle-right"></i>
+                </a>
             </div>
           </div>
     </footer>
