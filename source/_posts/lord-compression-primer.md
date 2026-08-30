@@ -304,5 +304,9 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
+  var postTitles = {zh: '预备知识：读懂"低秩压缩"系列需要的一切', en: 'A Primer for the Low-Rank Compression Series'};
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) titleEl.textContent = postTitles[lang];
 }
+switchLang('zh');
 </script>

@@ -400,5 +400,9 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
+  var postTitles = {zh: '低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好', en: 'Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model'};
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) titleEl.textContent = postTitles[lang];
 }
+switchLang('zh');
 </script>

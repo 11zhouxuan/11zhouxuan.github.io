@@ -278,5 +278,9 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
+  var postTitles = {zh: '闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利', en: "Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack"};
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) titleEl.textContent = postTitles[lang];
 }
+switchLang('zh');
 </script>

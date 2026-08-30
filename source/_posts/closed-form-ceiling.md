@@ -224,5 +224,9 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
+  var postTitles = {zh: '闭式压缩的天花板：免税矫正器、oracle 上界与非线性放大器', en: 'The Closed-Form Ceiling: Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier'};
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) titleEl.textContent = postTitles[lang];
 }
+switchLang('zh');
 </script>

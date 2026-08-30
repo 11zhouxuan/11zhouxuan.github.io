@@ -246,5 +246,9 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
+  var postTitles = {zh: '会移动的天花板：稀疏残差、换一把尺子与校准数据工程', en: 'The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering'};
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) titleEl.textContent = postTitles[lang];
 }
+switchLang('zh');
 </script>

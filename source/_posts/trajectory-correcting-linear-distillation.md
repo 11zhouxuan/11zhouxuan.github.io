@@ -218,5 +218,9 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
+  var postTitles = {zh: '轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界', en: 'Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression'};
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) titleEl.textContent = postTitles[lang];
 }
+switchLang('zh');
 </script>
