@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-19T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-30T13:34:16.485Z">
+<meta property="article:modified_time" content="2026-08-30T14:33:40.506Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-30 13:34:16" itemprop="dateModified" datetime="2026-08-30T13:34:16+00:00">2026-08-30</time>
+      <time title="Modified: 2026-08-30 14:33:40" itemprop="dateModified" datetime="2026-08-30T14:33:40+00:00">2026-08-30</time>
     </span>
 
   
@@ -398,8 +398,8 @@
 <h3 id="5-方法的平台：三个负结果">5. 方法的平台：三个负结果</h3>
 <p>进一步的优化尝试全部失败，方法在 ~5.6 收敛：</p>
 <ol>
-<li><strong>不动点迭代 → 5.94（变差）</strong>。用第一遍的学生重新采集统计、重解所有层，反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍 sequential 就是甜点。</strong></li>
-<li><strong>谱驱动的 per-layer rank 分配 → 5.72（略差）</strong>。均匀 rank 已是甜点；从均匀运行算出的分配无法迁移到新运行（漂移模式随分配改变）。</li>
+<li><strong>不动点迭代 → 5.94（变差）</strong>。用第一遍的学生重新采集统计、重解所有层，反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍顺序处理就是最优做法。</strong></li>
+<li><strong>谱驱动的 per-layer rank 分配 → 5.72（略差）</strong>。均匀 rank 已接近最优；从均匀运行算出的分配无法迁移到新运行（漂移模式随分配改变）。</li>
 <li><strong>λ 不敏感</strong>：$10^{-3}$ 与 $10^{-4}$ 差 0.01。</li>
 </ol>
 <h3 id="6-剩下的差距在哪：R²-诊断">6. 剩下的差距在哪：R² 诊断</h3>
