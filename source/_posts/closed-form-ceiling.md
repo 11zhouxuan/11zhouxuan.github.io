@@ -15,6 +15,8 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 ## 闭式压缩的天花板：免税矫正器、oracle 上界与非线性放大器
 
+> 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
+
 这是低秩压缩三部曲的完结篇（[第一篇：表示坍缩](/2026/08/17/representation-collapse-in-low-rank-compression/)，[第二篇：轨迹矫正线性蒸馏](/2026/08/19/trajectory-correcting-linear-distillation/)）。上一篇结束时，闭式（无训练）方法停在 val loss 5.59。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对"闭式 init + 训练"的完整路线意味着什么。
 
 ### 1. 消融的意外：便宜的赢了贵的
@@ -114,6 +116,8 @@ $$8.50_{\text{坍缩假象}} \to \mathbf{5.09}_{\text{闭式冠军}} \to \underb
 <div class="lang-content lang-en" style="display:none">
 
 ## The Closed-Form Ceiling: Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier
+
+> 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
 This concludes the low-rank compression trilogy ([part 1: representation collapse](/2026/08/17/representation-collapse-in-low-rank-compression/), [part 2: trajectory-correcting linear distillation](/2026/08/19/trajectory-correcting-linear-distillation/)). Part 2 ended with closed-form (training-free) methods at val loss 5.59. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the "closed-form init + training" pipeline.
 

@@ -15,6 +15,8 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 ## 低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好
 
+> 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
+
 ### 1. 一个意外的发现
 
 对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$），使用激活加权 SVD（ASVD，$\alpha=1.0$）配合**逐层 rank 分配**（按 $\lVert WS\rVert_F$ 分配，平均 rank 357，Block 0 只分到 rank 32）得到的模型 val loss = 8.50。作为对比，plain SVD（均匀 rank=384）的 val loss = 18.65——ASVD 看似好了一倍多。
@@ -202,6 +204,8 @@ $$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \
 <div class="lang-content lang-en" style="display:none">
 
 ## Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model
+
+> 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
 ### 1. An Unexpected Finding
 

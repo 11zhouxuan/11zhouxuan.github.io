@@ -15,6 +15,8 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 
 ## 会移动的天花板：稀疏残差、换一把尺子与校准数据工程
 
+> 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
+
 [第四篇](/2026/08/25/closed-form-anatomy/)以"三把锁"的解剖宣布闭式赛道收官于 5.02。然后它在一周内被推到了 **4.71 / 4.53**（双验证窗口）——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）只剩 0.74。这篇讲天花板是怎么两次移动的。诚实地说，两次都源于同一件事：**合作者对"已经到头了"这个结论的不服气**。第一次的不服（"低秩逼近还有很大空间"）指向了度量修正，第二次（对统计地基的持续加码）打开了校准数据工程。"工具箱已榨干"的结论永远带着一个隐藏脚注：*在当前的度量、当前的表达形式、当前的统计地基下*。
 
 背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 免税矫正器 + loss 感知分配，第四篇终点 5.114/5.023。
@@ -125,6 +127,8 @@ $$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}_{\text{稀疏×度量}} 
 <div class="lang-content lang-en" style="display:none">
 
 ## The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering
+
+> 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
 [Part 4](/2026/08/25/closed-form-anatomy/) closed the closed-form track at 5.02 with a three-lock anatomy. It was then pushed to **4.71 / 4.53** (two validation windows) within a week — nearly another 0.5 nat, leaving just 0.74 to an end-to-end-distilled, actually-trained model (3.79). This post is about how the ceiling moved twice. Honestly, both moves came from the same source: **a collaborator refusing to accept "it's over"**. The first refusal ("low-rank approximation still has plenty of room") led to the metric fix; the second (insisting on the statistical foundations) opened up calibration-data engineering. "The toolbox is exhausted" always carries a hidden footnote: *under the current metric, the current representation, and the current statistics*.
 

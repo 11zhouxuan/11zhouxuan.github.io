@@ -15,6 +15,8 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 ## 闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利
 
+> 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
+
 [三部曲的完结篇](/2026/08/22/closed-form-ceiling/)宣布闭式赛道在 5.09 收官。然后我们又打了四场战役，把等预算纪录推到 **5.02**，并且这一次拿到了"真的到头了"的结构性证据。这篇讲这最后 0.07 nat 是怎么挣的——以及一路上收获的四个比 0.07 值钱得多的机制发现：loss 敏感度的模式/内容通路二分、RMSNorm×巨通道的乘性放大器、**截断税的深度分布**（一个 oracle 分解实验），和"小红利不叠加定律"。
 
 背景（一句话版）：Qwen3-8B（val loss 2.11）→ 每个 linear 换 rank-384 的 $AB$（2.29B，删 72% 参数），闭式方法 = 逐层轨迹矫正回归 + lm_head 矫正 + 残差流矫正器，起点 5.09。
@@ -141,6 +143,8 @@ $$8.50_{\text{坍缩假象}} \to 5.59_{\text{轨迹矫正}} \to 5.09_{\text{免�
 <div class="lang-content lang-en" style="display:none">
 
 ## Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack
+
+> 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
 [The trilogy finale](/2026/08/22/closed-form-ceiling/) declared the closed-form track finished at 5.09. We then fought four more campaigns, pushed the equal-budget record to **5.02**, and — this time — obtained structural evidence that it is truly over. This post covers how that last 0.07 nat was earned, and four mechanistic findings worth far more than the 0.07: the pattern/content pathway split in loss sensitivity, the RMSNorm×massive-channel multiplicative amplifier, **the depth distribution of the truncation tax** (an oracle-decomposition experiment), and the "small dividends don't stack" law.
 

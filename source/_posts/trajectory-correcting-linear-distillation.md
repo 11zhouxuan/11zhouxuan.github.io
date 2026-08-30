@@ -15,6 +15,8 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-reg
 
 ## 轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界
 
+> 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
+
 ### 1. 问题：闭式方法卡在一堵"坍缩墙"上
 
 [上一篇](/2026/08/17/representation-collapse-in-low-rank-compression/)里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练）方法卡在一条边界上：
@@ -111,6 +113,8 @@ $$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \underbrace{7.
 <div class="lang-content lang-en" style="display:none">
 
 ## Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression
+
+> 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
 ### 1. The Problem: A "Collapse Wall" for Closed-Form Methods
 
