@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    预备知识：读懂&quot;低秩压缩&quot;系列需要的一切 这个系列讲的是一件事：把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 8 节的速查">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T08:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-30T13:32:30.790Z">
+<meta property="article:modified_time" content="2026-08-30T13:34:16.485Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -258,7 +258,7 @@
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2026-08-30 08:00:00 / Modified: 13:32:30" itemprop="dateCreated datePublished" datetime="2026-08-30T08:00:00+00:00">2026-08-30</time>
+      <time title="Created: 2026-08-30 08:00:00 / Modified: 13:34:16" itemprop="dateCreated datePublished" datetime="2026-08-30T08:00:00+00:00">2026-08-30</time>
     </span>
 
   
@@ -331,7 +331,51 @@
 <p>举个换算例子：loss 从 8.5 降到 5.6，意味着正确 token 的平均概率提高了 $e^{2.9} \approx 18$ 倍——看似不到一半的数字变化，实际是能力的巨大差距。</p>
 <h3 id="3-模型内部长什么样：一条传送带和-36-个加工站">3. 模型内部长什么样：一条传送带和 36 个加工站</h3>
 <p>本系列的模型是 Transformer 结构。不需要完整学它，记住下面这幅文字版示意图就够了：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">输入 token → [嵌入] → 4096 维向量</span><br><span class="line">                ↓</span><br><span class="line">     ┌── 加工站 1（block 0）──┐</span><br><span class="line">     │  注意力部分 + MLP 部分  │ ← 每部分算完把结果&quot;加&quot;回主线</span><br><span class="line">     └───────────↓───────────┘</span><br><span class="line">              ……共 36 个加工站……</span><br><span class="line">                ↓</span><br><span class="line">        [归一化] → [lm_head 打分] → 151936 个 logits</span><br></pre></td></tr></table></figure>
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="max-width:480px;display:block;margin:1em auto;font-family:system-ui,sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+    </marker>
+  </defs>
+  <!-- 输入与嵌入 -->
+  <rect x="85" y="12" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="33" text-anchor="middle" font-size="14" fill="#333">输入 token</text>
+  <line x1="150" y1="44" x2="150" y2="66" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="85" y="68" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="89" text-anchor="middle" font-size="14" fill="#333">嵌入层</text>
+  <line x1="150" y1="100" x2="150" y2="128" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="162" y="119" font-size="12" fill="#888">4096 维向量</text>
+  <!-- 重复容器 -->
+  <rect x="45" y="130" width="420" height="200" rx="8" fill="none" stroke="#bbb" stroke-dasharray="6 4"/>
+  <text x="455" y="150" text-anchor="end" font-size="13" fill="#888">加工站（block）×36</text>
+  <!-- 主线（残差流） -->
+  <line x1="150" y1="130" x2="150" y2="330" stroke="#666" stroke-width="2"/>
+  <text x="60" y="238" font-size="12" fill="#888">残差流（主线）</text>
+  <!-- 注意力分支 -->
+  <line x1="150" y1="170" x2="268" y2="170" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="270" y="153" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="175" text-anchor="middle" font-size="14" fill="#333">注意力（q k v o）</text>
+  <polyline points="345,187 345,207 172,207" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <circle cx="150" cy="207" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="212" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <!-- MLP 分支 -->
+  <line x1="150" y1="245" x2="268" y2="245" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="270" y="228" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="250" text-anchor="middle" font-size="14" fill="#333">MLP（gate up down）</text>
+  <polyline points="345,262 345,282 172,282" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <circle cx="150" cy="282" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="287" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <text x="175" y="316" font-size="12" fill="#888">每部分的结果"加"回主线</text>
+  <!-- 出口 -->
+  <line x1="150" y1="330" x2="150" y2="352" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="85" y="354" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="375" text-anchor="middle" font-size="14" fill="#333">归一化</text>
+  <line x1="150" y1="386" x2="150" y2="408" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="85" y="410" width="130" height="32" rx="6" fill="#eaf6ee" stroke="#6fae85"/>
+  <text x="150" y="431" text-anchor="middle" font-size="14" fill="#333">lm_head 打分</text>
+  <line x1="150" y1="442" x2="150" y2="464" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="150" y="484" text-anchor="middle" font-size="13" fill="#333">151936 个 logits（词表中每个 token 一个分数）</text>
+</svg>
 <ul>
 <li><strong>残差流（residual stream）</strong>：贯穿全程的那条&quot;主线&quot;。每个 token 对应一个 4096 维向量，从头传到尾；每个加工站（block）不是替换它，而是算出一个修正量<strong>加上去</strong>：$h \leftarrow h + \text{本站的输出}$。这个&quot;只做加法&quot;的设计叫<strong>残差连接</strong>，是理解系列中很多现象的关键——比如误差会沿主线一路累积。</li>
 <li>每个 block 里有两个部分，共 <strong>7 个大矩阵</strong>（每个矩阵就是一次线性变换）：
@@ -520,7 +564,45 @@
 <p>Example conversion: going from loss 8.5 to 5.6 means the average probability on correct tokens grew by $e^{2.9} \approx 18\times$ — a modest-looking number change hiding a huge capability gap.</p>
 <h3 id="3-Inside-the-Model-a-Conveyor-Belt-and-36-Stations">3. Inside the Model: a Conveyor Belt and 36 Stations</h3>
 <p>The model is a Transformer. You don't need the full picture — this text diagram suffices:</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">input token → [embedding] → 4096-dim vector</span><br><span class="line">                 ↓</span><br><span class="line">      ┌── station 1 (block 0) ──┐</span><br><span class="line">      │  attention part + MLP   │ ← each part ADDS its result back</span><br><span class="line">      └────────────↓────────────┘</span><br><span class="line">              ... 36 stations ...</span><br><span class="line">                 ↓</span><br><span class="line">        [norm] → [lm_head scoring] → 151,936 logits</span><br></pre></td></tr></table></figure>
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="max-width:480px;display:block;margin:1em auto;font-family:system-ui,sans-serif">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+    </marker>
+  </defs>
+  <rect x="85" y="12" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="33" text-anchor="middle" font-size="14" fill="#333">input token</text>
+  <line x1="150" y1="44" x2="150" y2="66" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="85" y="68" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="89" text-anchor="middle" font-size="14" fill="#333">embedding</text>
+  <line x1="150" y1="100" x2="150" y2="128" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="162" y="119" font-size="12" fill="#888">4096-dim vector</text>
+  <rect x="45" y="130" width="420" height="200" rx="8" fill="none" stroke="#bbb" stroke-dasharray="6 4"/>
+  <text x="455" y="150" text-anchor="end" font-size="13" fill="#888">block ×36</text>
+  <line x1="150" y1="130" x2="150" y2="330" stroke="#666" stroke-width="2"/>
+  <text x="58" y="238" font-size="12" fill="#888">residual stream</text>
+  <line x1="150" y1="170" x2="268" y2="170" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="270" y="153" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="175" text-anchor="middle" font-size="14" fill="#333">attention (q k v o)</text>
+  <polyline points="345,187 345,207 172,207" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <circle cx="150" cy="207" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="212" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <line x1="150" y1="245" x2="268" y2="245" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="270" y="228" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="250" text-anchor="middle" font-size="14" fill="#333">MLP (gate up down)</text>
+  <polyline points="345,262 345,282 172,282" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <circle cx="150" cy="282" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="287" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <text x="175" y="316" font-size="12" fill="#888">each part ADDS its result back</text>
+  <line x1="150" y1="330" x2="150" y2="352" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="85" y="354" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="375" text-anchor="middle" font-size="14" fill="#333">norm</text>
+  <line x1="150" y1="386" x2="150" y2="408" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="85" y="410" width="130" height="32" rx="6" fill="#eaf6ee" stroke="#6fae85"/>
+  <text x="150" y="431" text-anchor="middle" font-size="14" fill="#333">lm_head scoring</text>
+  <line x1="150" y1="442" x2="150" y2="464" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="150" y="484" text-anchor="middle" font-size="13" fill="#333">151,936 logits (one score per vocabulary token)</text>
+</svg>
 <ul>
 <li><strong>Residual stream</strong>: the &quot;conveyor belt&quot; running end to end — one 4096-dim vector per token. Each station (block) doesn't replace it; it computes a correction and <strong>adds</strong> it: $h \leftarrow h + \text{station output}$. This add-only design (the <strong>residual connection</strong>) explains many phenomena in the series — e.g. errors accumulate along the belt.</li>
 <li>Each block has two parts, totaling <strong>7 large matrices</strong> (each is one linear map):
