@@ -117,6 +117,8 @@ Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 
 $$8.50_{\text{坍缩假象}} \to 5.59_{\text{轨迹矫正}} \to 5.09_{\text{免税矫正器}} \to \mathbf{5.02}_{\text{+分配+back-load}} \to 4.15_{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$
 
+**【后续更新】** 这个"终点"随后又被推到 **4.71/4.53**：稀疏残差与度量修正的超线性组合 + 校准数据工程。详见[第五篇《会移动的天花板》](/2026/08/30/closed-form-moving-ceiling/)。
+
 | 锁 | 架构根源 | 钥匙 |
 |---|---|---|
 | 截断税 ~2.0（集中在后半段） | 内容通路的超位置重尾谱 | 改变 rank 的放置几何（联合分解、MLA、稀疏残差）——范式外 |
@@ -241,6 +243,8 @@ The last experiment stacked the two verified dividends (back-load + rms-lift-256
 **The final landscape** (85% compression, equal 2.29B budget, held-out):
 
 $$8.50_{\text{collapse illusion}} \to 5.59_{\text{traj. correction}} \to 5.09_{\text{tax-free correctors}} \to \mathbf{5.02}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$
+
+**[Later update]** This "endpoint" was subsequently pushed to **4.71/4.53** by the super-additive combination of sparse residuals and the metric fix, plus calibration-data engineering. See [part 5: The Ceiling That Kept Moving](/2026/08/30/closed-form-moving-ceiling/).
 
 | Lock | Architectural root | Key |
 |---|---|---|
