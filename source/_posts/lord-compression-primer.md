@@ -54,16 +54,51 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 本系列的模型是 Transformer 结构。不需要完整学它，记住下面这幅文字版示意图就够了：
 
-```
-输入 token → [嵌入] → 4096 维向量
-                ↓
-     ┌── 加工站 1（block 0）──┐
-     │  注意力部分 + MLP 部分  │ ← 每部分算完把结果"加"回主线
-     └───────────↓───────────┘
-              ……共 36 个加工站……
-                ↓
-        [归一化] → [lm_head 打分] → 151936 个 logits
-```
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="max-width:480px;display:block;margin:1em auto;font-family:system-ui,sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+    </marker>
+  </defs>
+  <!-- 输入与嵌入 -->
+  <rect x="85" y="12" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="33" text-anchor="middle" font-size="14" fill="#333">输入 token</text>
+  <line x1="150" y1="44" x2="150" y2="66" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="85" y="68" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="89" text-anchor="middle" font-size="14" fill="#333">嵌入层</text>
+  <line x1="150" y1="100" x2="150" y2="128" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="162" y="119" font-size="12" fill="#888">4096 维向量</text>
+  <!-- 重复容器 -->
+  <rect x="45" y="130" width="420" height="200" rx="8" fill="none" stroke="#bbb" stroke-dasharray="6 4"/>
+  <text x="455" y="150" text-anchor="end" font-size="13" fill="#888">加工站（block）×36</text>
+  <!-- 主线（残差流） -->
+  <line x1="150" y1="130" x2="150" y2="330" stroke="#666" stroke-width="2"/>
+  <text x="60" y="238" font-size="12" fill="#888">残差流（主线）</text>
+  <!-- 注意力分支 -->
+  <line x1="150" y1="170" x2="268" y2="170" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="270" y="153" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="175" text-anchor="middle" font-size="14" fill="#333">注意力（q k v o）</text>
+  <polyline points="345,187 345,207 172,207" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <circle cx="150" cy="207" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="212" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <!-- MLP 分支 -->
+  <line x1="150" y1="245" x2="268" y2="245" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="270" y="228" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="250" text-anchor="middle" font-size="14" fill="#333">MLP（gate up down）</text>
+  <polyline points="345,262 345,282 172,282" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <circle cx="150" cy="282" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="287" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <text x="175" y="316" font-size="12" fill="#888">每部分的结果"加"回主线</text>
+  <!-- 出口 -->
+  <line x1="150" y1="330" x2="150" y2="352" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="85" y="354" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="375" text-anchor="middle" font-size="14" fill="#333">归一化</text>
+  <line x1="150" y1="386" x2="150" y2="408" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <rect x="85" y="410" width="130" height="32" rx="6" fill="#eaf6ee" stroke="#6fae85"/>
+  <text x="150" y="431" text-anchor="middle" font-size="14" fill="#333">lm_head 打分</text>
+  <line x1="150" y1="442" x2="150" y2="464" stroke="#666" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="150" y="484" text-anchor="middle" font-size="13" fill="#333">151936 个 logits（词表中每个 token 一个分数）</text>
+</svg>
 
 - **残差流（residual stream）**：贯穿全程的那条"主线"。每个 token 对应一个 4096 维向量，从头传到尾；每个加工站（block）不是替换它，而是算出一个修正量**加上去**：$h \leftarrow h + \text{本站的输出}$。这个"只做加法"的设计叫**残差连接**，是理解系列中很多现象的关键——比如误差会沿主线一路累积。
 - 每个 block 里有两个部分，共 **7 个大矩阵**（每个矩阵就是一次线性变换）：
@@ -199,16 +234,45 @@ Example conversion: going from loss 8.5 to 5.6 means the average probability on 
 
 The model is a Transformer. You don't need the full picture — this text diagram suffices:
 
-```
-input token → [embedding] → 4096-dim vector
-                 ↓
-      ┌── station 1 (block 0) ──┐
-      │  attention part + MLP   │ ← each part ADDS its result back
-      └────────────↓────────────┘
-              ... 36 stations ...
-                 ↓
-        [norm] → [lm_head scoring] → 151,936 logits
-```
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="max-width:480px;display:block;margin:1em auto;font-family:system-ui,sans-serif">
+  <defs>
+    <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666"/>
+    </marker>
+  </defs>
+  <rect x="85" y="12" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="33" text-anchor="middle" font-size="14" fill="#333">input token</text>
+  <line x1="150" y1="44" x2="150" y2="66" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="85" y="68" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="89" text-anchor="middle" font-size="14" fill="#333">embedding</text>
+  <line x1="150" y1="100" x2="150" y2="128" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="162" y="119" font-size="12" fill="#888">4096-dim vector</text>
+  <rect x="45" y="130" width="420" height="200" rx="8" fill="none" stroke="#bbb" stroke-dasharray="6 4"/>
+  <text x="455" y="150" text-anchor="end" font-size="13" fill="#888">block ×36</text>
+  <line x1="150" y1="130" x2="150" y2="330" stroke="#666" stroke-width="2"/>
+  <text x="58" y="238" font-size="12" fill="#888">residual stream</text>
+  <line x1="150" y1="170" x2="268" y2="170" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="270" y="153" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="175" text-anchor="middle" font-size="14" fill="#333">attention (q k v o)</text>
+  <polyline points="345,187 345,207 172,207" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <circle cx="150" cy="207" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="212" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <line x1="150" y1="245" x2="268" y2="245" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="270" y="228" width="150" height="34" rx="6" fill="#fdf1e7" stroke="#d99a5b"/>
+  <text x="345" y="250" text-anchor="middle" font-size="14" fill="#333">MLP (gate up down)</text>
+  <polyline points="345,262 345,282 172,282" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <circle cx="150" cy="282" r="10" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="150" y="287" text-anchor="middle" font-size="14" fill="#333">+</text>
+  <text x="175" y="316" font-size="12" fill="#888">each part ADDS its result back</text>
+  <line x1="150" y1="330" x2="150" y2="352" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="85" y="354" width="130" height="32" rx="6" fill="#eef3fb" stroke="#7a9cc6"/>
+  <text x="150" y="375" text-anchor="middle" font-size="14" fill="#333">norm</text>
+  <line x1="150" y1="386" x2="150" y2="408" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <rect x="85" y="410" width="130" height="32" rx="6" fill="#eaf6ee" stroke="#6fae85"/>
+  <text x="150" y="431" text-anchor="middle" font-size="14" fill="#333">lm_head scoring</text>
+  <line x1="150" y1="442" x2="150" y2="464" stroke="#666" stroke-width="1.5" marker-end="url(#ar2)"/>
+  <text x="150" y="484" text-anchor="middle" font-size="13" fill="#333">151,936 logits (one score per vocabulary token)</text>
+</svg>
 
 - **Residual stream**: the "conveyor belt" running end to end — one 4096-dim vector per token. Each station (block) doesn't replace it; it computes a correction and **adds** it: $h \leftarrow h + \text{station output}$. This add-only design (the **residual connection**) explains many phenomena in the series — e.g. errors accumulate along the belt.
 - Each block has two parts, totaling **7 large matrices** (each is one linear map):
