@@ -1,5 +1,5 @@
 ---
-title: "预备知识：读懂低秩压缩系列需要的一切 / A Primer for the Low-Rank Compression Series"
+title: "A Primer for the Low-Rank Compression Series"
 date: 2026-08-30 08:00:00
 mathjax: true
 tags: [primer, LLM, compression, linear-algebra, tutorial]
