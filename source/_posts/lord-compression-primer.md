@@ -139,11 +139,11 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 问题：学生某一层收到输入向量 $x$，我们希望这一层的输出尽量接近某个目标 $y$（比如"教师在同样位置的输出"）。找一个矩阵 $M$，最小化在大量样本上的平均误差：
 
-$$\min_M\ \mathbb{E}\,\lVert y - Mx \rVert^2$$
+$$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
 
 这就是**最小二乘回归**。对 $M$ 求导置零，得到解（一行推导，展开平方、逐项求导即可）：
 
-$$M^* = \Sigma_{yx}\,\Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
+$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
 
 $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分布强度），$\Sigma_{yx}$ 是**互协方差**。实际中 $\Sigma_{xx}$ 可能接近奇异（不可逆），所以给对角线加一个小量 $\lambda I$ 再求逆——这个稳定化技巧叫**岭回归**（ridge regression），$\lambda$ 是它唯一的超参数。
 
@@ -311,11 +311,11 @@ One formula recurs throughout; here is its derivation, using only linear algebra
 
 Problem: a student layer receives input $x$ and we want its output to approximate a target $y$ (e.g. the teacher's output at the same position). Find the matrix $M$ minimizing the average error
 
-$$\min_M\ \mathbb{E}\,\lVert y - Mx \rVert^2$$
+$$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
 
 This is **least-squares regression**. Setting the derivative in $M$ to zero gives
 
-$$M^* = \Sigma_{yx}\,\Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
+$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
 
 $\Sigma_{xx}$ is the input **covariance matrix**; $\Sigma_{yx}$ the cross-covariance. In practice $\Sigma_{xx}$ can be near-singular, so a small $\lambda I$ is added before inverting — the stabilization known as **ridge regression**.
 

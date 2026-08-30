@@ -47,7 +47,7 @@ AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-n
 
 修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为
 
-$$\min_{AB}\ \lVert \mathrm{diag}(w)\,(M^*-AB)\,L \rVert_F^2$$
+$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$
 
 SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.06（5.055/4.959），零参数成本**——headfix 以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个"邻近"的 artifact 上测一次即可（见第 5 节的迭代失败）。
 
@@ -160,7 +160,7 @@ Part 4's tax map left one anomaly unexplained: qkv@late looks "nearly lossless" 
 
 The fix stays closed-form. Measure each output channel's loss-gradient second moment $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under
 
-$$\min_{AB}\ \lVert \mathrm{diag}(w)\,(M^*-AB)\,L \rVert_F^2$$
+$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$
 
 — multiply by $\mathrm{diag}(w)$ before the SVD, divide after. **−0.06 on its own (5.055/4.959) at zero parameter cost**, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a "nearby" artifact suffices (see Section 5's iteration failure).
 
