@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
 
   
@@ -473,8 +473,18 @@
 <p>这个&quot;两步等于全局最优&quot;只在<strong>单层、二次损失</strong>下成立。一旦目标换成整个模型 36 层复合后的最终 loss，闭式解就不存在了——这正是训练路线能超过闭式路线的根本原因。同理，系列后期在 $AB$ 之外再加稀疏项时也破坏了这个结构，那里只能改用交替求解，不再有全局最优的保证。</p>
 <p>两个引申：</p>
 <ul>
-<li><strong>校准数据（calibration data）</strong>：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一&quot;见过&quot;的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。</li>
-<li><strong>白化（whitening）</strong>：想在&quot;输入的真实分布下&quot;做最优的低秩截断，标准做法是先对 $\Sigma_{xx}$ 做 Cholesky 分解 $\Sigma_{xx} = LL^T$（把对称正定矩阵写成三角矩阵乘积，相当于给空间换一组坐标让输入分布变成&quot;各向均匀&quot;），在新坐标下做 SVD 截断，再换回来。系列里的&quot;白化 SVD 截断&quot;就是这三步。</li>
+<li>
+<p><strong>校准数据（calibration data）</strong>：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一&quot;见过&quot;的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。</p>
+</li>
+<li>
+<p><strong>白化（whitening）</strong>：一次坐标变换，作用是让&quot;衡量误差&quot;变得公平。</p>
+<p>为什么需要它：低秩截断必须丢掉一些方向，而输入 $x$ 的分布是极不均匀的——某些方向上 $x$ 的取值大且常见，某些方向几乎不出现。在后者上犯多大误差都无所谓（乘上去的分量本来接近零），所以不能按&quot;矩阵元素差&quot;来判断丢哪些方向。</p>
+<p>怎么做：$x$ 的协方差矩阵 $\Sigma_{xx}$ 恰好描述了各方向的活跃程度。对它做 Cholesky 分解 $\Sigma_{xx}=LL^T$（把对称正定矩阵写成一个三角矩阵与其转置的乘积），再令 $z = L^{-1}x$，则 $z$ 的协方差变成单位矩阵——各方向方差都是 1、互不相关，这就是&quot;白&quot;（借自白噪声：能量在所有方向上均匀分布）。</p>
+<p>为什么这样就对了：在新坐标下，我们真正关心的误差变成一个普通的矩阵范数</p>
+<p>$$\mathbb{E}\lVert (M-AB)x \rVert^2 = \lVert (M-AB)L \rVert_F^2$$</p>
+<p>于是 Eckart–Young 定理可以直接用在 $(M-AB)L$ 上，SVD 截断即最优。<strong>&quot;在真实输入分布下最优&quot;经过白化变成了&quot;在普通矩阵范数下最优&quot;，后者有解析解。</strong> 算完再乘回 $L^{-1}$ 换回原坐标，得到实际部署的 $A, B$。系列里说的&quot;白化 SVD 截断&quot;就是这三步。</p>
+<p>一个类比：比较两个城市的治安不能直接比案件数，要先除以人口变成发案率。白化就是矩阵版的&quot;除以人口&quot;，先把各方向的重要性归一化，再比较误差。</p>
+</li>
 </ul>
 <h3 id="8-两个常用的诊断指标">8. 两个常用的诊断指标</h3>
 <p>系列里反复使用两个诊断指标，先认识它们：</p>
@@ -746,8 +756,18 @@
 <p>This equivalence holds only for a <strong>single layer with a quadratic loss</strong>. Once the objective becomes the final loss after composing all 36 layers, no closed form exists — which is precisely why the training route can beat the closed-form one. Likewise, adding a sparse term alongside $AB$ later in the series breaks the structure, so that part falls back to alternating solves with no global guarantee.</p>
 <p>Two extensions:</p>
 <ul>
-<li><strong>Calibration data</strong>: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever &quot;sees&quot;. Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).</li>
-<li><strong>Whitening</strong>: to truncate optimally under the input's true distribution, factor $\Sigma_{xx} = LL^T$ (Cholesky decomposition — a change of coordinates making the input distribution uniform in all directions), do the SVD truncation there, then map back. That three-step is the series' &quot;whitened SVD truncation&quot;.</li>
+<li>
+<p><strong>Calibration data</strong>: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever &quot;sees&quot;. Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).</p>
+</li>
+<li>
+<p><strong>Whitening</strong>: a change of coordinates whose purpose is to make error measurement fair.</p>
+<p>Why it is needed: low-rank truncation must discard some directions, and the input distribution is highly uneven — along some directions $x$ takes large, frequent values; along others it barely appears. Error along the latter is harmless (the component multiplying it is near zero), so &quot;difference in matrix entries&quot; is the wrong criterion for choosing what to discard.</p>
+<p>How: the covariance $\Sigma_{xx}$ describes exactly how active each direction is. Factor it as $\Sigma_{xx}=LL^T$ (Cholesky: a symmetric positive-definite matrix written as a triangular matrix times its transpose) and set $z = L^{-1}x$; then $z$ has identity covariance — unit variance in every direction, no correlations. That is &quot;white&quot; (as in white noise: energy spread evenly across directions).</p>
+<p>Why that works: in the new coordinates the error we actually care about becomes an ordinary matrix norm</p>
+<p>$$\mathbb{E}\lVert (M-AB)x \rVert^2 = \lVert (M-AB)L \rVert_F^2$$</p>
+<p>so Eckart–Young applies directly to $(M-AB)L$ and SVD truncation is optimal. <strong>&quot;Optimal under the true input distribution&quot; becomes, after whitening, &quot;optimal in an ordinary matrix norm&quot; — and the latter has a closed-form solution.</strong> Multiply back by $L^{-1}$ to return to the original coordinates and obtain the deployed $A, B$. The series' &quot;whitened SVD truncation&quot; is these three steps.</p>
+<p>An analogy: comparing two cities' safety by raw crime counts is wrong; you divide by population to get a rate. Whitening is the matrix version of dividing by population — normalize each direction's importance first, then compare errors.</p>
+</li>
 </ul>
 <h3 id="8-Two-Diagnostic-Measures">8. Two Diagnostic Measures</h3>
 <p><strong>R² (coefficient of determination)</strong>: how much of $y$ is linearly predictable from $x$, from 0 to 1. R²=0.3 means linear regression explains 30% of the variation; the other 70% is beyond any linear tool. The series uses it to ask &quot;how much of the compressed model's drift can be repaired linearly&quot;.</p>
@@ -902,7 +922,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
 
   
@@ -1335,7 +1355,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
 
   
@@ -1866,7 +1886,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
 
   
@@ -2275,7 +2295,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
 
   
@@ -2670,7 +2690,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
 
   
@@ -3629,7 +3649,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
 
   
@@ -4294,7 +4314,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4391,7 +4411,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4489,7 +4509,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:09:33" itemprop="dateModified" datetime="2026-08-31T08:09:33+00:00">2026-08-31</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
