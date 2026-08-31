@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    预备知识：读懂&quot;低秩压缩&quot;系列需要的一切 这个系列讲的是一件事：把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T08:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-31T08:10:38.741Z">
+<meta property="article:modified_time" content="2026-08-31T08:20:56.695Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -264,7 +264,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 08:10:38" itemprop="dateModified" datetime="2026-08-31T08:10:38+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 08:20:56" itemprop="dateModified" datetime="2026-08-31T08:20:56+00:00">2026-08-31</time>
     </span>
 
   
@@ -485,6 +485,14 @@
 <p>$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{与 } A,B \text{ 无关的常数}} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{只有这项需要优化}}$$</p>
 <p>交叉项之所以为零，是因为 $M^*$ 具有<strong>正交投影</strong>的性质：$M^*x$ 是 $y$ 在&quot;$x$ 的所有线性函数&quot;构成的子空间上的投影，所以残差 $y-M^*x$ 与任何形如 $Cx$ 的量都不相关。这里要注意区分两件事：$M^*$ 本身<strong>不是</strong>带秩约束问题的解（它是满秩的），它的作用是把&quot;带噪声的回归问题&quot;等价改写成&quot;用秩 384 矩阵逼近一个确定矩阵 $M^*$&quot;——改写之后才轮到 Eckart–Young 出场。第一项是低秩与否都消不掉的固有残差；第二项在白化坐标下就是 $\lVert (M^*-AB)L\rVert_F^2$，而&quot;用秩 $r$ 矩阵在 F 范数下最好地逼近给定矩阵&quot;正是上一节 Eckart–Young 定理的场景——SVD 截断直接给出全局最优。相比之下，用梯度下降直接优化 $A, B$ 只能得到局部最优（$A \to AR,\ B \to R^{-1}B$ 的旋转冗余还让优化面上出现平坦方向），而且慢得多。</p>
 <p>这个&quot;两步等于全局最优&quot;只在<strong>单层、二次损失</strong>下成立。一旦目标换成整个模型 36 层复合后的最终 loss，闭式解就不存在了——这正是训练路线能超过闭式路线的根本原因。同理，系列后期在 $AB$ 之外再加稀疏项时也破坏了这个结构，那里只能改用交替求解，不再有全局最优的保证。</p>
+<p><strong>与量化方法的关系。</strong> 压缩 LLM 的另一大流派是量化（把权重从 16 位浮点降到 4 位整数），它同样要在校准数据上做逐层拟合，思路和上面很像，但目标的选择停在了不同的地方：</p>
+<ul>
+<li><strong>AWQ、SmoothQuant</strong> 一类：用激活统计判断哪些通道重要（据此缩放或分配精度），但拟合目标始终是<strong>原权重 $W$ 本身</strong>——它们要的是&quot;量化后的权重接近原权重&quot;，激活只用来加权。</li>
+<li><strong>GPTQ</strong> 一类：顺序处理各层，拟合时用的是<strong>量化后模型的真实输入</strong>（因此吸收了一部分上游误差），但目标是&quot;教师权重作用在这个脏输入上&quot;的输出 $W x_s$。</li>
+<li><strong>本系列</strong>：输入同样取脏的 $x_s$，但目标取教师在自己<strong>干净</strong>输入上的输出 $W x_t$。</li>
+</ul>
+<p>差别只在最后一个下标，但在极端压缩下结果差距很大——我们实测过三种目标：按漂移分布加权逼近 $W$ 得到 19.40，匹配 $W x_s$（顺着漂移）得到 12.22，匹配 $W x_t$（纠正漂移）得到 5.59。</p>
+<p>为什么量化界不太需要这一步：4 位量化的权重误差远小于丢掉 80% 秩的误差，漂移轻微时两种目标几乎等价。压缩越极端，&quot;顺着漂移&quot;和&quot;纠正漂移&quot;的分野才越致命。反过来说，量化领域成熟的那些技巧（用激活重要性加权、逐层顺序补偿）本系列也都用上了，第 5 篇的度量修正与它们思路相通。</p>
 <p>两个引申：</p>
 <ul>
 <li>
@@ -769,6 +777,14 @@
 <p>$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{constant in } A,B} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{the only part to optimize}}$$</p>
 <p>The cross term vanishes because $M^*$ is an <strong>orthogonal projection</strong>: $M^*x$ is the projection of $y$ onto the subspace of linear functions of $x$, so the residual $y-M^*x$ is uncorrelated with anything of the form $Cx$. Note the distinction: $M^*$ itself is <strong>not</strong> the solution to the rank-constrained problem (it is full-rank); its role is to rewrite &quot;a noisy regression problem&quot; equivalently as &quot;approximate the fixed matrix $M^*$ with a rank-384 one&quot; — only then does Eckart–Young apply. The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^*-AB)L\rVert_F^2$ — and &quot;best rank-$r$ approximation of a given matrix in Frobenius norm&quot; is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.</p>
 <p>This equivalence holds only for a <strong>single layer with a quadratic loss</strong>. Once the objective becomes the final loss after composing all 36 layers, no closed form exists — which is precisely why the training route can beat the closed-form one. Likewise, adding a sparse term alongside $AB$ later in the series breaks the structure, so that part falls back to alternating solves with no global guarantee.</p>
+<p><strong>Relation to quantization methods.</strong> The other major family of LLM compression is quantization (weights from 16-bit floats down to 4-bit integers). It also fits layer by layer on calibration data, very much like the above, but stops at a different choice of target:</p>
+<ul>
+<li><strong>AWQ, SmoothQuant</strong> and kin: use activation statistics to judge which channels matter (then rescale or allocate precision), but the fitting target remains <strong>the original weight $W$</strong> — they want &quot;quantized weight close to original weight&quot;, with activations only providing weights.</li>
+<li><strong>GPTQ</strong> and kin: process layers sequentially and fit using the <strong>quantized model's real input</strong> (thus absorbing some upstream error), but the target is the teacher weight applied to that corrupted input, $W x_s$.</li>
+<li><strong>This series</strong>: the input is likewise the corrupted $x_s$, but the target is the teacher's output on its own <strong>clean</strong> input, $W x_t$.</li>
+</ul>
+<p>The difference is one subscript, yet under extreme compression the outcomes diverge sharply — we measured all three: approximating $W$ weighted by drifted statistics gives 19.40, matching $W x_s$ (following the drift) gives 12.22, matching $W x_t$ (correcting the drift) gives 5.59.</p>
+<p>Why quantization rarely needs this: 4-bit weight error is far smaller than discarding 80% of the rank, so with mild drift the two targets are nearly equivalent. The more extreme the compression, the more decisive the split between &quot;follow the drift&quot; and &quot;correct the drift&quot;. Conversely, the tricks quantization matured — activation-importance weighting, sequential layerwise compensation — are all used here too; part 5's metric fix is close kin to them.</p>
 <p>Two extensions:</p>
 <ul>
 <li>
