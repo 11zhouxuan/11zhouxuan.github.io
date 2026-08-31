@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    会移动的天花板：稀疏残差、换一把尺子与校准数据工程  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  第四篇以&quot;三把锁&quot;的解剖宣布闭式赛道收官于 5.02。然后它在一周内被推到了 4.71 &#x2F; 4.53（双验证窗口）——又砍掉近 0.5 nat，距离一个端到端蒸">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-31T07:58:09.672Z">
+<meta property="article:modified_time" content="2026-08-31T07:59:52.339Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="calibration">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:58:09" itemprop="dateModified" datetime="2026-08-31T07:58:09+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
     </span>
 
   
@@ -301,7 +301,7 @@
 <h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿账-1">1. 稀疏残差：W ≈ AB + S，第一次凿穿账 1</h3>
 <p>账 1（截断税，~2 nat）的架构根源是内容通路的超位置重尾谱——低秩在数学上表达不了 incoherent 的重尾结构。但<strong>稀疏项可以</strong>。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
 <p>做法：在每层的截断步里做交替求解（3 轮）——</p>
-<p>$$AB \leftarrow \text{whiten-SVD}(M^<em>-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^</em>-AB| \cdot \sigma_{col}\big)$$</p>
+<p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-nnz。预算严格配平：S 的每个非零值按 1.5 个参数计（含 index 开销；严格 CSR-int16 应为 2.0，勘误后纪录依然成立），从 rank 里扣。</p>
 <p><strong>S/LR 配比的剂量曲线</strong>（S 占总预算的份额）：</p>
 <table>
@@ -446,11 +446,11 @@
 <p>机制各不相同（迭代破坏自洽链、特征子空间对 24 batch 过拟合、oracle 收益不等于真实边际价值），但工程结论一致：<strong>在校准数据有限的闭式世界里，参数量少的估计器赢</strong>——对角赢完整、单遍赢迭代、阻尼赢全量。每个&quot;更准的模型&quot;都要用同样的 24-512 个 batch 去喂，多出来的自由度全变成噪声。</p>
 <h3 id="6-新范式的-oracle：地板低于一个训练过的模型">6. 新范式的 oracle：地板低于一个训练过的模型</h3>
 <p>给新配方重测 oracle 分解（换掉全部子层输入为教师干净值）：</p>
-<p>$$\text{oracle}<em>{\text{新范式}} = 3.75 \quad (&lt;\ 3.79</em>{\text{端到端蒸馏训练}})$$</p>
+<p>$$\text{oracle}_{\text{新范式}} = 3.75 \quad (&lt;\ 3.79_{\text{端到端蒸馏训练}})$$</p>
 <p><strong>闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。</strong> 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，<strong>当前 4.53 与训练之间的差距大头已经从&quot;税&quot;换成了&quot;漂移&quot;</strong>。而漂移矫正器是全秩的、对度量红利免疫（第 3 节），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。</p>
 <h3 id="7-结论">7. 结论</h3>
 <p><strong>最终版图</strong>（85% 线性层压缩、等预算 2.29B、零训练，双窗口）：</p>
-<p>$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}<em>{\text{稀疏×度量}} \to \underbrace{4.71/4.53}</em>{\text{+校准工程}} \to \underbrace{3.75}<em>{\text{新 oracle}} \to \underbrace{3.79}</em>{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}_{\text{稀疏×度量}} \to \underbrace{4.71/4.53}_{\text{+校准工程}} \to \underbrace{3.75}_{\text{新 oracle}} \to \underbrace{3.79}_{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$</p>
 <p>本篇新增的三条可迁移定律：</p>
 <ol>
 <li><strong>度量是一等公民。</strong> 逼近算法的&quot;最优性&quot;永远是相对某个度量的；换成 loss 感知的度量后，此前&quot;榨干&quot;的每个杠杆都重新有了油。检查任何压缩管线时，先问它的截断在什么度量下最优。</li>
@@ -470,7 +470,7 @@
 <h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-Ledger-1">1. Sparse Residuals: W ≈ AB + S, First Breach of Ledger 1</h3>
 <p>Ledger 1 (the ~2-nat truncation tax) is rooted in superposition heavy tails on the content pathway — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>. It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
 <p>Method: alternate inside each layer's truncation step (3 rounds) —</p>
-<p>$$AB \leftarrow \text{whiten-SVD}(M^<em>-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^</em>-AB| \cdot \sigma_{col}\big)$$</p>
+<p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>The AB step is the existing whitened truncation; the S step scores the residual in the whitened metric and keeps the top-nnz. Strictly budgeted: each nonzero of S is charged 1.5 parameters (index overhead; strict CSR-int16 would be 2.0 — the record survives the erratum), paid out of rank.</p>
 <p><strong>The S/LR dose-response</strong> (S's share of the total budget):</p>
 <table>
@@ -615,11 +615,11 @@
 <p>The mechanisms differ (iteration breaks the self-consistent chain; the eigen-subspace overfits 24 calibration batches; oracle gains ≠ real marginal value), but the engineering conclusion is uniform: <strong>in the calibration-limited closed-form world, the estimator with fewer parameters wins</strong> — diagonal over full, single-pass over iterated, damped over full-strength. Every &quot;more accurate model&quot; must be fed by the same 24-512 batches; the extra degrees of freedom all turn into noise.</p>
 <h3 id="6-The-New-Paradigm-s-Oracle-a-Floor-Below-a-Trained-Model">6. The New Paradigm's Oracle: a Floor Below a Trained Model</h3>
 <p>Re-running the oracle decomposition (swap all sublayer inputs with the teacher's clean values) on the new recipe:</p>
-<p>$$\text{oracle}<em>{\text{new}} = 3.75 \quad (&lt;\ 3.79</em>{\text{end-to-end distilled}})$$</p>
+<p>$$\text{oracle}_{\text{new}} = 3.75 \quad (&lt;\ 3.79_{\text{end-to-end distilled}})$$</p>
 <p><strong>The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.</strong> Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. <strong>The gap between today's 4.53 and training is now mostly drift, not tax.</strong> And drift correctors are full-rank, hence immune to the metric dividend (Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.</p>
 <h3 id="7-Conclusions">7. Conclusions</h3>
 <p><strong>The final landscape</strong> (85% linear-layer compression, equal 2.29B budget, zero training, both windows):</p>
-<p>$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}<em>{\text{sparse×metric}} \to \underbrace{4.71/4.53}</em>{\text{+calibration eng.}} \to \underbrace{3.75}<em>{\text{new oracle}} \to \underbrace{3.79}</em>{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$</p>
+<p>$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}_{\text{sparse×metric}} \to \underbrace{4.71/4.53}_{\text{+calibration eng.}} \to \underbrace{3.75}_{\text{new oracle}} \to \underbrace{3.79}_{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$</p>
 <p>Three new transferable laws from this campaign:</p>
 <ol>
 <li><strong>The metric is a first-class citizen.</strong> An approximation algorithm's &quot;optimality&quot; is always relative to a metric; switching to a loss-aware one refilled every previously &quot;exhausted&quot; lever. When auditing any compression pipeline, first ask under which metric its truncation is optimal.</li>

@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四个实验方向，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-25T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-31T07:58:09.672Z">
+<meta property="article:modified_time" content="2026-08-31T07:59:52.339Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 07:58:09" itemprop="dateModified" datetime="2026-08-31T07:58:09+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:59:52" itemprop="dateModified" datetime="2026-08-31T07:59:52+00:00">2026-08-31</time>
     </span>
 
   
@@ -472,7 +472,7 @@
 <p>最后一个实验是把两个已验证的小红利叠加（back-load + rms-lift-256）：<strong>5.13 / 5.11，失败</strong>。0.02 级的红利在同一块残余误差上重叠收割，不叠加。</p>
 <h3 id="7-结论：三把锁、三把钥匙与三条定律">7. 结论：三把锁、三把钥匙与三条定律</h3>
 <p><strong>最终版图</strong>（85% 压缩率、等预算 2.29B，held-out）：</p>
-<p>$$8.50_{\text{坍缩假象}} \to 5.59_{\text{轨迹矫正}} \to 5.09_{\text{免税矫正器}} \to \mathbf{5.02}<em>{\text{+分配+back-load}} \to 4.15</em>{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50_{\text{坍缩假象}} \to 5.59_{\text{轨迹矫正}} \to 5.09_{\text{免税矫正器}} \to \mathbf{5.02}_{\text{+分配+back-load}} \to 4.15_{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
 <p><strong>【后续更新】</strong> 这个&quot;终点&quot;随后又被推到 <strong>4.71/4.53</strong>：稀疏残差与度量修正的超线性组合 + 校准数据工程。详见<a href="/2026/08/30/closed-form-moving-ceiling/">第五篇《会移动的天花板》</a>。</p>
 <table>
 <thead>
@@ -690,7 +690,7 @@
 <p>The last experiment stacked the two verified dividends (back-load + rms-lift-256): <strong>5.13 / 5.11, fail.</strong> Dividends at the 0.02 level harvest the same residue and do not add.</p>
 <h3 id="7-Conclusions-Three-Locks-Three-Keys-Three-Laws">7. Conclusions: Three Locks, Three Keys, Three Laws</h3>
 <p><strong>The final landscape</strong> (85% compression, equal 2.29B budget, held-out):</p>
-<p>$$8.50_{\text{collapse illusion}} \to 5.59_{\text{traj. correction}} \to 5.09_{\text{tax-free correctors}} \to \mathbf{5.02}<em>{\text{+alloc+backload}} \to 4.15</em>{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p>$$8.50_{\text{collapse illusion}} \to 5.59_{\text{traj. correction}} \to 5.09_{\text{tax-free correctors}} \to \mathbf{5.02}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
 <p><strong>[Later update]</strong> This &quot;endpoint&quot; was subsequently pushed to <strong>4.71/4.53</strong> by the super-additive combination of sparse residuals and the metric fix, plus calibration-data engineering. See <a href="/2026/08/30/closed-form-moving-ceiling/">part 5: The Ceiling That Kept Moving</a>.</p>
 <table>
 <thead>
