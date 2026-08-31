@@ -170,13 +170,13 @@ $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分
 
 实际的选择是：自变量取**学生实际收到的输入** $x_s$（它已经被前面各层的压缩误差污染），目标取**教师在它自己的干净输入 $x_t$ 上的输出** $W x_t$。这时解变成
 
-$$M^* = W\,\Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
+$$M^* = W \Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
 
 多出来的因子 $\Sigma_{ts}\Sigma_{ss}^{-1}$ 是"从被污染的输入线性还原干净输入"的最优算子。所以 $M^*$ 同时干两件事：**先纠正上游累积的误差，再做教师那一层原本的变换**。只有当学生输入没有漂移（$x_s = x_t$）时这个因子才退化成单位矩阵、$M^*$ 才回到 $W$。系列第 2 篇标题里的"轨迹矫正"就是指这件事，它也是把结果从 8.5 推进到 5.59 的关键——低秩结构完全没变，只换了回归的目标。
 
 但这个 $M^*$ 是**满秩**的（4096×4096），并没有省参数——它只是"这一层最好能做成什么样"的答案。低秩约束在第二步进来：把 $M^*$ 压成两个瘦矩阵的乘积，即在
 
-$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB\,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
+$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
 
 的意义下找最优的 $A, B$。注意这里的误差是在**输入 $x$ 的真实分布下**衡量的，而不是直接比较两个矩阵的元素差——同样大小的矩阵误差，如果落在 $x$ 几乎不出现的方向上就无关紧要。把这个分布因素折进 SVD 的做法就是下面的白化。
 
@@ -380,13 +380,13 @@ One detail here decides whether the whole method works: **what is the target $y$
 
 The actual choice: the regressor is the input the student **actually receives**, $x_s$ (already corrupted by upstream compression error), while the target is the teacher's output on its own clean input, $W x_t$. The solution becomes
 
-$$M^* = W\,\Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
+$$M^* = W \Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
 
 The extra factor $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one. So $M^*$ does two jobs at once: **undo the accumulated upstream error, then apply the transformation the teacher layer performed.** Only when the student input has not drifted ($x_s = x_t$) does the factor collapse to the identity and $M^*$ return to $W$. This is what "trajectory correction" in part 2's title means, and it is what moved the result from 8.5 to 5.59 — the low-rank structure was unchanged; only the regression target was.
 
 But this $M^*$ is **full-rank** (4096×4096) and saves no parameters — it merely answers "what is the best this layer could be". The rank constraint enters in a second step: compress $M^*$ into a product of two thin matrices, i.e. find the optimal $A, B$ under
 
-$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB\,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
+$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
 
 Note the error is measured **under the true distribution of the input $x$**, not by comparing matrix entries directly — a matrix error of the same size does not matter if it lies along directions $x$ rarely takes. Folding that distributional factor into the SVD is exactly what whitening does below.
 
