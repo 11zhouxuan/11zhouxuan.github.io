@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    预备知识：读懂&quot;低秩压缩&quot;系列需要的一切 这个系列讲的是一件事：把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T08:00:00.000Z">
-<meta property="article:modified_time" content="2026-08-31T06:44:49.058Z">
+<meta property="article:modified_time" content="2026-08-31T06:46:09.783Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -264,7 +264,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:44:49" itemprop="dateModified" datetime="2026-08-31T06:44:49+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 06:46:09" itemprop="dateModified" datetime="2026-08-31T06:46:09+00:00">2026-08-31</time>
     </span>
 
   
@@ -473,6 +473,10 @@
 <p>这就是<strong>最小二乘回归</strong>。对 $M$ 求导置零，得到解（一行推导，展开平方、逐项求导即可）：</p>
 <p>$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$</p>
 <p>$\Sigma_{xx}$ 叫 $x$ 的<strong>协方差矩阵</strong>（描述输入在各方向上的分布强度），$\Sigma_{yx}$ 是<strong>互协方差</strong>。实际中 $\Sigma_{xx}$ 可能接近奇异（不可逆），所以给对角线加一个小量 $\lambda I$ 再求逆——这个稳定化技巧叫<strong>岭回归</strong>（ridge regression），$\lambda$ 是它唯一的超参数。</p>
+<p>但这个 $M^<em>$ 是<strong>满秩</strong>的（4096×4096），并没有省参数——它只是&quot;这一层最好能做成什么样&quot;的答案。低秩约束在第二步进来：把 $M^</em>$ 压成两个瘦矩阵的乘积，即在</p>
+<p>$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$</p>
+<p>的意义下找最优的 $A, B$。注意这里的误差是在<strong>输入 $x$ 的真实分布下</strong>衡量的，而不是直接比较两个矩阵的元素差——同样大小的矩阵误差，如果落在 $x$ 几乎不出现的方向上就无关紧要。把这个分布因素折进 SVD 的做法就是下面的白化。</p>
+<p>所以完整的两步是：<strong>先解回归得到满秩的目标 $M^<em>$，再把 $M^</em>$ 低秩化得到实际部署的 $A, B$。</strong> 系列各篇改进的其实是这两步里的不同环节——改回归目标（第 2 篇）、改低秩化时的度量（第 5 篇）、给 $AB$ 之外再加一个稀疏项（第 5 篇），等等。</p>
 <p>两个引申：</p>
 <ul>
 <li><strong>校准数据（calibration data）</strong>：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一&quot;见过&quot;的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。</li>
@@ -734,6 +738,10 @@
 <p>This is <strong>least-squares regression</strong>. Setting the derivative in $M$ to zero gives</p>
 <p>$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$</p>
 <p>$\Sigma_{xx}$ is the input <strong>covariance matrix</strong>; $\Sigma_{yx}$ the cross-covariance. In practice $\Sigma_{xx}$ can be near-singular, so a small $\lambda I$ is added before inverting — the stabilization known as <strong>ridge regression</strong>.</p>
+<p>But this $M^<em>$ is <strong>full-rank</strong> (4096×4096) and saves no parameters — it merely answers &quot;what is the best this layer could be&quot;. The rank constraint enters in a second step: compress $M^</em>$ into a product of two thin matrices, i.e. find the optimal $A, B$ under</p>
+<p>$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$</p>
+<p>Note the error is measured <strong>under the true distribution of the input $x$</strong>, not by comparing matrix entries directly — a matrix error of the same size does not matter if it lies along directions $x$ rarely takes. Folding that distributional factor into the SVD is exactly what whitening does below.</p>
+<p>So the full procedure is two steps: <strong>solve the regression for a full-rank target $M^<em>$, then low-rank-ify $M^</em>$ into the $A, B$ actually deployed.</strong> What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 5), adding a sparse term alongside $AB$ (part 5), and so on.</p>
 <p>Two extensions:</p>
 <ul>
 <li><strong>Calibration data</strong>: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever &quot;sees&quot;. Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).</li>
