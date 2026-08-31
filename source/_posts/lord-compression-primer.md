@@ -59,20 +59,19 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 | 被压缩的模型（教师） | Qwen3-8B-Base，80 亿参数，36 层，隐藏维 4096，词表 151936 |
 | 压缩后（学生） | 22.9 亿参数：252 个大矩阵全部换成低秩因子，embedding 与 lm_head 保持原样 |
 | 数据 | FineWeb-Edu（网页教育类文本）的 100B token 子集，用 Qwen3 分词器预先切好 |
-| 校准数据 | 从训练集分片中取若干段（后期用到 512 段 × 2048 token ≈ 100 万 token），闭式方法只用它估计统计量，不做梯度更新 |
+| 校准数据 | 从训练集分片中取若干段（后期用到 512 段 × 8192 token ≈ 420 万 token），闭式方法只用它估计统计量，不做梯度更新 |
 | 测试数据 | 独立的验证分割，与校准数据无重叠 |
 | 评测口径 | 每段文本逐位置预测下一个 token，累加交叉熵后按 token 数平均 |
 
-关于"两个数字"（如 4.68 / 4.51）：验证集本身很大（12 万段），我们每次评测只抽其中 40 段，并把它们分成两个各 20 段的窗口分别报告。这是系列早期为了识别数据抖动留下的习惯：后期单次改进往往只有 0.02~0.05，而不同文本段之间的难度差异本身就有这个量级——两个窗口同时变好基本可确定是真信号，只有一个窗口变好则多半是抽样波动。两个数字的绝对差（前一个窗口通常高 0.1~0.2）只反映两段文本难度不同，不必在意。
+评测口径：我们从验证分割中取 800 段（每段 8192 token，合计约 660 万 token），逐位置计算下一个 token 的交叉熵后按 token 平均，得到一个数值；同时把 800 段分成 8 折分别评测，用折间标准差衡量抽样波动（典型值 ±0.002 量级，远小于本系列关心的最小改进 0.02）。一次评测约 9 分钟。系列早期曾用 40 段并分成两个窗口分别报告，所以早期文章里会看到成对出现的两个数值；后来发现评测成本远低于当初的估计，已统一改为上述口径。
 
-必须说明这套口径的两处不严谨，读者据此判断结论的可靠性：其一，40 段 × 2048 token ≈ 8 万 token，只是验证集的极小一部分；其二，规范做法应当是切多折、报均值与标准差，而两个窗口只是它的简陋版本。评测本身很便宜（一次十几秒），这么做纯属历史沿革而非成本所迫——后续工作会改用多折口径。
 
 
 
 
 ### 4. 模型内部长什么样：一条传送带和 36 个加工站
 
-本系列的模型是 Transformer 结构。不需要完整学它，记住下面这幅文字版示意图就够了：
+本系列的模型 Qwen3-8B 属于 Transformer 家族（更具体地说是只含解码器的那一类，GPT 系列、Llama 系列都是同一家族）。下面这幅图画的就是 Qwen3-8B 的实际配置——36 层、隐藏维 4096、注意力用 GQA（32 个查询头共享 8 组键值头）、MLP 用 SwiGLU、归一化用 RMSNorm。不同模型在层数、维度、注意力细节上各有不同，但这个骨架是共通的：
 
 <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="max-width:480px;display:block;margin:1em auto;font-family:system-ui,sans-serif">
   <defs>
@@ -172,13 +171,11 @@ $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分
 - **校准数据（calibration data）**：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一"见过"的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。
 - **白化（whitening）**：想在"输入的真实分布下"做最优的低秩截断，标准做法是先对 $\Sigma_{xx}$ 做 Cholesky 分解 $\Sigma_{xx} = LL^T$（把对称正定矩阵写成三角矩阵乘积，相当于给空间换一组坐标让输入分布变成"各向均匀"），在新坐标下做 SVD 截断，再换回来。系列里的"白化 SVD 截断"就是这三步。
 
-### 8. 三个常用的诊断工具
+### 8. 两个常用的诊断指标
 
-系列里反复使用三个"体检工具"，先认识它们：
+系列里反复使用两个诊断指标，先认识它们：
 
 **R²（决定系数）**：衡量"$y$ 能被 $x$ 线性预测的程度"，取值 0 到 1。R²=1 表示完美线性关系，R²=0.3 表示线性回归只能解释 30% 的变化、剩下 70% 是线性工具够不着的成分。系列里用它回答"压缩模型的激活漂移中，有多少能用线性变换修回去"。
-
-**oracle 实验**：oracle 直译是"神谕"，在这里指**允许作弊的对照实验**。比如想知道"如果每一层都能收到完美的输入，模型能好到什么程度"，就在运行时把学生每层的输入偷偷换成教师的（现实中做不到，所以是作弊），测出来的 loss 就是某一类方法的**理论极限**。它回答的问题是"这条路最远能走多远"，帮我们判断还值不值得继续投入。
 
 **梯度敏感度（Fisher 信息）**：想知道模型里哪个参数重要、哪个可有可无？一个通用办法：算 loss 对它的导数（梯度）在很多样本上的平方平均。直觉：如果轻轻动一下某参数 loss 就剧烈变化（梯度大），它就重要；反之则不重要。这个"梯度平方的平均"叫 Fisher 信息，系列里用它来决定"哪些矩阵该多分一点秩"。
 
@@ -255,20 +252,19 @@ Every number in the series comes from one setup, stated here once:
 | Compressed model (teacher) | Qwen3-8B-Base: 8B params, 36 layers, hidden dim 4096, vocabulary 151,936 |
 | After compression (student) | 2.29B params: all 252 large matrices replaced by low-rank factors; embedding and lm_head left intact |
 | Data | FineWeb-Edu (educational web text), the 100B-token subset, pre-tokenized with the Qwen3 tokenizer |
-| Calibration data | passages drawn from training shards (up to 512 × 2048 tokens ≈ 1M tokens in later work); used only to estimate statistics, never for gradient updates |
+| Calibration data | passages drawn from training shards (up to 512 × 8192 tokens ≈ 4.2M tokens in later work); used only to estimate statistics, never for gradient updates |
 | Test data | a separate validation split, disjoint from the calibration data |
 | Metric | next-token cross-entropy at every position, summed and averaged over tokens |
 
-On the "two numbers" (e.g. 4.68 / 4.51): the validation split is large (120k passages), but each evaluation samples only 40 of them, split into two windows of 20 reported separately. This is a habit from early in the series for spotting sampling noise: later improvements are often only 0.02-0.05, which is also the scale of difficulty differences between text passages — if both windows improve, the signal is real; if only one does, it is probably sampling fluctuation. The absolute gap between them (the first window runs 0.1-0.2 higher) merely reflects differing passage difficulty.
+Evaluation protocol: we take 800 passages from the validation split (8192 tokens each, ~6.6M tokens total), compute next-token cross-entropy at every position and average over tokens for a single number; the 800 passages are also split into 8 folds so the between-fold standard deviation measures sampling spread (typically 0.002, far below the 0.02 improvements this series cares about). One evaluation takes about nine minutes. Early posts used 40 passages reported as two windows, hence the paired numbers seen there; having found evaluation far cheaper than first assumed, we standardized on the protocol above.
 
-Two caveats about this protocol, so readers can judge the conclusions accordingly: first, 40 × 2048 ≈ 80k tokens is a tiny fraction of the validation split; second, the rigorous approach would be multiple folds with a mean and standard deviation, of which two windows are a crude stand-in. Evaluation itself is cheap (about fifteen seconds), so this is historical habit rather than a cost constraint — later work will move to a multi-fold protocol.
 
 
 
 
 ### 4. Inside the Model: a Conveyor Belt and 36 Stations
 
-The model is a Transformer. You don't need the full picture — this text diagram suffices:
+The model in this series, Qwen3-8B, belongs to the Transformer family (specifically the decoder-only kind, as are the GPT and Llama series). The diagram below depicts Qwen3-8B's actual configuration: 36 layers, hidden dim 4096, GQA attention (32 query heads sharing 8 key-value groups), SwiGLU MLPs, RMSNorm normalization. Models differ in depth, width and attention details, but this skeleton is common to all:
 
 <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="max-width:480px;display:block;margin:1em auto;font-family:system-ui,sans-serif">
   <defs>
@@ -360,11 +356,9 @@ Two extensions:
 - **Calibration data**: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever "sees". Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).
 - **Whitening**: to truncate optimally under the input's true distribution, factor $\Sigma_{xx} = LL^T$ (Cholesky decomposition — a change of coordinates making the input distribution uniform in all directions), do the SVD truncation there, then map back. That three-step is the series' "whitened SVD truncation".
 
-### 8. Three Diagnostic Tools
+### 8. Two Diagnostic Measures
 
 **R² (coefficient of determination)**: how much of $y$ is linearly predictable from $x$, from 0 to 1. R²=0.3 means linear regression explains 30% of the variation; the other 70% is beyond any linear tool. The series uses it to ask "how much of the compressed model's drift can be repaired linearly".
-
-**Oracle experiments**: an oracle here means a **deliberately-cheating control experiment**. To learn "how good could the model be if every layer received perfect inputs", swap each student layer's input for the teacher's at runtime (impossible in deployment — hence cheating) and measure the loss: that is the **theoretical limit** of a whole family of methods, telling us whether a direction is worth further investment.
 
 **Gradient sensitivity (Fisher information)**: which parameters matter? Average the squared gradient of the loss with respect to each over many samples. Intuition: if wiggling a parameter moves the loss a lot, it matters. The series uses this to decide which matrices deserve more rank.
 
