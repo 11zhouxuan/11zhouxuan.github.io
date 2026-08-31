@@ -166,6 +166,15 @@ $$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ 
 
 $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分布强度），$\Sigma_{yx}$ 是**互协方差**。实际中 $\Sigma_{xx}$ 可能接近奇异（不可逆），所以给对角线加一个小量 $\lambda I$ 再求逆——这个稳定化技巧叫**岭回归**（ridge regression），$\lambda$ 是它唯一的超参数。
 
+但这个 $M^*$ 是**满秩**的（4096×4096），并没有省参数——它只是"这一层最好能做成什么样"的答案。低秩约束在第二步进来：把 $M^*$ 压成两个瘦矩阵的乘积，即在
+
+$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB\,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
+
+的意义下找最优的 $A, B$。注意这里的误差是在**输入 $x$ 的真实分布下**衡量的，而不是直接比较两个矩阵的元素差——同样大小的矩阵误差，如果落在 $x$ 几乎不出现的方向上就无关紧要。把这个分布因素折进 SVD 的做法就是下面的白化。
+
+所以完整的两步是：**先解回归得到满秩的目标 $M^*$，再把 $M^*$ 低秩化得到实际部署的 $A, B$。** 系列各篇改进的其实是这两步里的不同环节——改回归目标（第 2 篇）、改低秩化时的度量（第 5 篇）、给 $AB$ 之外再加一个稀疏项（第 5 篇），等等。
+
+
 两个引申：
 
 - **校准数据（calibration data）**：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一"见过"的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。
@@ -350,6 +359,15 @@ This is **least-squares regression**. Setting the derivative in $M$ to zero give
 $$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
 
 $\Sigma_{xx}$ is the input **covariance matrix**; $\Sigma_{yx}$ the cross-covariance. In practice $\Sigma_{xx}$ can be near-singular, so a small $\lambda I$ is added before inverting — the stabilization known as **ridge regression**.
+
+But this $M^*$ is **full-rank** (4096×4096) and saves no parameters — it merely answers "what is the best this layer could be". The rank constraint enters in a second step: compress $M^*$ into a product of two thin matrices, i.e. find the optimal $A, B$ under
+
+$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB\,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
+
+Note the error is measured **under the true distribution of the input $x$**, not by comparing matrix entries directly — a matrix error of the same size does not matter if it lies along directions $x$ rarely takes. Folding that distributional factor into the SVD is exactly what whitening does below.
+
+So the full procedure is two steps: **solve the regression for a full-rank target $M^*$, then low-rank-ify $M^*$ into the $A, B$ actually deployed.** What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 5), adding a sparse term alongside $AB$ (part 5), and so on.
+
 
 Two extensions:
 
