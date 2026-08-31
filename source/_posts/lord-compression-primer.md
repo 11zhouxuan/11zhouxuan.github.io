@@ -190,6 +190,16 @@ $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rV
 
 这个"两步等于全局最优"只在**单层、二次损失**下成立。一旦目标换成整个模型 36 层复合后的最终 loss，闭式解就不存在了——这正是训练路线能超过闭式路线的根本原因。同理，系列后期在 $AB$ 之外再加稀疏项时也破坏了这个结构，那里只能改用交替求解，不再有全局最优的保证。
 
+**与量化方法的关系。** 压缩 LLM 的另一大流派是量化（把权重从 16 位浮点降到 4 位整数），它同样要在校准数据上做逐层拟合，思路和上面很像，但目标的选择停在了不同的地方：
+
+- **AWQ、SmoothQuant** 一类：用激活统计判断哪些通道重要（据此缩放或分配精度），但拟合目标始终是**原权重 $W$ 本身**——它们要的是"量化后的权重接近原权重"，激活只用来加权。
+- **GPTQ** 一类：顺序处理各层，拟合时用的是**量化后模型的真实输入**（因此吸收了一部分上游误差），但目标是"教师权重作用在这个脏输入上"的输出 $W x_s$。
+- **本系列**：输入同样取脏的 $x_s$，但目标取教师在自己**干净**输入上的输出 $W x_t$。
+
+差别只在最后一个下标，但在极端压缩下结果差距很大——我们实测过三种目标：按漂移分布加权逼近 $W$ 得到 19.40，匹配 $W x_s$（顺着漂移）得到 12.22，匹配 $W x_t$（纠正漂移）得到 5.59。
+
+为什么量化界不太需要这一步：4 位量化的权重误差远小于丢掉 80% 秩的误差，漂移轻微时两种目标几乎等价。压缩越极端，"顺着漂移"和"纠正漂移"的分野才越致命。反过来说，量化领域成熟的那些技巧（用激活重要性加权、逐层顺序补偿）本系列也都用上了，第 5 篇的度量修正与它们思路相通。
+
 
 两个引申：
 
@@ -413,6 +423,16 @@ $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rV
 The cross term vanishes because $M^\*$ is an **orthogonal projection**: $M^\*x$ is the projection of $y$ onto the subspace of linear functions of $x$, so the residual $y-M^\*x$ is uncorrelated with anything of the form $Cx$. Note the distinction: $M^\*$ itself is **not** the solution to the rank-constrained problem (it is full-rank); its role is to rewrite "a noisy regression problem" equivalently as "approximate the fixed matrix $M^\*$ with a rank-384 one" — only then does Eckart–Young apply. The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^\*-AB)L\rVert\_F^2$ — and "best rank-$r$ approximation of a given matrix in Frobenius norm" is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.
 
 This equivalence holds only for a **single layer with a quadratic loss**. Once the objective becomes the final loss after composing all 36 layers, no closed form exists — which is precisely why the training route can beat the closed-form one. Likewise, adding a sparse term alongside $AB$ later in the series breaks the structure, so that part falls back to alternating solves with no global guarantee.
+
+**Relation to quantization methods.** The other major family of LLM compression is quantization (weights from 16-bit floats down to 4-bit integers). It also fits layer by layer on calibration data, very much like the above, but stops at a different choice of target:
+
+- **AWQ, SmoothQuant** and kin: use activation statistics to judge which channels matter (then rescale or allocate precision), but the fitting target remains **the original weight $W$** — they want "quantized weight close to original weight", with activations only providing weights.
+- **GPTQ** and kin: process layers sequentially and fit using the **quantized model's real input** (thus absorbing some upstream error), but the target is the teacher weight applied to that corrupted input, $W x_s$.
+- **This series**: the input is likewise the corrupted $x_s$, but the target is the teacher's output on its own **clean** input, $W x_t$.
+
+The difference is one subscript, yet under extreme compression the outcomes diverge sharply — we measured all three: approximating $W$ weighted by drifted statistics gives 19.40, matching $W x_s$ (following the drift) gives 12.22, matching $W x_t$ (correcting the drift) gives 5.59.
+
+Why quantization rarely needs this: 4-bit weight error is far smaller than discarding 80% of the rank, so with mild drift the two targets are nearly equivalent. The more extreme the compression, the more decisive the split between "follow the drift" and "correct the drift". Conversely, the tricks quantization matured — activation-importance weighting, sequential layerwise compensation — are all used here too; part 5's metric fix is close kin to them.
 
 
 Two extensions:
