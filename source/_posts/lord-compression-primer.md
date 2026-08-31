@@ -15,7 +15,7 @@ tags: [primer, LLM, compression, linear-algebra, tutorial]
 
 ## 预备知识：读懂"低秩压缩"系列需要的一切
 
-这个系列讲的是一件事：**把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨**。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 8 节的速查表。
+这个系列讲的是一件事：**把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨**。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查表。
 
 ### 1. 语言模型在做什么：预测下一个词
 
@@ -50,7 +50,27 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 举个换算例子：loss 从 8.5 降到 5.6，意味着正确 token 的平均概率提高了 $e^{2.9} \approx 18$ 倍——看似不到一半的数字变化，实际是能力的巨大差距。
 
-### 3. 模型内部长什么样：一条传送带和 36 个加工站
+### 3. 实验设置（读数字前必看）
+
+系列所有数字都在同一套设置下产生，这里一次讲清楚：
+
+| 项目 | 设置 |
+|---|---|
+| 被压缩的模型（教师） | Qwen3-8B-Base，80 亿参数，36 层，隐藏维 4096，词表 151936 |
+| 压缩后（学生） | 22.9 亿参数：252 个大矩阵全部换成低秩因子，embedding 与 lm_head 保持原样 |
+| 数据 | FineWeb-Edu（网页教育类文本）的 100B token 子集，用 Qwen3 分词器预先切好 |
+| 校准数据 | 从训练集分片中取若干段（后期用到 512 段 × 2048 token ≈ 100 万 token），闭式方法只用它估计统计量，不做梯度更新 |
+| 测试数据 | 独立的验证分割，与校准数据无重叠 |
+| 评测口径 | 每段文本逐位置预测下一个 token，累加交叉熵后按 token 数平均 |
+
+关于"两个数字"（如 4.68 / 4.51）：验证集本身很大（12 万段），我们每次评测只抽其中 40 段，并把它们分成两个各 20 段的窗口分别报告。这是系列早期为了识别数据抖动留下的习惯：后期单次改进往往只有 0.02~0.05，而不同文本段之间的难度差异本身就有这个量级——两个窗口同时变好基本可确定是真信号，只有一个窗口变好则多半是抽样波动。两个数字的绝对差（前一个窗口通常高 0.1~0.2）只反映两段文本难度不同，不必在意。
+
+必须说明这套口径的两处不严谨，读者据此判断结论的可靠性：其一，40 段 × 2048 token ≈ 8 万 token，只是验证集的极小一部分；其二，规范做法应当是切多折、报均值与标准差，而两个窗口只是它的简陋版本。评测本身很便宜（一次十几秒），这么做纯属历史沿革而非成本所迫——后续工作会改用多折口径。
+
+
+
+
+### 4. 模型内部长什么样：一条传送带和 36 个加工站
 
 本系列的模型是 Transformer 结构。不需要完整学它，记住下面这幅文字版示意图就够了：
 
@@ -104,12 +124,12 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 - 每个 block 里有两个部分，共 **7 个大矩阵**（每个矩阵就是一次线性变换）：
   - **注意力（attention）**：让每个位置"回头看"前文。四个矩阵各司其职——**q**（query，我在找什么）、**k**（key，每个位置能提供什么）、**v**（value，实际取回的内容）、**o**（output，把取回的内容整理后写回主线）。q 和 k 只负责算"该看哪里"（它们的点积经 softmax 变成注意力权重），v 和 o 负责"搬运内容"——系列正文把前者叫**模式通路**、后者叫**内容通路**，区别就在这里。
   - **MLP**：一个两层的非线性变换。三个矩阵：**gate** 和 **up** 把 4096 维升到 12288 维（gate 那一路过一个非线性函数后与 up 那一路**逐元素相乘**——这个结构叫 SwiGLU，那个乘法在系列里反复出场），**down** 再降回 4096 维写回主线。
-- **RMSNorm**：每个部分入口处的归一化层，把向量除以它自身的均方根（root mean square），防止数值越滚越大。注意它是个**除法**——分母由向量里幅度最大的那些分量主导，这个细节在第 4、5 篇会变得重要。
+- **RMSNorm**：每个部分入口处的归一化层，把向量除以它自身的均方根（root mean square），防止数值越滚越大。注意它是个**除法**——分母由向量里幅度最大的那些分量主导，这个细节在系列第 4、5 篇会变得重要。
 - **lm_head**：最后一站，一个 4096×151936 的矩阵，把 4096 维向量变成词表上每个 token 的得分。
 
 36 个 block × 7 个矩阵 = 252 个大矩阵，占了模型参数的绝大部分。**压缩它们就是压缩模型。**
 
-### 4. 低秩压缩：用两个瘦矩阵代替一个胖矩阵
+### 5. 低秩压缩：用两个瘦矩阵代替一个胖矩阵
 
 一个 4096×4096 的矩阵 $W$ 有 1680 万个参数。**低秩近似**的想法：找一个 4096×384 的 $A$ 和一个 384×4096 的 $B$，用乘积 $AB$ 代替 $W$。参数量变成 $384\times(4096+4096) = 315$ 万——**省了 81%**。数字 384 叫这个近似的**秩**（rank）：$AB$ 作为矩阵，秩最多是 384。
 
@@ -117,7 +137,7 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 系列里常说的"某矩阵保留了 66% 的能量"，意思就是前 384 个奇异值的平方和占全部平方和的 66%——剩下 34% 的信息被硬生生扔掉了。奇异值衰减快的矩阵（信息集中在少数方向）适合低秩压缩；衰减慢的（信息摊在几千个方向上）怎么压都疼，这正是系列后半的核心矛盾。
 
-### 5. 老师和学生：两条压缩路线
+### 6. 老师和学生：两条压缩路线
 
 压缩里有两个固定角色：**教师**（teacher）= 压缩前的原模型（80 亿参数，loss 2.11）；**学生**（student）= 压缩后的小模型。让学生模仿教师的过程叫**蒸馏**（distillation）。
 
@@ -133,7 +153,7 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 还有几个训练路线的词会在正文出现：**step**（一次参数更新，我们每步用约 52 万 token 的数据）、**warmup**（训练开头先把更新步长从 0 缓慢升到设定值，防止一开始就把参数改坏）、**学习率**（learning rate，每步微调的幅度）、**checkpoint**（训练中途存档）。
 
-### 6. 闭式方法的数学核心：一次最小二乘
+### 7. 闭式方法的数学核心：一次最小二乘
 
 系列里反复出现一个公式，这里推一遍——只用到线性代数。
 
@@ -152,7 +172,7 @@ $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分
 - **校准数据（calibration data）**：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一"见过"的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。
 - **白化（whitening）**：想在"输入的真实分布下"做最优的低秩截断，标准做法是先对 $\Sigma_{xx}$ 做 Cholesky 分解 $\Sigma_{xx} = LL^T$（把对称正定矩阵写成三角矩阵乘积，相当于给空间换一组坐标让输入分布变成"各向均匀"），在新坐标下做 SVD 截断，再换回来。系列里的"白化 SVD 截断"就是这三步。
 
-### 7. 三个常用的诊断工具
+### 8. 三个常用的诊断工具
 
 系列里反复使用三个"体检工具"，先认识它们：
 
@@ -162,7 +182,7 @@ $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分
 
 **梯度敏感度（Fisher 信息）**：想知道模型里哪个参数重要、哪个可有可无？一个通用办法：算 loss 对它的导数（梯度）在很多样本上的平方平均。直觉：如果轻轻动一下某参数 loss 就剧烈变化（梯度大），它就重要；反之则不重要。这个"梯度平方的平均"叫 Fisher 信息，系列里用它来决定"哪些矩阵该多分一点秩"。
 
-### 8. 术语速查表
+### 9. 术语速查表
 
 读正文时遇到不认识的词，回这里查：
 
@@ -180,13 +200,9 @@ $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分
 | 蒸馏 init | 用闭式方法算出的学生参数，当作后续训练的起点 |
 | in-sample / held-out | 在"拟合时用过的数据"上测 vs 在"没用过的数据"上测；前者虚高，后者才算数 |
 | 消融（ablation） | 逐个拆掉系统的组件分别测效果，确定每个组件的贡献 |
-| 校准数据 | 闭式方法用来估计统计量的那一小批文本（见第 6 节） |
+| 校准数据 | 闭式方法用来估计统计量的那一小批文本（见第 7 节） |
 | 矫正器（corrector） | 系列自创词：插在模型某处的一个小变换，负责把跑偏的中间结果拉回教师的轨迹 |
-| 截断税 | 系列自创词：把矩阵压到固定秩时不可避免的那部分 loss 损失（见第 4 节的"扔掉 34% 能量"） |
-
-最后一点阅读建议：系列各篇的实验结果常以"两个数字"报告（如 4.74 / 4.53）。按惯例，val loss 本该是一个固定测试集上的单一数值；我们多报一个是出于实用考虑：我们的测试集共 40 段文本，跑完一遍要 20 分钟，所以每次只评测其中一半。既然要挑一半，索引就干脆把两半分别评一次——前 20 段当主指标，后 20 段当独立复核。这么做的用处是判断改进的真伪：本系列后期单次改进往往只有 0.02~0.05，而不同文本之间的难度差异本身就有这个量级。如果两半同时变好，基本可以确定是真信号；只有一半变好则多半是数据抖动。它相当于一个简陋的误差棒——更规范的做法是切 4~8 段分别评测再报均值与标准差，我们受评测耗时所限没有这么做。两个数字的绝对差（前一半通常高 0.1~0.2）只反映两段文本难度不同，不必在意。
-
-
+| 截断税 | 系列自创词：把矩阵压到固定秩时不可避免的那部分 loss 损失（见第 5 节的"扔掉 34% 能量"） |
 
 </div>
 
@@ -195,7 +211,7 @@ $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分
 
 ## A Primer for the Low-Rank Compression Series
 
-This series is about one thing: **compressing an 8-billion-parameter language model down to 2.3 billion parameters without making it much dumber**. The main posts assume some machine-learning vocabulary; this page fills in all of it at once. If you know calculus and linear algebra, reading this primer should be enough to follow the whole series. If you already know language models, skip ahead and come back to the glossary (Section 8) as needed.
+This series is about one thing: **compressing an 8-billion-parameter language model down to 2.3 billion parameters without making it much dumber**. The main posts assume some machine-learning vocabulary; this page fills in all of it at once. If you know calculus and linear algebra, reading this primer should be enough to follow the whole series. If you already know language models, skip ahead and come back to the glossary (Section 9) as needed.
 
 ### 1. What a Language Model Does: Predict the Next Word
 
@@ -230,7 +246,27 @@ Anchor numbers used throughout the series (all on the same test text):
 
 Example conversion: going from loss 8.5 to 5.6 means the average probability on correct tokens grew by $e^{2.9} \approx 18\times$ — a modest-looking number change hiding a huge capability gap.
 
-### 3. Inside the Model: a Conveyor Belt and 36 Stations
+### 3. Experimental Setup (read before the numbers)
+
+Every number in the series comes from one setup, stated here once:
+
+| Item | Setting |
+|---|---|
+| Compressed model (teacher) | Qwen3-8B-Base: 8B params, 36 layers, hidden dim 4096, vocabulary 151,936 |
+| After compression (student) | 2.29B params: all 252 large matrices replaced by low-rank factors; embedding and lm_head left intact |
+| Data | FineWeb-Edu (educational web text), the 100B-token subset, pre-tokenized with the Qwen3 tokenizer |
+| Calibration data | passages drawn from training shards (up to 512 × 2048 tokens ≈ 1M tokens in later work); used only to estimate statistics, never for gradient updates |
+| Test data | a separate validation split, disjoint from the calibration data |
+| Metric | next-token cross-entropy at every position, summed and averaged over tokens |
+
+On the "two numbers" (e.g. 4.68 / 4.51): the validation split is large (120k passages), but each evaluation samples only 40 of them, split into two windows of 20 reported separately. This is a habit from early in the series for spotting sampling noise: later improvements are often only 0.02-0.05, which is also the scale of difficulty differences between text passages — if both windows improve, the signal is real; if only one does, it is probably sampling fluctuation. The absolute gap between them (the first window runs 0.1-0.2 higher) merely reflects differing passage difficulty.
+
+Two caveats about this protocol, so readers can judge the conclusions accordingly: first, 40 × 2048 ≈ 80k tokens is a tiny fraction of the validation split; second, the rigorous approach would be multiple folds with a mean and standard deviation, of which two windows are a crude stand-in. Evaluation itself is cheap (about fifteen seconds), so this is historical habit rather than a cost constraint — later work will move to a multi-fold protocol.
+
+
+
+
+### 4. Inside the Model: a Conveyor Belt and 36 Stations
 
 The model is a Transformer. You don't need the full picture — this text diagram suffices:
 
@@ -283,7 +319,7 @@ The model is a Transformer. You don't need the full picture — this text diagra
 
 36 blocks × 7 matrices = 252 large matrices — the bulk of all parameters. **Compressing them is compressing the model.**
 
-### 4. Low-Rank Compression: Two Thin Matrices for One Fat One
+### 5. Low-Rank Compression: Two Thin Matrices for One Fat One
 
 A 4096×4096 matrix $W$ has 16.8M parameters. **Low-rank approximation**: find a 4096×384 matrix $A$ and a 384×4096 matrix $B$, and use $AB$ instead. Parameter count: $384\times(4096+4096) = 3.15$M — **81% saved**. The number 384 is the **rank** of the approximation.
 
@@ -291,7 +327,7 @@ The cost: $AB$ has rank at most 384 while $W$ can have rank 4096 — if $W$ genu
 
 When the series says a matrix "keeps 66% of its energy at rank 384", it means the first 384 squared singular values are 66% of the total — the other 34% is simply thrown away. Matrices with fast-decaying spectra compress well; those spreading information across thousands of directions hurt no matter what — the central tension of the series' second half.
 
-### 5. Teacher and Student: Two Routes to Compression
+### 6. Teacher and Student: Two Routes to Compression
 
 Two fixed roles: the **teacher** = the original model (8B params, loss 2.11); the **student** = the compressed one. Making the student imitate the teacher is called **distillation**. There are two routes, and their difference underpins the whole series:
 
@@ -305,7 +341,7 @@ An analogy: training is a student grinding through ten thousand exercises; close
 
 Training-route vocabulary appearing in the posts: **step** (one parameter update; ours consumes ~0.5M tokens each), **warmup** (ramping the update size from 0 at the start to avoid early damage), **learning rate** (the nudge size), **checkpoint** (a mid-training save).
 
-### 6. The Mathematical Core of Closed-Form: One Least-Squares Solve
+### 7. The Mathematical Core of Closed-Form: One Least-Squares Solve
 
 One formula recurs throughout; here is its derivation, using only linear algebra.
 
@@ -324,7 +360,7 @@ Two extensions:
 - **Calibration data**: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever "sees". Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).
 - **Whitening**: to truncate optimally under the input's true distribution, factor $\Sigma_{xx} = LL^T$ (Cholesky decomposition — a change of coordinates making the input distribution uniform in all directions), do the SVD truncation there, then map back. That three-step is the series' "whitened SVD truncation".
 
-### 7. Three Diagnostic Tools
+### 8. Three Diagnostic Tools
 
 **R² (coefficient of determination)**: how much of $y$ is linearly predictable from $x$, from 0 to 1. R²=0.3 means linear regression explains 30% of the variation; the other 70% is beyond any linear tool. The series uses it to ask "how much of the compressed model's drift can be repaired linearly".
 
@@ -332,7 +368,7 @@ Two extensions:
 
 **Gradient sensitivity (Fisher information)**: which parameters matter? Average the squared gradient of the loss with respect to each over many samples. Intuition: if wiggling a parameter moves the loss a lot, it matters. The series uses this to decide which matrices deserve more rank.
 
-### 8. Glossary
+### 9. Glossary
 
 | Term | One-line explanation |
 |---|---|
@@ -348,13 +384,9 @@ Two extensions:
 | distillation init | closed-form student parameters used as the starting point for training |
 | in-sample / held-out | measured on data used for fitting vs on unseen data; the former flatters, the latter counts |
 | ablation | removing components one at a time to attribute each one's contribution |
-| calibration data | the small batch of text used to estimate statistics (Section 6) |
+| calibration data | the small batch of text used to estimate statistics (Section 7) |
 | corrector | series coinage: a small transform inserted somewhere in the model to pull drifted intermediate results back toward the teacher's trajectory |
-| truncation tax | series coinage: the unavoidable loss increase from forcing matrices to a fixed rank (the "34% of energy thrown away" of Section 4) |
-
-One final reading note: results in this series are often reported as **two numbers** (e.g. 4.74 / 4.53). Conventionally a val loss is a single number on a fixed test set; we report two for a practical reason. Our test set has 40 passages and a full pass takes 20 minutes, so each evaluation uses only half of it. Since we had to pick a half, we simply evaluate both: the first 20 passages as the headline metric, the last 20 as an independent replication. This matters for telling real improvements apart from noise: later in the series a single improvement is often just 0.02-0.05, which is also the scale of difficulty differences between text samples. If both halves improve together, the signal is real; a one-sided gain is usually noise. It is a crude error bar — the more rigorous approach would be 4-8 splits with a mean and standard deviation, which evaluation cost ruled out. The absolute gap between the two numbers (the first half runs 0.1-0.2 higher) merely reflects differing text difficulty and can be ignored.
-
-
+| truncation tax | series coinage: the unavoidable loss increase from forcing matrices to a fixed rank (the "34% of energy thrown away" of Section 5) |
 
 </div>
 
