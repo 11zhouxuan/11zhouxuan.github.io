@@ -186,7 +186,7 @@ $$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB\,x \rVert^2, \qquad A \in \mathbb{R}^
 
 $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{与 } A,B \text{ 无关的常数}} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{只有这项需要优化}}$$
 
-第一项是低秩与否都消不掉的固有残差；第二项在白化坐标下就是 $\lVert (M^*-AB)L\rVert_F^2$，而"用秩 $r$ 矩阵在 F 范数下最好地逼近给定矩阵"正是上一节 Eckart–Young 定理的场景——SVD 截断直接给出全局最优。相比之下，用梯度下降直接优化 $A, B$ 只能得到局部最优（$A \to AR,\ B \to R^{-1}B$ 的旋转冗余还让优化面上出现平坦方向），而且慢得多。
+交叉项之所以为零，是因为 $M^*$ 具有**正交投影**的性质：$M^*x$ 是 $y$ 在"$x$ 的所有线性函数"构成的子空间上的投影，所以残差 $y-M^*x$ 与任何形如 $Cx$ 的量都不相关。这里要注意区分两件事：$M^*$ 本身**不是**带秩约束问题的解（它是满秩的），它的作用是把"带噪声的回归问题"等价改写成"用秩 384 矩阵逼近一个确定矩阵 $M^*$"——改写之后才轮到 Eckart–Young 出场。第一项是低秩与否都消不掉的固有残差；第二项在白化坐标下就是 $\lVert (M^*-AB)L\rVert_F^2$，而"用秩 $r$ 矩阵在 F 范数下最好地逼近给定矩阵"正是上一节 Eckart–Young 定理的场景——SVD 截断直接给出全局最优。相比之下，用梯度下降直接优化 $A, B$ 只能得到局部最优（$A \to AR,\ B \to R^{-1}B$ 的旋转冗余还让优化面上出现平坦方向），而且慢得多。
 
 这个"两步等于全局最优"只在**单层、二次损失**下成立。一旦目标换成整个模型 36 层复合后的最终 loss，闭式解就不存在了——这正是训练路线能超过闭式路线的根本原因。同理，系列后期在 $AB$ 之外再加稀疏项时也破坏了这个结构，那里只能改用交替求解，不再有全局最优的保证。
 
@@ -396,7 +396,7 @@ You might ask: why the detour — why not optimize $A, B$ directly? Because **th
 
 $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{constant in } A,B} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{the only part to optimize}}$$
 
-The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^*-AB)L\rVert_F^2$ — and "best rank-$r$ approximation of a given matrix in Frobenius norm" is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.
+The cross term vanishes because $M^*$ is an **orthogonal projection**: $M^*x$ is the projection of $y$ onto the subspace of linear functions of $x$, so the residual $y-M^*x$ is uncorrelated with anything of the form $Cx$. Note the distinction: $M^*$ itself is **not** the solution to the rank-constrained problem (it is full-rank); its role is to rewrite "a noisy regression problem" equivalently as "approximate the fixed matrix $M^*$ with a rank-384 one" — only then does Eckart–Young apply. The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^*-AB)L\rVert_F^2$ — and "best rank-$r$ approximation of a given matrix in Frobenius norm" is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.
 
 This equivalence holds only for a **single layer with a quadratic loss**. Once the objective becomes the final loss after composing all 36 layers, no closed form exists — which is precisely why the training route can beat the closed-form one. Likewise, adding a sparse term alongside $AB$ later in the series breaks the structure, so that part falls back to alternating solves with no global guarantee.
 
