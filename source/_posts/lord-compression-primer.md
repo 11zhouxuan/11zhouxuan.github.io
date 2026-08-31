@@ -194,7 +194,19 @@ $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rV
 两个引申：
 
 - **校准数据（calibration data）**：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一"见过"的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。
-- **白化（whitening）**：想在"输入的真实分布下"做最优的低秩截断，标准做法是先对 $\Sigma\_{xx}$ 做 Cholesky 分解 $\Sigma\_{xx} = LL^T$（把对称正定矩阵写成三角矩阵乘积，相当于给空间换一组坐标让输入分布变成"各向均匀"），在新坐标下做 SVD 截断，再换回来。系列里的"白化 SVD 截断"就是这三步。
+- **白化（whitening）**：一次坐标变换，作用是让"衡量误差"变得公平。
+
+  为什么需要它：低秩截断必须丢掉一些方向，而输入 $x$ 的分布是极不均匀的——某些方向上 $x$ 的取值大且常见，某些方向几乎不出现。在后者上犯多大误差都无所谓（乘上去的分量本来接近零），所以不能按"矩阵元素差"来判断丢哪些方向。
+
+  怎么做：$x$ 的协方差矩阵 $\Sigma\_{xx}$ 恰好描述了各方向的活跃程度。对它做 Cholesky 分解 $\Sigma\_{xx}=LL^T$（把对称正定矩阵写成一个三角矩阵与其转置的乘积），再令 $z = L^{-1}x$，则 $z$ 的协方差变成单位矩阵——各方向方差都是 1、互不相关，这就是"白"（借自白噪声：能量在所有方向上均匀分布）。
+
+  为什么这样就对了：在新坐标下，我们真正关心的误差变成一个普通的矩阵范数
+
+  $$\mathbb{E}\lVert (M-AB)x \rVert^2 = \lVert (M-AB)L \rVert\_F^2$$
+
+  于是 Eckart–Young 定理可以直接用在 $(M-AB)L$ 上，SVD 截断即最优。**"在真实输入分布下最优"经过白化变成了"在普通矩阵范数下最优"，后者有解析解。** 算完再乘回 $L^{-1}$ 换回原坐标，得到实际部署的 $A, B$。系列里说的"白化 SVD 截断"就是这三步。
+
+  一个类比：比较两个城市的治安不能直接比案件数，要先除以人口变成发案率。白化就是矩阵版的"除以人口"，先把各方向的重要性归一化，再比较误差。
 
 ### 8. 两个常用的诊断指标
 
@@ -404,7 +416,19 @@ This equivalence holds only for a **single layer with a quadratic loss**. Once t
 Two extensions:
 
 - **Calibration data**: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever "sees". Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).
-- **Whitening**: to truncate optimally under the input's true distribution, factor $\Sigma\_{xx} = LL^T$ (Cholesky decomposition — a change of coordinates making the input distribution uniform in all directions), do the SVD truncation there, then map back. That three-step is the series' "whitened SVD truncation".
+- **Whitening**: a change of coordinates whose purpose is to make error measurement fair.
+
+  Why it is needed: low-rank truncation must discard some directions, and the input distribution is highly uneven — along some directions $x$ takes large, frequent values; along others it barely appears. Error along the latter is harmless (the component multiplying it is near zero), so "difference in matrix entries" is the wrong criterion for choosing what to discard.
+
+  How: the covariance $\Sigma\_{xx}$ describes exactly how active each direction is. Factor it as $\Sigma\_{xx}=LL^T$ (Cholesky: a symmetric positive-definite matrix written as a triangular matrix times its transpose) and set $z = L^{-1}x$; then $z$ has identity covariance — unit variance in every direction, no correlations. That is "white" (as in white noise: energy spread evenly across directions).
+
+  Why that works: in the new coordinates the error we actually care about becomes an ordinary matrix norm
+
+  $$\mathbb{E}\lVert (M-AB)x \rVert^2 = \lVert (M-AB)L \rVert\_F^2$$
+
+  so Eckart–Young applies directly to $(M-AB)L$ and SVD truncation is optimal. **"Optimal under the true input distribution" becomes, after whitening, "optimal in an ordinary matrix norm" — and the latter has a closed-form solution.** Multiply back by $L^{-1}$ to return to the original coordinates and obtain the deployed $A, B$. The series' "whitened SVD truncation" is these three steps.
+
+  An analogy: comparing two cities' safety by raw crime counts is wrong; you divide by population to get a rate. Whitening is the matrix version of dividing by population — normalize each direction's importance first, then compare errors.
 
 ### 8. Two Diagnostic Measures
 
