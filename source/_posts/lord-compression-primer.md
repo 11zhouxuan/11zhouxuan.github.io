@@ -182,6 +182,14 @@ $$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB\,x \rVert^2, \qquad A \in \mathbb{R}^
 
 所以完整的两步是：**先解回归得到满秩的目标 $M^*$，再把 $M^*$ 低秩化得到实际部署的 $A, B$。** 系列各篇改进的其实是这两步里的不同环节——改回归目标（第 2 篇）、改低秩化时的度量（第 5 篇）、给 $AB$ 之外再加一个稀疏项（第 5 篇），等等。
 
+也许你会问：为什么要绕这两步，不直接对 $A, B$ 做优化？因为**这里的两步法给出的就是全局最优解，而且是可证的**。关键在于目标函数可以按 $M^*$ 干净地拆开（交叉项为零）：
+
+$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{与 } A,B \text{ 无关的常数}} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{只有这项需要优化}}$$
+
+第一项是低秩与否都消不掉的固有残差；第二项在白化坐标下就是 $\lVert (M^*-AB)L\rVert_F^2$，而"用秩 $r$ 矩阵在 F 范数下最好地逼近给定矩阵"正是上一节 Eckart–Young 定理的场景——SVD 截断直接给出全局最优。相比之下，用梯度下降直接优化 $A, B$ 只能得到局部最优（$A \to AR,\ B \to R^{-1}B$ 的旋转冗余还让优化面上出现平坦方向），而且慢得多。
+
+这个"两步等于全局最优"只在**单层、二次损失**下成立。一旦目标换成整个模型 36 层复合后的最终 loss，闭式解就不存在了——这正是训练路线能超过闭式路线的根本原因。同理，系列后期在 $AB$ 之外再加稀疏项时也破坏了这个结构，那里只能改用交替求解，不再有全局最优的保证。
+
 
 两个引申：
 
@@ -383,6 +391,14 @@ $$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB\,x \rVert^2, \qquad A \in \mathbb{R}^
 Note the error is measured **under the true distribution of the input $x$**, not by comparing matrix entries directly — a matrix error of the same size does not matter if it lies along directions $x$ rarely takes. Folding that distributional factor into the SVD is exactly what whitening does below.
 
 So the full procedure is two steps: **solve the regression for a full-rank target $M^*$, then low-rank-ify $M^*$ into the $A, B$ actually deployed.** What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 5), adding a sparse term alongside $AB$ (part 5), and so on.
+
+You might ask: why the detour — why not optimize $A, B$ directly? Because **the two-step procedure here yields the global optimum, provably.** The objective splits cleanly around $M^*$ (the cross term vanishes):
+
+$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{constant in } A,B} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{the only part to optimize}}$$
+
+The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^*-AB)L\rVert_F^2$ — and "best rank-$r$ approximation of a given matrix in Frobenius norm" is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.
+
+This equivalence holds only for a **single layer with a quadratic loss**. Once the objective becomes the final loss after composing all 36 layers, no closed form exists — which is precisely why the training route can beat the closed-form one. Likewise, adding a sparse term alongside $AB$ later in the series breaks the structure, so that part falls back to alternating solves with no global guarantee.
 
 
 Two extensions:
