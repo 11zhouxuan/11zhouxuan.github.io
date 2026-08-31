@@ -156,7 +156,7 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 系列里反复出现一个公式，这里推一遍——只用到线性代数。
 
-问题：学生某一层收到输入向量 $x$，我们希望这一层的输出尽量接近某个目标 $y$（比如"教师在同样位置的输出"）。找一个矩阵 $M$，最小化在大量样本上的平均误差：
+问题：学生某一层收到输入向量 $x$，我们希望这一层的输出尽量接近某个目标 $y$。找一个矩阵 $M$，最小化在大量样本上的平均误差：
 
 $$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
 
@@ -165,6 +165,14 @@ $$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
 $$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
 
 $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分布强度），$\Sigma_{yx}$ 是**互协方差**。实际中 $\Sigma_{xx}$ 可能接近奇异（不可逆），所以给对角线加一个小量 $\lambda I$ 再求逆——这个稳定化技巧叫**岭回归**（ridge regression），$\lambda$ 是它唯一的超参数。
+
+这里有一个关键的细节，它决定了整个方法的成败：**目标 $y$ 取什么？** 一个自然但错误的选择是"教师这一层在同样输入上的输出"，即 $y = Wx$（$W$ 是教师的原权重）——那样解出来的 $M^*$ 恰好就是 $W$ 本身，什么信息也没多出来。
+
+实际的选择是：自变量取**学生实际收到的输入** $x_s$（它已经被前面各层的压缩误差污染），目标取**教师在它自己的干净输入 $x_t$ 上的输出** $W x_t$。这时解变成
+
+$$M^* = W\,\Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
+
+多出来的因子 $\Sigma_{ts}\Sigma_{ss}^{-1}$ 是"从被污染的输入线性还原干净输入"的最优算子。所以 $M^*$ 同时干两件事：**先纠正上游累积的误差，再做教师那一层原本的变换**。只有当学生输入没有漂移（$x_s = x_t$）时这个因子才退化成单位矩阵、$M^*$ 才回到 $W$。系列第 2 篇标题里的"轨迹矫正"就是指这件事，它也是把结果从 8.5 推进到 5.59 的关键——低秩结构完全没变，只换了回归的目标。
 
 但这个 $M^*$ 是**满秩**的（4096×4096），并没有省参数——它只是"这一层最好能做成什么样"的答案。低秩约束在第二步进来：把 $M^*$ 压成两个瘦矩阵的乘积，即在
 
@@ -350,7 +358,7 @@ Training-route vocabulary appearing in the posts: **step** (one parameter update
 
 One formula recurs throughout; here is its derivation, using only linear algebra.
 
-Problem: a student layer receives input $x$ and we want its output to approximate a target $y$ (e.g. the teacher's output at the same position). Find the matrix $M$ minimizing the average error
+Problem: a student layer receives input $x$ and we want its output to approximate a target $y$. Find the matrix $M$ minimizing the average error
 
 $$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
 
@@ -359,6 +367,14 @@ This is **least-squares regression**. Setting the derivative in $M$ to zero give
 $$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
 
 $\Sigma_{xx}$ is the input **covariance matrix**; $\Sigma_{yx}$ the cross-covariance. In practice $\Sigma_{xx}$ can be near-singular, so a small $\lambda I$ is added before inverting — the stabilization known as **ridge regression**.
+
+One detail here decides whether the whole method works: **what is the target $y$?** A natural but wrong choice is "the teacher layer's output on the same input", $y = Wx$ with $W$ the teacher's original weight — that would make $M^* = W$ exactly, adding no information.
+
+The actual choice: the regressor is the input the student **actually receives**, $x_s$ (already corrupted by upstream compression error), while the target is the teacher's output on its own clean input, $W x_t$. The solution becomes
+
+$$M^* = W\,\Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
+
+The extra factor $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one. So $M^*$ does two jobs at once: **undo the accumulated upstream error, then apply the transformation the teacher layer performed.** Only when the student input has not drifted ($x_s = x_t$) does the factor collapse to the identity and $M^*$ return to $W$. This is what "trajectory correction" in part 2's title means, and it is what moved the result from 8.5 to 5.59 — the low-rank structure was unchanged; only the regression target was.
 
 But this $M^*$ is **full-rank** (4096×4096) and saves no parameters — it merely answers "what is the best this layer could be". The rank constraint enters in a second step: compress $M^*$ into a product of two thin matrices, i.e. find the optimal $A, B$ under
 
