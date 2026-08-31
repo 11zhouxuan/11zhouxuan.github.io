@@ -19,7 +19,7 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 ### 1. 一个意外的发现
 
-对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$），使用激活加权 SVD（ASVD，$\alpha=1.0$）配合**逐层 rank 分配**（按 $\lVert WS\rVert_F$ 分配，平均 rank 357，Block 0 只分到 rank 32）得到的模型 val loss = 8.50。作为对比，plain SVD（均匀 rank=384）的 val loss = 18.65——ASVD 看似好了一倍多。
+对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$），使用激活加权 SVD（ASVD，$\alpha=1.0$）配合**逐层 rank 分配**（按 $\lVert WS\rVert\_F$ 分配，平均 rank 357，Block 0 只分到 rank 32）得到的模型 val loss = 8.50。作为对比，plain SVD（均匀 rank=384）的 val loss = 18.65——ASVD 看似好了一倍多。
 
 但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：
 
@@ -46,7 +46,7 @@ $$\text{把所有概率集中到出现频率最高的 token 上}$$
 
 信息论上可以精确验证这一点。如果模型是常数预测器（每个位置输出同一个分布 $q$），它的 CE 等于语料 unigram 分布 $p$ 与 $q$ 的交叉熵，下界是 unigram 熵：
 
-$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上实测）}$$
+$$\min\_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上实测）}$$
 
 坍缩模型的 8.50 恰好落在这个下界之上 1 nat——它是一个接近最优的常数预测器。同时直接测量证实了"常数函数"：采样 64 个位置，输出分布之间的两两 KL 散度平均只有 **0.007**（正常模型 KL 在 1~10 量级）。
 
@@ -54,7 +54,7 @@ $$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上实
 
 **为什么 ASVD 导致坍缩而 plain SVD 不会？**
 
-ASVD 对每层用 $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$ 加权。关键观察：**相邻层的 $S$ 高度相似**（因为残差连接让激活分布变化缓慢）。这意味着：
+ASVD 对每层用 $S = \text{diag}(\mathbb{E}[\lvert x\_i\rvert])$ 加权。关键观察：**相邻层的 $S$ 高度相似**（因为残差连接让激活分布变化缓慢）。这意味着：
 
 - 每一层的 SVD 截断都优先保留 $S$ 大的方向（高激活通道）
 - 每一层都丢掉 $S$ 小的方向
@@ -128,7 +128,7 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 
 **ASVD 的 MLP 对所有 token 输出几乎相同的向量**（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。
 
-这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。
+这意味着在残差加法 $h\_{new} = h\_{old} + \text{MLP}(h\_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。
 
 **根本原因**：down\_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down\_proj 只保留了 384 个线性组合——这些组合恰好是所有 token **共享的成分**（因为 ASVD 的加权偏好保留高激活通道），而 **token-specific 的差异成分被丢弃**。
 
@@ -209,7 +209,7 @@ $$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \
 
 ### 1. An Unexpected Finding
 
-Applying low-rank factorization to a 36-layer LLM (replacing each linear layer $W$ with $AB$) using activation-weighted SVD (ASVD, $\alpha=1.0$) with **per-layer rank allocation** (proportional to $\lVert WS\rVert_F$; mean rank 357, Block 0 starved at rank 32) yields a val loss of 8.50. For comparison, plain SVD (uniform rank=384) gives 18.65 — ASVD appears more than twice as good.
+Applying low-rank factorization to a 36-layer LLM (replacing each linear layer $W$ with $AB$) using activation-weighted SVD (ASVD, $\alpha=1.0$) with **per-layer rank allocation** (proportional to $\lVert WS\rVert\_F$; mean rank 357, Block 0 starved at rank 32) yields a val loss of 8.50. For comparison, plain SVD (uniform rank=384) gives 18.65 — ASVD appears more than twice as good.
 
 But when we inspect the model's actual token predictions:
 
@@ -236,7 +236,7 @@ Commas appear in ~3.6% of positions in English text. If the model outputs ~10% p
 
 This can be verified information-theoretically. If the model is a constant predictor (outputting the same distribution $q$ at every position), its CE equals the cross-entropy between the corpus unigram distribution $p$ and $q$, lower-bounded by the unigram entropy:
 
-$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats (measured on our val data)}$$
+$$\min\_q H(p, q) = H(p) \approx 7.51 \text{ nats (measured on our val data)}$$
 
 The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal constant predictor. Direct measurement confirms constancy: across 64 sampled positions, the mean pairwise KL between output distributions is only **0.007** (normal models range 1–10).
 
@@ -244,7 +244,7 @@ The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal c
 
 **Why does ASVD cause collapse while plain SVD does not?**
 
-ASVD weights each layer by $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$. The key observation: **adjacent layers have highly similar $S$** (because residual connections keep activation distributions stable). This means:
+ASVD weights each layer by $S = \text{diag}(\mathbb{E}[\lvert x\_i\rvert])$. The key observation: **adjacent layers have highly similar $S$** (because residual connections keep activation distributions stable). This means:
 
 - Every layer's SVD truncation preferentially retains directions where $S$ is large
 - Every layer discards directions where $S$ is small
@@ -318,7 +318,7 @@ The key is not the MLP output magnitude, but **whether the MLP output differs ac
 
 **ASVD's MLP outputs are nearly identical across all tokens** (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).
 
-In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.
+In the residual addition $h\_{new} = h\_{old} + \text{MLP}(h\_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.
 
 **Root cause**: When down\_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the **shared components** across tokens (high-activation channels) while discarding the **token-specific differences**.
 

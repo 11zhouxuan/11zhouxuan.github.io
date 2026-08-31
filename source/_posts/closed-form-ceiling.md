@@ -21,7 +21,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 ### 1. 消融的意外：便宜的赢了贵的
 
-上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down\_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维），让乘法交叉项 $g\delta_u + u\delta_g$ 在扩展空间中重新变得线性可表——理论上非常对症。同时顺手加了一个"免费"组件：lm\_head 矫正。
+上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down\_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维），让乘法交叉项 $g\delta\_u + u\delta\_g$ 在扩展空间中重新变得线性可表——理论上非常对症。同时顺手加了一个"免费"组件：lm\_head 矫正。
 
 消融结果完全出乎预料（held-out，同为 rank-384 基础）：
 
@@ -30,13 +30,13 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 | 扩展特征 | −0.09 nat | **+340M 参数** |
 | **lm\_head 矫正** | **−0.28 nat** | **≈0 参数** |
 
-精心设计的特征工程收益微薄（纯误差二阶项 $\delta_g\delta_u$ 在扩展空间中依然不可表），而"免费"的那个贡献了三倍的改善。两者严格可加：$5.59 - 0.28 - 0.09 = 5.22 \approx 5.23$（实测）。
+精心设计的特征工程收益微薄（纯误差二阶项 $\delta\_g\delta\_u$ 在扩展空间中依然不可表），而"免费"的那个贡献了三倍的改善。两者严格可加：$5.59 - 0.28 - 0.09 = 5.22 \approx 5.23$（实测）。
 
 ### 2. 免税矫正器原理
 
 lm\_head 矫正为什么这么值？出口流水线是：36 个 block → final RMSNorm → lm\_head（4096→151936，未压缩）→ logits。所有压缩方法只矫正被压缩的层，而 lm\_head "没被压缩所以没人碰"——但它收到的**输入**已经漂移了。解一个 4096×4096 的全秩回归 $P$（学生 final hidden → 教师 final hidden），吸收进头部权重：
 
-$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$
+$$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它强在四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是**全秩**的——这是全网唯一不付 rank-384 截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。
 
@@ -66,7 +66,7 @@ $$\text{oracle} = 4.0 \sim 4.3$$
 
 逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自**单独一层**：
 
-$$R^2:\ \underbrace{0.815}_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}_{\text{一层砍掉 0.543}}$$
+$$R^2:\ \underbrace{0.815}\_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}\_{\text{一层砍掉 0.543}}$$
 
 其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊（MLP 输出幅度是邻居的 2 倍、override ratio 0.60 vs 邻居 0.25——文献中 massive-activation 层的典型特征）。
 
@@ -100,7 +100,7 @@ lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 �
 
 1. **闭式赛道的最终格局**（85% 压缩率，2.29B 同预算）：
 
-$$8.50_{\text{坍缩假象}} \to \mathbf{5.09}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 界}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$
+$$8.50\_{\text{坍缩假象}} \to \mathbf{5.09}\_{\text{闭式冠军}} \to \underbrace{\approx 4.0}\_{\text{逐层范式 oracle 界}} \to 3.20\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
 
 **【后续更新】** 纪录随后被 loss-aware rank 分配与 back-load 深度倾斜推进到 **5.02**，并且 oracle 分解实验揭示了截断税的深度分布（几乎全部在 block 18-35）。详见[第四篇《闭式天花板的解剖》](/2026/08/25/closed-form-anatomy/)。
 
@@ -123,7 +123,7 @@ This concludes the low-rank compression trilogy ([part 1: representation collaps
 
 ### 1. An Ablation Surprise: the Cheap Component Beats the Expensive One
 
-Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down\_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim), making the cross terms $g\delta_u + u\delta_g$ linear again in the extended space — theoretically well-aimed. We also added a "free" component along the way: an lm\_head correction.
+Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down\_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim), making the cross terms $g\delta\_u + u\delta\_g$ linear again in the extended space — theoretically well-aimed. We also added a "free" component along the way: an lm\_head correction.
 
 The ablation was a complete surprise (held-out, rank-384 base):
 
@@ -132,13 +132,13 @@ The ablation was a complete surprise (held-out, rank-384 base):
 | Extended features | −0.09 nat | **+340M params** |
 | **lm\_head correction** | **−0.28 nat** | **≈0 params** |
 
-The carefully engineered features underdelivered (the pure second-order term $\delta_g\delta_u$ remains unrepresentable even in the extended space), while the free component contributed 3× more. The two are strictly additive: $5.59 - 0.28 - 0.09 = 5.22 \approx 5.23$ (measured).
+The carefully engineered features underdelivered (the pure second-order term $\delta\_g\delta\_u$ remains unrepresentable even in the extended space), while the free component contributed 3× more. The two are strictly additive: $5.59 - 0.28 - 0.09 = 5.22 \approx 5.23$ (measured).
 
 ### 2. The Tax-Free Corrector Principle
 
 Why is the lm\_head fix so valuable? The exit pipeline is: 36 blocks → final RMSNorm → lm\_head (4096→151936, uncompressed) → logits. Every compression method corrects only compressed layers, and lm\_head is "uncompressed, so nobody touches it" — yet its **input** has drifted. Solve a full-rank 4096×4096 regression $P$ (student final hidden → teacher final hidden) and absorb it:
 
-$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$
+$$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four multipliers: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is **full-rank** — the only spot in the network that pays no rank-384 truncation tax; it is the last hop, feeding straight into logits; every token passes through it.
 
@@ -168,7 +168,7 @@ Simultaneously, a deeper fact emerged: **training (3.20 at step 500) has already
 
 Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a **single layer**:
 
-$$R^2:\ \underbrace{0.815}_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}_{\text{one layer destroys 0.543}}$$
+$$R^2:\ \underbrace{0.815}\_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}\_{\text{one layer destroys 0.543}}$$
 
 Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself (MLP output 2× its neighbors' magnitude, override ratio 0.60 vs 0.25 — the signature of a massive-activation layer).
 
@@ -202,7 +202,7 @@ The fading of repetition matches the prediction that degenerate strategies (coll
 
 1. **The final closed-form landscape** (85% compression, equal 2.29B budget):
 
-$$8.50_{\text{collapse illusion}} \to \mathbf{5.09}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle bound}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$
+$$8.50\_{\text{collapse illusion}} \to \mathbf{5.09}\_{\text{closed-form champion}} \to \underbrace{\approx 4.0}\_{\text{layerwise oracle bound}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
 **[Later update]** The record was subsequently pushed to **5.02** by loss-aware rank allocation and back-loaded depth tilting, and an oracle-decomposition experiment revealed the depth distribution of the truncation tax (almost entirely in blocks 18-35). See [part 4: Anatomy of the Closed-Form Ceiling](/2026/08/25/closed-form-anatomy/).
 

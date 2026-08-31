@@ -36,7 +36,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-reg
 
 所有失败的闭式方法都在解同一类问题——用某种范数逼近教师权重：
 
-$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$
+$$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 这个目标有一个隐含假设：这一层在推理时会收到**教师轨迹上的干净输入**。但压缩后的模型里，第 $i$ 层收到的是**已经被前 $i-1$ 层的压缩误差污染的输入**。误差逐层累积，36 层后不是坍缩就是爆炸。
 
@@ -45,8 +45,8 @@ $$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$
 | 逐层目标 | 含义 | val loss |
 |---|---|---|
 | 逼近 $W$，按漂移分布加权 | 追逐腐化的分布 | 19.40 |
-| 匹配 $W x_{s}$ | 教师权重作用在脏输入上——**顺从漂移** | 12.22 |
-| 匹配 $W x_{t}$ | **把激活拉回教师轨迹** | **6.72** |
+| 匹配 $W x\_{s}$ | 教师权重作用在脏输入上——**顺从漂移** | 12.22 |
+| 匹配 $W x\_{t}$ | **把激活拉回教师轨迹** | **6.72** |
 
 只有第三种在**矫正**漂移。每一层不再模仿 $W$，而是成为一个矫正器：接住漂移的输入，输出教师轨迹上本该有的结果。
 
@@ -54,17 +54,17 @@ $$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$
 
 从 Block 0 到 35 顺序处理。处理第 $i$ 层时（前面各层已压缩）：
 
-**第 1 步**：教师和学生对同样的数据前向，在该层入口配对采集 $x_t$（教师轨迹输入）和 $x_s$（学生轨迹输入），累积互协方差 $\Sigma_{ts} = \sum x_t x_s^T$ 和自协方差 $\Sigma_{ss} = \sum x_s x_s^T$（中心化版本）。
+**第 1 步**：教师和学生对同样的数据前向，在该层入口配对采集 $x\_t$（教师轨迹输入）和 $x\_s$（学生轨迹输入），累积互协方差 $\Sigma\_{ts} = \sum x\_t x\_s^T$ 和自协方差 $\Sigma\_{ss} = \sum x\_s x\_s^T$（中心化版本）。
 
 **第 2 步**：解仿射岭回归
 
-$$\min_{M,b}\; \mathbb{E}\lVert W x_t - M x_s - b \rVert^2 \quad\Longrightarrow\quad M^* = W\Sigma_{ts}(\Sigma_{ss} + \lambda I)^{-1}$$
+$$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarrow\quad M^\* = W\Sigma\_{ts}(\Sigma\_{ss} + \lambda I)^{-1}$$
 
-直觉：$\Sigma_{ts}\Sigma_{ss}^{-1}$ 是"从脏输入线性还原干净输入"的最优算子，再与 $W$ 复合——还原与变换合成在一个矩阵里。
+直觉：$\Sigma\_{ts}\Sigma\_{ss}^{-1}$ 是"从脏输入线性还原干净输入"的最优算子，再与 $W$ 复合——还原与变换合成在一个矩阵里。
 
-**第 3 步**：白化截断到 rank $r$。取 $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$，对 $M^*L$ 做 SVD 截断——这在 $x_s$ 的真实分布下是可证最优的截断（白化坐标里的 Eckart–Young）。截断后重算 $b = W\bar{x}_t - AB\bar{x}_s$，让 bias 顺带吸收截断在均值处的误差。
+**第 3 步**：白化截断到 rank $r$。取 $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$，对 $M^\*L$ 做 SVD 截断——这在 $x\_s$ 的真实分布下是可证最优的截断（白化坐标里的 Eckart–Young）。截断后重算 $b = W\bar{x}\_t - AB\bar{x}\_s$，让 bias 顺带吸收截断在均值处的误差。
 
-**第 4 步**：替换该层，处理下一层。下一层采集到的 $x_s$ 自动包含新换上的层的误差，于是被下一层矫正。
+**第 4 步**：替换该层，处理下一层。下一层采集到的 $x\_s$ 自动包含新换上的层的误差，于是被下一层矫正。
 
 ### 4. 结果
 
@@ -75,7 +75,7 @@ $$\min_{M,b}\; \mathbb{E}\lVert W x_t - M x_s - b \rVert^2 \quad\Longrightarrow\
 
 完整版图：
 
-$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \underbrace{7.51}_{\text{常数下界}} \to \mathbf{5.59} \to \underbrace{3.79}_{\text{训练}} \to \underbrace{2.11}_{\text{教师}}$$
+$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \underbrace{7.51}\_{\text{常数下界}} \to \mathbf{5.59} \to \underbrace{3.79}\_{\text{训练}} \to \underbrace{2.11}\_{\text{教师}}$$
 
 5.59 **低于常数预测器的信息论下界**——模型真正携带 context→token 的互信息，这是所有闭式方法中的第一次。预测行为完全健康：top-1 是正确的高频词 " the"（教师也是），位置间分布 KL=5.4（坍缩模型是 0.007）。
 
@@ -135,7 +135,7 @@ One fact showed the wall is not intrinsic to low rank: **end-to-end training fro
 
 Every failed closed-form method solves some version of
 
-$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$
+$$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 with a hidden assumption: at inference this layer will receive **clean inputs from the teacher's trajectory**. In the compressed model, layer $i$ actually receives inputs **corrupted by the accumulated error of layers $0..i-1$**. Over 36 layers the error either collapses or explodes.
 
@@ -144,8 +144,8 @@ Three "error-propagation-aware" objectives differ only in where one symbol sits 
 | Layerwise objective | Meaning | val loss |
 |---|---|---|
 | Approximate $W$, weighted by drifted stats | Chases the corrupted distribution | 19.40 |
-| Match $W x_s$ | Teacher weight on corrupted input — **follows the drift** | 12.22 |
-| Match $W x_t$ | **Pulls activations back to the teacher trajectory** | **6.72** |
+| Match $W x\_s$ | Teacher weight on corrupted input — **follows the drift** | 12.22 |
+| Match $W x\_t$ | **Pulls activations back to the teacher trajectory** | **6.72** |
 
 Only the third CORRECTS drift. Each layer stops imitating $W$ and becomes a corrector: take the drifted input, emit what the teacher's trajectory would have produced.
 
@@ -153,17 +153,17 @@ Only the third CORRECTS drift. Each layer stops imitating $W$ and becomes a corr
 
 Process blocks 0→35 sequentially. For layer $i$ (upstream already compressed):
 
-**Step 1**: Run teacher and student on the same data; capture paired inputs $x_t$ (teacher trajectory) and $x_s$ (student trajectory) at the layer's entrance; accumulate the cross-covariance $\Sigma_{ts} = \sum x_t x_s^T$ and self-covariance $\Sigma_{ss} = \sum x_s x_s^T$ (centered).
+**Step 1**: Run teacher and student on the same data; capture paired inputs $x\_t$ (teacher trajectory) and $x\_s$ (student trajectory) at the layer's entrance; accumulate the cross-covariance $\Sigma\_{ts} = \sum x\_t x\_s^T$ and self-covariance $\Sigma\_{ss} = \sum x\_s x\_s^T$ (centered).
 
 **Step 2**: Solve the affine ridge regression
 
-$$\min_{M,b}\; \mathbb{E}\lVert W x_t - M x_s - b \rVert^2 \quad\Longrightarrow\quad M^* = W\Sigma_{ts}(\Sigma_{ss} + \lambda I)^{-1}$$
+$$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarrow\quad M^\* = W\Sigma\_{ts}(\Sigma\_{ss} + \lambda I)^{-1}$$
 
-Intuition: $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, composed with $W$ — restoration and transformation fused into one matrix.
+Intuition: $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, composed with $W$ — restoration and transformation fused into one matrix.
 
-**Step 3**: Whitened rank-$r$ truncation. With $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$, SVD-truncate $M^*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates). Recompute $b = W\bar{x}_t - AB\bar{x}_s$ afterwards so the bias also absorbs the truncation error at the mean.
+**Step 3**: Whitened rank-$r$ truncation. With $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$, SVD-truncate $M^\*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates). Recompute $b = W\bar{x}\_t - AB\bar{x}\_s$ afterwards so the bias also absorbs the truncation error at the mean.
 
-**Step 4**: Replace the layer, move on. The next layer's $x_s$ automatically includes the newly introduced error, which the next regression corrects.
+**Step 4**: Replace the layer, move on. The next layer's $x\_s$ automatically includes the newly introduced error, which the next regression corrects.
 
 ### 4. Results
 
@@ -174,7 +174,7 @@ Intuition: $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recoveri
 
 The full landscape:
 
-$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{collapse illusion}} \to \underbrace{7.51}_{\text{constant floor}} \to \mathbf{5.59} \to \underbrace{3.79}_{\text{trained}} \to \underbrace{2.11}_{\text{teacher}}$$
+$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{collapse illusion}} \to \underbrace{7.51}\_{\text{constant floor}} \to \mathbf{5.59} \to \underbrace{3.79}\_{\text{trained}} \to \underbrace{2.11}\_{\text{teacher}}$$
 
 5.59 is **below the constant-predictor floor** — the model genuinely carries context→token mutual information, a first among all closed-form methods. Its behavior is healthy: top-1 is the correct high-frequency word " the" (same as the teacher), cross-position KL 5.4 (the collapsed model: 0.007).
 

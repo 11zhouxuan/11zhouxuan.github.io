@@ -25,7 +25,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 在动手之前先回答一个架构级的问题：闭式为什么恰好卡在 5 附近？把全部实验证据（oracle 界、悬崖诊断、消融）拼起来，从 teacher 到闭式的 ~2.9 nat 可以拆成三笔**互相独立、机制不同**的账：
 
-$$2.11 \xrightarrow{\text{账1: 截断税} \approx 2.0} 4.15_{\text{oracle}} \xrightarrow{\text{账2: 漂移残余} \approx 0.9} 5.05 \qquad 3.2_{\text{训练}} \xleftarrow{\text{账3: 重组红利}}$$
+$$2.11 \xrightarrow{\text{账1: 截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{账2: 漂移残余} \approx 0.9} 5.05 \qquad 3.2\_{\text{训练}} \xleftarrow{\text{账3: 重组红利}}$$
 
 **账 1（截断税，最大头）**：即使每个子层都收到教师的干净输入，rank-384 的局部截断误差之和也要付 ~2 nat。为什么这么贵？白化谱给出答案——rank-384 下各类矩阵保留的能量：
 
@@ -41,7 +41,7 @@ $$2.11 \xrightarrow{\text{账1: 截断税} \approx 2.0} 4.15_{\text{oracle}} \xr
 
 网络分成两条通路：**模式通路**（q/k → softmax）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；**内容通路**（v→o、up→down 的写路径）**重尾谱、用满全宽**——down_proj 是把 12288 维乘积空间里超位置（superposition）存储的特征字典解码回残差流的字典矩阵，天生没有低秩结构。这笔税是信息论性质的，对"更好的逼近算法"免疫。
 
-**账 2（漂移残余）**：实际 5.05 与 oracle 4.15 之间是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta_g\delta_u$ 二阶项和 RMSNorm 的除法（第 4 节有它的精确机制）。
+**账 2（漂移残余）**：实际 5.05 与 oracle 4.15 之间是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta\_g\delta\_u$ 二阶项和 RMSNorm 的除法（第 4 节有它的精确机制）。
 
 **账 3（重组红利）**：训练（3.2）打穿 oracle（4.15）的唯一解释——残差架构下最终计算是 36 个 block 贡献的**和**，同一总函数有无数种分解方式，梯度下降找到了比"模仿教师原分解"更适合 rank-384 的新分工。逐层模仿目标定义上拿不到这笔钱。
 
@@ -56,7 +56,7 @@ $$2.11 \xrightarrow{\text{账1: 截断税} \approx 2.0} 4.15_{\text{oracle}} \xr
 
 ### 3. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼
 
-我们之前试过从白化谱做分配（重构误差驱动），失败（5.72）。文献说有效的是 **loss 敏感度驱动**——这是两回事。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha_i=1$，反传只求门的梯度，累积 Fisher $= \sum(\partial L/\partial\alpha_i)^2$；用尾部 Fisher 校准白化谱（$f_{l,i}\approx c_l\sigma_{l,i}^2$），等预算 water-filling。
+我们之前试过从白化谱做分配（重构误差驱动），失败（5.72）。文献说有效的是 **loss 敏感度驱动**——这是两回事。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha\_i=1$，反传只求门的梯度，累积 Fisher $= \sum(\partial L/\partial\alpha\_i)^2$；用尾部 Fisher 校准白化谱（$f\_{l,i}\approx c\_l\sigma\_{l,i}^2$），等预算 water-filling。
 
 Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 
@@ -117,7 +117,7 @@ Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 
 **最终版图**（85% 压缩率、等预算 2.29B，held-out）：
 
-$$8.50_{\text{坍缩假象}} \to 5.59_{\text{轨迹矫正}} \to 5.09_{\text{免税矫正器}} \to \mathbf{5.02}_{\text{+分配+back-load}} \to 4.15_{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$
+$$8.50\_{\text{坍缩假象}} \to 5.59\_{\text{轨迹矫正}} \to 5.09\_{\text{免税矫正器}} \to \mathbf{5.02}\_{\text{+分配+back-load}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
 
 **【后续更新】** 这个"终点"随后又被推到 **4.71/4.53**：稀疏残差与度量修正的超线性组合 + 校准数据工程。详见[第五篇《会移动的天花板》](/2026/08/30/closed-form-moving-ceiling/)。
 
@@ -154,7 +154,7 @@ Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by ra
 
 Before running anything, an architecture-level question: why is closed-form stuck near 5? Assembling all the evidence (oracle bound, cliff diagnosis, ablations), the ~2.9 nats from teacher to closed-form split into three **independent ledgers with distinct mechanisms**:
 
-$$2.11 \xrightarrow{\text{L1: truncation tax} \approx 2.0} 4.15_{\text{oracle}} \xrightarrow{\text{L2: drift residue} \approx 0.9} 5.05 \qquad 3.2_{\text{trained}} \xleftarrow{\text{L3: reorganization}}$$
+$$2.11 \xrightarrow{\text{L1: truncation tax} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{L2: drift residue} \approx 0.9} 5.05 \qquad 3.2\_{\text{trained}} \xleftarrow{\text{L3: reorganization}}$$
 
 **Ledger 1 (truncation tax, the bulk)**: even if every sublayer received the teacher's clean input, the summed local truncation errors of rank 384 cost ~2 nats. Why so expensive? The whitened spectra answer — energy retained at rank 384 per matrix family:
 
@@ -170,7 +170,7 @@ $$2.11 \xrightarrow{\text{L1: truncation tax} \approx 2.0} 4.15_{\text{oracle}} 
 
 The network splits into two pathways: the **pattern pathway** (q/k → softmax) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the **content pathway** (v→o, up→down write path) has **heavy-tailed spectra using the full width** — down_proj is the dictionary matrix decoding a superposed feature dictionary from the 12288-dim product space back into the residual stream, and dictionary matrices have no low-rank structure to exploit. This tax is information-theoretic; it is immune to "a better approximation algorithm".
 
-**Ledger 2 (drift residue)**: the gap between the practical 5.05 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta_g\delta_u$ term and RMSNorm's division (its precise mechanism in Section 4).
+**Ledger 2 (drift residue)**: the gap between the practical 5.05 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta\_g\delta\_u$ term and RMSNorm's division (its precise mechanism in Section 4).
 
 **Ledger 3 (reorganization dividend)**: the only explanation for training (3.2) breaking the oracle (4.15) — in a residual architecture the final computation is a **sum** of 36 block contributions; the same total function admits infinitely many decompositions, and gradient descent found one better suited to rank 384 than the teacher's own. Layerwise-imitation objectives cannot collect this money by definition.
 
@@ -185,7 +185,7 @@ A systematic literature sweep (training-free low-rank LLM compression, 2024-2026
 
 ### 3. Campaign 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping
 
-We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.72). What the literature endorses is **loss-sensitivity-driven** allocation — a different thing. Method: hang a multiplicative gate $\alpha_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate Fisher $= \sum(\partial L/\partial\alpha_i)^2$; calibrate the whitened spectra with the tail Fisher ($f_{l,i}\approx c_l\sigma_{l,i}^2$), then water-fill at equal budget.
+We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.72). What the literature endorses is **loss-sensitivity-driven** allocation — a different thing. Method: hang a multiplicative gate $\alpha\_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate Fisher $= \sum(\partial L/\partial\alpha\_i)^2$; calibrate the whitened spectra with the tail Fisher ($f\_{l,i}\approx c\_l\sigma\_{l,i}^2$), then water-fill at equal budget.
 
 Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/content split:
 
@@ -246,7 +246,7 @@ The last experiment stacked the two verified dividends (back-load + rms-lift-256
 
 **The final landscape** (85% compression, equal 2.29B budget, held-out):
 
-$$8.50_{\text{collapse illusion}} \to 5.59_{\text{traj. correction}} \to 5.09_{\text{tax-free correctors}} \to \mathbf{5.02}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$
+$$8.50\_{\text{collapse illusion}} \to 5.59\_{\text{traj. correction}} \to 5.09\_{\text{tax-free correctors}} \to \mathbf{5.02}\_{\text{+alloc+backload}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
 **[Later update]** This "endpoint" was subsequently pushed to **4.71/4.53** by the super-additive combination of sparse residuals and the metric fix, plus calibration-data engineering. See [part 5: The Ceiling That Kept Moving](/2026/08/30/closed-form-moving-ceiling/).
 

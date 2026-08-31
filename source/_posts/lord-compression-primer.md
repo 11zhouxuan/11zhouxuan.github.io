@@ -26,7 +26,7 @@ tags: [primer, LLM, compression, linear-algebra, tutorial]
 两个词汇：
 
 - **token**：模型处理文本的最小单位。不完全等于"词"——英文里常见词是一个 token，长词会被拆成几段；中文常见字大约一字一个 token。每个模型有自己固定的 token 总表，叫**词表**（vocabulary）；词表大小因模型而异，本系列压缩的对象是阿里开源的 **Qwen3-8B**，它的词表有 **151936** 种 token——后文所有出现 151936 的地方都是这个来历。
-- **logits**：模型对每种 token 打的原始分数（151936 个实数），经过 **softmax** 函数（$p_i = e^{z_i}/\sum_j e^{z_j}$，把任意实数组变成总和为 1 的概率）变成上面那张概率表。
+- **logits**：模型对每种 token 打的原始分数（151936 个实数），经过 **softmax** 函数（$p\_i = e^{z\_i}/\sum\_j e^{z\_j}$，把任意实数组变成总和为 1 的概率）变成上面那张概率表。
 
 ### 2. 怎么给模型打分：交叉熵和 nat
 
@@ -132,7 +132,7 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 一个 4096×4096 的矩阵 $W$ 有 1680 万个参数。**低秩近似**的想法：找一个 4096×384 的 $A$ 和一个 384×4096 的 $B$，用乘积 $AB$ 代替 $W$。参数量变成 $384\times(4096+4096) = 315$ 万——**省了 81%**。数字 384 叫这个近似的**秩**（rank）：$AB$ 作为矩阵，秩最多是 384。
 
-代价是什么？$AB$ 的秩最多 384，而 $W$ 的秩可以高达 4096——如果 $W$ 里的信息真需要那么多独立方向，压缩必然丢东西。丢多少、怎么丢得最少，工具是**奇异值分解**（SVD）：任何矩阵都能写成 $W = \sum_i \sigma_i u_i v_i^T$，即一串秩 1 矩阵之和，权重 $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ 叫**奇异值**（可以理解为"$W$ 在各个独立方向上的作用强度"，是特征值概念对非方阵的推广）。有一条经典定理（Eckart–Young）：**只保留前 $r$ 项就是最优的秩 $r$ 近似**，丢掉的误差恰好是被扔掉的奇异值的平方和。
+代价是什么？$AB$ 的秩最多 384，而 $W$ 的秩可以高达 4096——如果 $W$ 里的信息真需要那么多独立方向，压缩必然丢东西。丢多少、怎么丢得最少，工具是**奇异值分解**（SVD）：任何矩阵都能写成 $W = \sum\_i \sigma\_i u\_i v\_i^T$，即一串秩 1 矩阵之和，权重 $\sigma\_1 \ge \sigma\_2 \ge \cdots \ge 0$ 叫**奇异值**（可以理解为"$W$ 在各个独立方向上的作用强度"，是特征值概念对非方阵的推广）。有一条经典定理（Eckart–Young）：**只保留前 $r$ 项就是最优的秩 $r$ 近似**，丢掉的误差恰好是被扔掉的奇异值的平方和。
 
 系列里常说的"某矩阵保留了 66% 的能量"，意思就是前 384 个奇异值的平方和占全部平方和的 66%——剩下 34% 的信息被硬生生扔掉了。奇异值衰减快的矩阵（信息集中在少数方向）适合低秩压缩；衰减慢的（信息摊在几千个方向上）怎么压都疼，这正是系列后半的核心矛盾。
 
@@ -158,35 +158,35 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 
 问题：学生某一层收到输入向量 $x$，我们希望这一层的输出尽量接近某个目标 $y$。找一个矩阵 $M$，最小化在大量样本上的平均误差：
 
-$$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
+$$\min\_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
 
 这就是**最小二乘回归**。对 $M$ 求导置零，得到解（一行推导，展开平方、逐项求导即可）：
 
-$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
+$$M^\* = \Sigma\_{yx} \Sigma\_{xx}^{-1}, \qquad \Sigma\_{yx} = \mathbb{E}[yx^T],\ \ \Sigma\_{xx} = \mathbb{E}[xx^T]$$
 
-$\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分布强度），$\Sigma_{yx}$ 是**互协方差**。实际中 $\Sigma_{xx}$ 可能接近奇异（不可逆），所以给对角线加一个小量 $\lambda I$ 再求逆——这个稳定化技巧叫**岭回归**（ridge regression），$\lambda$ 是它唯一的超参数。
+$\Sigma\_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分布强度），$\Sigma\_{yx}$ 是**互协方差**。实际中 $\Sigma\_{xx}$ 可能接近奇异（不可逆），所以给对角线加一个小量 $\lambda I$ 再求逆——这个稳定化技巧叫**岭回归**（ridge regression），$\lambda$ 是它唯一的超参数。
 
-这里有一个关键的细节，它决定了整个方法的成败：**目标 $y$ 取什么？** 一个自然但错误的选择是"教师这一层在同样输入上的输出"，即 $y = Wx$（$W$ 是教师的原权重）——那样解出来的 $M^*$ 恰好就是 $W$ 本身，什么信息也没多出来。
+这里有一个关键的细节，它决定了整个方法的成败：**目标 $y$ 取什么？** 一个自然但错误的选择是"教师这一层在同样输入上的输出"，即 $y = Wx$（$W$ 是教师的原权重）——那样解出来的 $M^\*$ 恰好就是 $W$ 本身，什么信息也没多出来。
 
-实际的选择是：自变量取**学生实际收到的输入** $x_s$（它已经被前面各层的压缩误差污染），目标取**教师在它自己的干净输入 $x_t$ 上的输出** $W x_t$。这时解变成
+实际的选择是：自变量取**学生实际收到的输入** $x\_s$（它已经被前面各层的压缩误差污染），目标取**教师在它自己的干净输入 $x\_t$ 上的输出** $W x\_t$。这时解变成
 
-$$M^* = W \Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
+$$M^\* = W \Sigma\_{ts}\Sigma\_{ss}^{-1} \ne W, \qquad \Sigma\_{ts} = \mathbb{E}[x\_t x\_s^T],\ \Sigma\_{ss} = \mathbb{E}[x\_s x\_s^T]$$
 
-多出来的因子 $\Sigma_{ts}\Sigma_{ss}^{-1}$ 是"从被污染的输入线性还原干净输入"的最优算子。所以 $M^*$ 同时干两件事：**先纠正上游累积的误差，再做教师那一层原本的变换**。只有当学生输入没有漂移（$x_s = x_t$）时这个因子才退化成单位矩阵、$M^*$ 才回到 $W$。系列第 2 篇标题里的"轨迹矫正"就是指这件事，它也是把结果从 8.5 推进到 5.59 的关键——低秩结构完全没变，只换了回归的目标。
+多出来的因子 $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ 是"从被污染的输入线性还原干净输入"的最优算子。所以 $M^\*$ 同时干两件事：**先纠正上游累积的误差，再做教师那一层原本的变换**。只有当学生输入没有漂移（$x\_s = x\_t$）时这个因子才退化成单位矩阵、$M^\*$ 才回到 $W$。系列第 2 篇标题里的"轨迹矫正"就是指这件事，它也是把结果从 8.5 推进到 5.59 的关键——低秩结构完全没变，只换了回归的目标。
 
-但这个 $M^*$ 是**满秩**的（4096×4096），并没有省参数——它只是"这一层最好能做成什么样"的答案。低秩约束在第二步进来：把 $M^*$ 压成两个瘦矩阵的乘积，即在
+但这个 $M^\*$ 是**满秩**的（4096×4096），并没有省参数——它只是"这一层最好能做成什么样"的答案。低秩约束在第二步进来：把 $M^\*$ 压成两个瘦矩阵的乘积，即在
 
-$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
+$$\min\_{A,B}\ \mathbb{E} \lVert M^\* x - AB x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
 
 的意义下找最优的 $A, B$。注意这里的误差是在**输入 $x$ 的真实分布下**衡量的，而不是直接比较两个矩阵的元素差——同样大小的矩阵误差，如果落在 $x$ 几乎不出现的方向上就无关紧要。把这个分布因素折进 SVD 的做法就是下面的白化。
 
-所以完整的两步是：**先解回归得到满秩的目标 $M^*$，再把 $M^*$ 低秩化得到实际部署的 $A, B$。** 系列各篇改进的其实是这两步里的不同环节——改回归目标（第 2 篇）、改低秩化时的度量（第 5 篇）、给 $AB$ 之外再加一个稀疏项（第 5 篇），等等。
+所以完整的两步是：**先解回归得到满秩的目标 $M^\*$，再把 $M^\*$ 低秩化得到实际部署的 $A, B$。** 系列各篇改进的其实是这两步里的不同环节——改回归目标（第 2 篇）、改低秩化时的度量（第 5 篇）、给 $AB$ 之外再加一个稀疏项（第 5 篇），等等。
 
-也许你会问：为什么要绕这两步，不直接对 $A, B$ 做优化？因为**这里的两步法给出的就是全局最优解，而且是可证的**。关键在于目标函数可以按 $M^*$ 干净地拆开（交叉项为零）：
+也许你会问：为什么要绕这两步，不直接对 $A, B$ 做优化？因为**这里的两步法给出的就是全局最优解，而且是可证的**。关键在于目标函数可以按 $M^\*$ 干净地拆开（交叉项为零）：
 
-$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{与 } A,B \text{ 无关的常数}} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{只有这项需要优化}}$$
+$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rVert^2}\_{\text{与 } A,B \text{ 无关的常数}} + \underbrace{\mathbb{E}\lVert (M^\*-AB)x \rVert^2}\_{\text{只有这项需要优化}}$$
 
-交叉项之所以为零，是因为 $M^*$ 具有**正交投影**的性质：$M^*x$ 是 $y$ 在"$x$ 的所有线性函数"构成的子空间上的投影，所以残差 $y-M^*x$ 与任何形如 $Cx$ 的量都不相关。这里要注意区分两件事：$M^*$ 本身**不是**带秩约束问题的解（它是满秩的），它的作用是把"带噪声的回归问题"等价改写成"用秩 384 矩阵逼近一个确定矩阵 $M^*$"——改写之后才轮到 Eckart–Young 出场。第一项是低秩与否都消不掉的固有残差；第二项在白化坐标下就是 $\lVert (M^*-AB)L\rVert_F^2$，而"用秩 $r$ 矩阵在 F 范数下最好地逼近给定矩阵"正是上一节 Eckart–Young 定理的场景——SVD 截断直接给出全局最优。相比之下，用梯度下降直接优化 $A, B$ 只能得到局部最优（$A \to AR,\ B \to R^{-1}B$ 的旋转冗余还让优化面上出现平坦方向），而且慢得多。
+交叉项之所以为零，是因为 $M^\*$ 具有**正交投影**的性质：$M^\*x$ 是 $y$ 在"$x$ 的所有线性函数"构成的子空间上的投影，所以残差 $y-M^\*x$ 与任何形如 $Cx$ 的量都不相关。这里要注意区分两件事：$M^\*$ 本身**不是**带秩约束问题的解（它是满秩的），它的作用是把"带噪声的回归问题"等价改写成"用秩 384 矩阵逼近一个确定矩阵 $M^\*$"——改写之后才轮到 Eckart–Young 出场。第一项是低秩与否都消不掉的固有残差；第二项在白化坐标下就是 $\lVert (M^\*-AB)L\rVert\_F^2$，而"用秩 $r$ 矩阵在 F 范数下最好地逼近给定矩阵"正是上一节 Eckart–Young 定理的场景——SVD 截断直接给出全局最优。相比之下，用梯度下降直接优化 $A, B$ 只能得到局部最优（$A \to AR,\ B \to R^{-1}B$ 的旋转冗余还让优化面上出现平坦方向），而且慢得多。
 
 这个"两步等于全局最优"只在**单层、二次损失**下成立。一旦目标换成整个模型 36 层复合后的最终 loss，闭式解就不存在了——这正是训练路线能超过闭式路线的根本原因。同理，系列后期在 $AB$ 之外再加稀疏项时也破坏了这个结构，那里只能改用交替求解，不再有全局最优的保证。
 
@@ -194,7 +194,7 @@ $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVe
 两个引申：
 
 - **校准数据（calibration data）**：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一"见过"的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。
-- **白化（whitening）**：想在"输入的真实分布下"做最优的低秩截断，标准做法是先对 $\Sigma_{xx}$ 做 Cholesky 分解 $\Sigma_{xx} = LL^T$（把对称正定矩阵写成三角矩阵乘积，相当于给空间换一组坐标让输入分布变成"各向均匀"），在新坐标下做 SVD 截断，再换回来。系列里的"白化 SVD 截断"就是这三步。
+- **白化（whitening）**：想在"输入的真实分布下"做最优的低秩截断，标准做法是先对 $\Sigma\_{xx}$ 做 Cholesky 分解 $\Sigma\_{xx} = LL^T$（把对称正定矩阵写成三角矩阵乘积，相当于给空间换一组坐标让输入分布变成"各向均匀"），在新坐标下做 SVD 截断，再换回来。系列里的"白化 SVD 截断"就是这三步。
 
 ### 8. 两个常用的诊断指标
 
@@ -244,7 +244,7 @@ Feed in "The weather today is really", and the model outputs a probability table
 Two words of vocabulary:
 
 - **token**: the smallest unit of text the model handles. Not exactly a word — common English words are one token, long words get split. Each model has its own fixed token inventory, the **vocabulary**, whose size varies by model. The model this series compresses is Alibaba's open-source **Qwen3-8B**, whose vocabulary has **151,936** tokens — every later appearance of 151,936 traces back to this.
-- **logits**: the raw scores the model assigns to every token (151,936 real numbers), turned into the probability table by the **softmax** function ($p_i = e^{z_i}/\sum_j e^{z_j}$, which maps any real vector to probabilities summing to 1).
+- **logits**: the raw scores the model assigns to every token (151,936 real numbers), turned into the probability table by the **softmax** function ($p\_i = e^{z\_i}/\sum\_j e^{z\_j}$, which maps any real vector to probabilities summing to 1).
 
 ### 2. Scoring a Model: Cross-Entropy and Nats
 
@@ -344,7 +344,7 @@ The model in this series, Qwen3-8B, belongs to the Transformer family (specifica
 
 A 4096×4096 matrix $W$ has 16.8M parameters. **Low-rank approximation**: find a 4096×384 matrix $A$ and a 384×4096 matrix $B$, and use $AB$ instead. Parameter count: $384\times(4096+4096) = 3.15$M — **81% saved**. The number 384 is the **rank** of the approximation.
 
-The cost: $AB$ has rank at most 384 while $W$ can have rank 4096 — if $W$ genuinely uses that many independent directions, something must be lost. The tool for losing the least is the **singular value decomposition** (SVD): any matrix can be written $W = \sum_i \sigma_i u_i v_i^T$, a sum of rank-1 pieces with weights $\sigma_1 \ge \sigma_2 \ge \cdots \ge 0$ (the **singular values** — the strengths of $W$'s action along independent directions; the generalization of eigenvalues to non-square matrices). A classical theorem (Eckart–Young): **keeping the first $r$ terms is the optimal rank-$r$ approximation**, and the error is exactly the sum of squares of the discarded singular values.
+The cost: $AB$ has rank at most 384 while $W$ can have rank 4096 — if $W$ genuinely uses that many independent directions, something must be lost. The tool for losing the least is the **singular value decomposition** (SVD): any matrix can be written $W = \sum\_i \sigma\_i u\_i v\_i^T$, a sum of rank-1 pieces with weights $\sigma\_1 \ge \sigma\_2 \ge \cdots \ge 0$ (the **singular values** — the strengths of $W$'s action along independent directions; the generalization of eigenvalues to non-square matrices). A classical theorem (Eckart–Young): **keeping the first $r$ terms is the optimal rank-$r$ approximation**, and the error is exactly the sum of squares of the discarded singular values.
 
 When the series says a matrix "keeps 66% of its energy at rank 384", it means the first 384 squared singular values are 66% of the total — the other 34% is simply thrown away. Matrices with fast-decaying spectra compress well; those spreading information across thousands of directions hurt no matter what — the central tension of the series' second half.
 
@@ -368,35 +368,35 @@ One formula recurs throughout; here is its derivation, using only linear algebra
 
 Problem: a student layer receives input $x$ and we want its output to approximate a target $y$. Find the matrix $M$ minimizing the average error
 
-$$\min_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
+$$\min\_M\ \mathbb{E} \lVert y - Mx \rVert^2$$
 
 This is **least-squares regression**. Setting the derivative in $M$ to zero gives
 
-$$M^* = \Sigma_{yx} \Sigma_{xx}^{-1}, \qquad \Sigma_{yx} = \mathbb{E}[yx^T],\ \ \Sigma_{xx} = \mathbb{E}[xx^T]$$
+$$M^\* = \Sigma\_{yx} \Sigma\_{xx}^{-1}, \qquad \Sigma\_{yx} = \mathbb{E}[yx^T],\ \ \Sigma\_{xx} = \mathbb{E}[xx^T]$$
 
-$\Sigma_{xx}$ is the input **covariance matrix**; $\Sigma_{yx}$ the cross-covariance. In practice $\Sigma_{xx}$ can be near-singular, so a small $\lambda I$ is added before inverting — the stabilization known as **ridge regression**.
+$\Sigma\_{xx}$ is the input **covariance matrix**; $\Sigma\_{yx}$ the cross-covariance. In practice $\Sigma\_{xx}$ can be near-singular, so a small $\lambda I$ is added before inverting — the stabilization known as **ridge regression**.
 
-One detail here decides whether the whole method works: **what is the target $y$?** A natural but wrong choice is "the teacher layer's output on the same input", $y = Wx$ with $W$ the teacher's original weight — that would make $M^* = W$ exactly, adding no information.
+One detail here decides whether the whole method works: **what is the target $y$?** A natural but wrong choice is "the teacher layer's output on the same input", $y = Wx$ with $W$ the teacher's original weight — that would make $M^\* = W$ exactly, adding no information.
 
-The actual choice: the regressor is the input the student **actually receives**, $x_s$ (already corrupted by upstream compression error), while the target is the teacher's output on its own clean input, $W x_t$. The solution becomes
+The actual choice: the regressor is the input the student **actually receives**, $x\_s$ (already corrupted by upstream compression error), while the target is the teacher's output on its own clean input, $W x\_t$. The solution becomes
 
-$$M^* = W \Sigma_{ts}\Sigma_{ss}^{-1} \ne W, \qquad \Sigma_{ts} = \mathbb{E}[x_t x_s^T],\ \Sigma_{ss} = \mathbb{E}[x_s x_s^T]$$
+$$M^\* = W \Sigma\_{ts}\Sigma\_{ss}^{-1} \ne W, \qquad \Sigma\_{ts} = \mathbb{E}[x\_t x\_s^T],\ \Sigma\_{ss} = \mathbb{E}[x\_s x\_s^T]$$
 
-The extra factor $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one. So $M^*$ does two jobs at once: **undo the accumulated upstream error, then apply the transformation the teacher layer performed.** Only when the student input has not drifted ($x_s = x_t$) does the factor collapse to the identity and $M^*$ return to $W$. This is what "trajectory correction" in part 2's title means, and it is what moved the result from 8.5 to 5.59 — the low-rank structure was unchanged; only the regression target was.
+The extra factor $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one. So $M^\*$ does two jobs at once: **undo the accumulated upstream error, then apply the transformation the teacher layer performed.** Only when the student input has not drifted ($x\_s = x\_t$) does the factor collapse to the identity and $M^\*$ return to $W$. This is what "trajectory correction" in part 2's title means, and it is what moved the result from 8.5 to 5.59 — the low-rank structure was unchanged; only the regression target was.
 
-But this $M^*$ is **full-rank** (4096×4096) and saves no parameters — it merely answers "what is the best this layer could be". The rank constraint enters in a second step: compress $M^*$ into a product of two thin matrices, i.e. find the optimal $A, B$ under
+But this $M^\*$ is **full-rank** (4096×4096) and saves no parameters — it merely answers "what is the best this layer could be". The rank constraint enters in a second step: compress $M^\*$ into a product of two thin matrices, i.e. find the optimal $A, B$ under
 
-$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
+$$\min\_{A,B}\ \mathbb{E} \lVert M^\* x - AB x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$
 
 Note the error is measured **under the true distribution of the input $x$**, not by comparing matrix entries directly — a matrix error of the same size does not matter if it lies along directions $x$ rarely takes. Folding that distributional factor into the SVD is exactly what whitening does below.
 
-So the full procedure is two steps: **solve the regression for a full-rank target $M^*$, then low-rank-ify $M^*$ into the $A, B$ actually deployed.** What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 5), adding a sparse term alongside $AB$ (part 5), and so on.
+So the full procedure is two steps: **solve the regression for a full-rank target $M^\*$, then low-rank-ify $M^\*$ into the $A, B$ actually deployed.** What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 5), adding a sparse term alongside $AB$ (part 5), and so on.
 
-You might ask: why the detour — why not optimize $A, B$ directly? Because **the two-step procedure here yields the global optimum, provably.** The objective splits cleanly around $M^*$ (the cross term vanishes):
+You might ask: why the detour — why not optimize $A, B$ directly? Because **the two-step procedure here yields the global optimum, provably.** The objective splits cleanly around $M^\*$ (the cross term vanishes):
 
-$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^*x \rVert^2}_{\text{constant in } A,B} + \underbrace{\mathbb{E}\lVert (M^*-AB)x \rVert^2}_{\text{the only part to optimize}}$$
+$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rVert^2}\_{\text{constant in } A,B} + \underbrace{\mathbb{E}\lVert (M^\*-AB)x \rVert^2}\_{\text{the only part to optimize}}$$
 
-The cross term vanishes because $M^*$ is an **orthogonal projection**: $M^*x$ is the projection of $y$ onto the subspace of linear functions of $x$, so the residual $y-M^*x$ is uncorrelated with anything of the form $Cx$. Note the distinction: $M^*$ itself is **not** the solution to the rank-constrained problem (it is full-rank); its role is to rewrite "a noisy regression problem" equivalently as "approximate the fixed matrix $M^*$ with a rank-384 one" — only then does Eckart–Young apply. The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^*-AB)L\rVert_F^2$ — and "best rank-$r$ approximation of a given matrix in Frobenius norm" is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.
+The cross term vanishes because $M^\*$ is an **orthogonal projection**: $M^\*x$ is the projection of $y$ onto the subspace of linear functions of $x$, so the residual $y-M^\*x$ is uncorrelated with anything of the form $Cx$. Note the distinction: $M^\*$ itself is **not** the solution to the rank-constrained problem (it is full-rank); its role is to rewrite "a noisy regression problem" equivalently as "approximate the fixed matrix $M^\*$ with a rank-384 one" — only then does Eckart–Young apply. The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^\*-AB)L\rVert\_F^2$ — and "best rank-$r$ approximation of a given matrix in Frobenius norm" is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.
 
 This equivalence holds only for a **single layer with a quadratic loss**. Once the objective becomes the final loss after composing all 36 layers, no closed form exists — which is precisely why the training route can beat the closed-form one. Likewise, adding a sparse term alongside $AB$ later in the series breaks the structure, so that part falls back to alternating solves with no global guarantee.
 
@@ -404,7 +404,7 @@ This equivalence holds only for a **single layer with a quadratic loss**. Once t
 Two extensions:
 
 - **Calibration data**: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever "sees". Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).
-- **Whitening**: to truncate optimally under the input's true distribution, factor $\Sigma_{xx} = LL^T$ (Cholesky decomposition — a change of coordinates making the input distribution uniform in all directions), do the SVD truncation there, then map back. That three-step is the series' "whitened SVD truncation".
+- **Whitening**: to truncate optimally under the input's true distribution, factor $\Sigma\_{xx} = LL^T$ (Cholesky decomposition — a change of coordinates making the input distribution uniform in all directions), do the SVD truncation there, then map back. That three-step is the series' "whitened SVD truncation".
 
 ### 8. Two Diagnostic Measures
 

@@ -27,7 +27,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 
 做法：在每层的截断步里做交替求解（3 轮）——
 
-$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$
+$$AB \leftarrow \text{whiten-SVD}(M^\*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^\*-AB| \cdot \sigma\_{col}\big)$$
 
 AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-nnz。预算严格配平：S 的每个非零值按 1.5 个参数计（含 index 开销；严格 CSR-int16 应为 2.0，勘误后纪录依然成立），从 rank 里扣。
 
@@ -45,9 +45,9 @@ AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-n
 
 第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下"几乎无损"（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：**我们的截断在错误的目标函数下最优**。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。
 
-修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为
+修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w\_j^2 = \mathbb{E}[(\partial L/\partial y\_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为
 
-$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$
+$$\min\_{AB}\ \lVert \mathrm{diag}(w) (M^\*-AB) L \rVert\_F^2$$
 
 SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.06（5.055/4.959），零参数成本**——headfix 以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个"邻近"的 artifact 上测一次即可（见第 5 节的迭代失败）。
 
@@ -62,13 +62,13 @@ SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.06（5.055
 | 只换度量 | 5.055 / 4.959（−0.06） |
 | **两者组合** | **4.944 / 4.834（−0.17 / −0.19）** |
 
-−0.04 和 −0.06 叠出了 −0.19——**超线性**。机制：梯度度量同时升级了 S 的选择（打分从"能量残差"变成"loss 关键残差"，$|R|\cdot\sigma_{col}\cdot w_{row}$），而度量加权的 SVD 留下的残差恰好更适合 S 捡走。修正后的定律：**同一把尺子下的红利不叠加；换尺子的红利会放大其他所有杠杆**——因为尺子作用于每一个有 rank 约束的决策点。
+−0.04 和 −0.06 叠出了 −0.19——**超线性**。机制：梯度度量同时升级了 S 的选择（打分从"能量残差"变成"loss 关键残差"，$|R|\cdot\sigma\_{col}\cdot w\_{row}$），而度量加权的 SVD 留下的残差恰好更适合 S 捡走。修正后的定律：**同一把尺子下的红利不叠加；换尺子的红利会放大其他所有杠杆**——因为尺子作用于每一个有 rank 约束的决策点。
 
 （一个理论上干净的推论顺带得证：对角输出加权对**全秩**回归无影响——逐行独立求解时权重不改变解。所以残差矫正器和 lm_head fix 都不吃这个红利，度量红利只存在于 rank 约束处。这也回头解释了为什么当年 lm_head fix 不需要任何加权就很强。）
 
 ### 4. 校准数据工程：被文献整体忽略的维度
 
-闭式方法的一切统计量（$\Sigma_{ss}, \Sigma_{ts}$、梯度二阶矩）都来自校准数据。文献的标配是 128-256 条短样本（SVD-LLM 用 256×C4）；没有人把校准数据当成一个需要工程的对象。我们把它当成剂量-响应实验做了一遍：
+闭式方法的一切统计量（$\Sigma\_{ss}, \Sigma\_{ts}$、梯度二阶矩）都来自校准数据。文献的标配是 128-256 条短样本（SVD-LLM 用 256×C4）；没有人把校准数据当成一个需要工程的对象。我们把它当成剂量-响应实验做了一遍：
 
 | 统计配置 | held-out | 备注 |
 |---|---|---|
@@ -101,7 +101,7 @@ SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.06（5.055
 
 给新配方重测 oracle 分解（换掉全部子层输入为教师干净值）：
 
-$$\text{oracle}_{\text{新范式}} = 3.75 \quad (<\ 3.79_{\text{端到端蒸馏训练}})$$
+$$\text{oracle}\_{\text{新范式}} = 3.75 \quad (<\ 3.79\_{\text{端到端蒸馏训练}})$$
 
 **闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。** 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，**当前 4.53 与训练之间的差距大头已经从"税"换成了"漂移"**。而漂移矫正器是全秩的、对度量红利免疫（第 3 节），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。
 
@@ -109,7 +109,7 @@ $$\text{oracle}_{\text{新范式}} = 3.75 \quad (<\ 3.79_{\text{端到端蒸馏�
 
 **最终版图**（85% 线性层压缩、等预算 2.29B、零训练，双窗口）：
 
-$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}_{\text{稀疏×度量}} \to \underbrace{4.71/4.53}_{\text{+校准工程}} \to \underbrace{3.75}_{\text{新 oracle}} \to \underbrace{3.79}_{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$
+$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}\_{\text{稀疏×度量}} \to \underbrace{4.71/4.53}\_{\text{+校准工程}} \to \underbrace{3.75}\_{\text{新 oracle}} \to \underbrace{3.79}\_{\text{端到端蒸馏}} \to 2.11\_{\text{教师}}$$
 
 本篇新增的三条可迁移定律：
 
@@ -140,7 +140,7 @@ Ledger 1 (the ~2-nat truncation tax) is rooted in superposition heavy tails on t
 
 Method: alternate inside each layer's truncation step (3 rounds) —
 
-$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$
+$$AB \leftarrow \text{whiten-SVD}(M^\*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^\*-AB| \cdot \sigma\_{col}\big)$$
 
 The AB step is the existing whitened truncation; the S step scores the residual in the whitened metric and keeps the top-nnz. Strictly budgeted: each nonzero of S is charged 1.5 parameters (index overhead; strict CSR-int16 would be 2.0 — the record survives the erratum), paid out of rank.
 
@@ -158,9 +158,9 @@ The AB step is the existing whitened truncation; the S step scores the residual 
 
 Part 4's tax map left one anomaly unexplained: qkv@late looks "nearly lossless" in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: **our truncation was optimal under the wrong objective**. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.
 
-The fix stays closed-form. Measure each output channel's loss-gradient second moment $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under
+The fix stays closed-form. Measure each output channel's loss-gradient second moment $w\_j^2 = \mathbb{E}[(\partial L/\partial y\_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under
 
-$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$
+$$\min\_{AB}\ \lVert \mathrm{diag}(w) (M^\*-AB) L \rVert\_F^2$$
 
 — multiply by $\mathrm{diag}(w)$ before the SVD, divide after. **−0.06 on its own (5.055/4.959) at zero parameter cost**, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a "nearby" artifact suffices (see Section 5's iteration failure).
 
@@ -175,13 +175,13 @@ Part 4 proposed a "small dividends don't stack" law (0.02-level improvements ero
 | metric change only | 5.055 / 4.959 (−0.06) |
 | **both combined** | **4.944 / 4.834 (−0.17 / −0.19)** |
 
-−0.04 and −0.06 stacked into −0.19 — **super-additive**. Mechanism: the gradient metric upgrades S's selection (its score becomes $|R|\cdot\sigma_{col}\cdot w_{row}$, targeting loss-critical rather than energy-heavy residuals), while the metric-weighted SVD leaves behind exactly the residue S is best at catching. The amended law: **dividends under the same ruler don't stack; changing the ruler amplifies every other lever** — because the ruler acts at every rank-constrained decision point.
+−0.04 and −0.06 stacked into −0.19 — **super-additive**. Mechanism: the gradient metric upgrades S's selection (its score becomes $|R|\cdot\sigma\_{col}\cdot w\_{row}$, targeting loss-critical rather than energy-heavy residuals), while the metric-weighted SVD leaves behind exactly the residue S is best at catching. The amended law: **dividends under the same ruler don't stack; changing the ruler amplifies every other lever** — because the ruler acts at every rank-constrained decision point.
 
 (A theoretically clean corollary came for free: diagonal output weighting cannot affect a **full-rank** regression — rows solve independently, so weights don't change the solution. Hence residual correctors and the lm_head fix are immune to this dividend; the metric dividend exists only where a rank constraint does. This retroactively explains why the lm_head fix was strong without any weighting.)
 
 ### 4. Calibration-Data Engineering: the Dimension the Literature Skips
 
-Everything a closed-form method knows comes from calibration data ($\Sigma_{ss}, \Sigma_{ts}$, gradient moments). The literature's standard is 128-256 short samples (SVD-LLM: 256×C4); nobody treats calibration data as an object of engineering. We ran it as a dose-response study:
+Everything a closed-form method knows comes from calibration data ($\Sigma\_{ss}, \Sigma\_{ts}$, gradient moments). The literature's standard is 128-256 short samples (SVD-LLM: 256×C4); nobody treats calibration data as an object of engineering. We ran it as a dose-response study:
 
 | Statistics | held-out | Note |
 |---|---|---|
@@ -214,7 +214,7 @@ The mechanisms differ (iteration breaks the self-consistent chain; the eigen-sub
 
 Re-running the oracle decomposition (swap all sublayer inputs with the teacher's clean values) on the new recipe:
 
-$$\text{oracle}_{\text{new}} = 3.75 \quad (<\ 3.79_{\text{end-to-end distilled}})$$
+$$\text{oracle}\_{\text{new}} = 3.75 \quad (<\ 3.79\_{\text{end-to-end distilled}})$$
 
 **The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.** Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. **The gap between today's 4.53 and training is now mostly drift, not tax.** And drift correctors are full-rank, hence immune to the metric dividend (Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.
 
@@ -222,7 +222,7 @@ $$\text{oracle}_{\text{new}} = 3.75 \quad (<\ 3.79_{\text{end-to-end distilled}}
 
 **The final landscape** (85% linear-layer compression, equal 2.29B budget, zero training, both windows):
 
-$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}_{\text{sparse×metric}} \to \underbrace{4.71/4.53}_{\text{+calibration eng.}} \to \underbrace{3.75}_{\text{new oracle}} \to \underbrace{3.79}_{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$
+$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}\_{\text{sparse×metric}} \to \underbrace{4.71/4.53}\_{\text{+calibration eng.}} \to \underbrace{3.75}\_{\text{new oracle}} \to \underbrace{3.79}\_{\text{e2e distilled}} \to 2.11\_{\text{teacher}}$$
 
 Three new transferable laws from this campaign:
 
