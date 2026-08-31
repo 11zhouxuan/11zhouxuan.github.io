@@ -212,7 +212,9 @@ $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rV
 
 系列里反复使用两个诊断指标，先认识它们：
 
-**R²（决定系数）**：衡量"$y$ 能被 $x$ 线性预测的程度"，取值 0 到 1。R²=1 表示完美线性关系，R²=0.3 表示线性回归只能解释 30% 的变化、剩下 70% 是线性工具够不着的成分。系列里用它回答"压缩模型的激活漂移中，有多少能用线性变换修回去"。
+**R²（决定系数）**：衡量"$y$ 能被 $x$ 线性预测的程度"，取值 0 到 1。R²=1 表示完美线性关系；R²=0.3 表示线性回归只能解释 30% 的变化，剩下 70% 是线性工具够不着的。
+
+  系列里它专门回答一个问题：**压缩造成的偏差，还有多少能用线性手段修回来？** 做法是拿学生某处的中间结果去线性预测教师同一处的中间结果，R² 就是"可修比例"。这个数字的用处很实际：loss 只告诉你结果变差了，R² 告诉你**下一步还该不该用线性工具**。正文里三次靠它做决定——发现中段 MLP 处 R² 只有 0.25~0.40（于是判断剩余偏差主要是非线性的）、定位到某一层把 R² 从 0.82 砍到 0.27（于是找到问题层）、验证新加的矫正器把该处 R² 从 0.36 提到 0.66（于是确认机制判断正确）。
 
 **梯度敏感度（Fisher 信息）**：想知道模型里哪个参数重要、哪个可有可无？一个通用办法：算 loss 对它的导数（梯度）在很多样本上的平方平均。直觉：如果轻轻动一下某参数 loss 就剧烈变化（梯度大），它就重要；反之则不重要。这个"梯度平方的平均"叫 Fisher 信息，系列里用它来决定"哪些矩阵该多分一点秩"。
 
@@ -432,7 +434,9 @@ Two extensions:
 
 ### 8. Two Diagnostic Measures
 
-**R² (coefficient of determination)**: how much of $y$ is linearly predictable from $x$, from 0 to 1. R²=0.3 means linear regression explains 30% of the variation; the other 70% is beyond any linear tool. The series uses it to ask "how much of the compressed model's drift can be repaired linearly".
+**R² (coefficient of determination)**: how much of $y$ is linearly predictable from $x$, from 0 to 1. R²=1 is a perfect linear relationship; R²=0.3 means linear regression explains 30% of the variation and the other 70% is beyond any linear tool.
+
+  In this series it answers one specific question: **how much of the deviation caused by compression can still be repaired linearly?** We take the student's intermediate values at some point and linearly predict the teacher's at the same point; R² is the "repairable fraction". Its practical use: loss only tells you the result got worse, while R² tells you **whether a linear tool is still worth trying**. It drove three decisions in the posts — finding R² of only 0.25-0.40 at the mid-network MLPs (concluding the remaining deviation is mostly nonlinear), locating a single layer that cuts R² from 0.82 to 0.27 (identifying the problem layer), and confirming a new corrector lifted that spot from 0.36 to 0.66 (validating the mechanism).
 
 **Gradient sensitivity (Fisher information)**: which parameters matter? Average the squared gradient of the loss with respect to each over many samples. Intuition: if wiggling a parameter moves the loss a lot, it matters. The series uses this to decide which matrices deserve more rank.
 
