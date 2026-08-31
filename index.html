@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
 
   
@@ -467,6 +467,10 @@
 <p>$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$</p>
 <p>的意义下找最优的 $A, B$。注意这里的误差是在<strong>输入 $x$ 的真实分布下</strong>衡量的，而不是直接比较两个矩阵的元素差——同样大小的矩阵误差，如果落在 $x$ 几乎不出现的方向上就无关紧要。把这个分布因素折进 SVD 的做法就是下面的白化。</p>
 <p>所以完整的两步是：<strong>先解回归得到满秩的目标 $M^<em>$，再把 $M^</em>$ 低秩化得到实际部署的 $A, B$。</strong> 系列各篇改进的其实是这两步里的不同环节——改回归目标（第 2 篇）、改低秩化时的度量（第 5 篇）、给 $AB$ 之外再加一个稀疏项（第 5 篇），等等。</p>
+<p>也许你会问：为什么要绕这两步，不直接对 $A, B$ 做优化？因为<strong>这里的两步法给出的就是全局最优解，而且是可证的</strong>。关键在于目标函数可以按 $M^*$ 干净地拆开（交叉项为零）：</p>
+<p>$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^<em>x \rVert^2}_{\text{与 } A,B \text{ 无关的常数}} + \underbrace{\mathbb{E}\lVert (M^</em>-AB)x \rVert^2}_{\text{只有这项需要优化}}$$</p>
+<p>第一项是低秩与否都消不掉的固有残差；第二项在白化坐标下就是 $\lVert (M^*-AB)L\rVert_F^2$，而&quot;用秩 $r$ 矩阵在 F 范数下最好地逼近给定矩阵&quot;正是上一节 Eckart–Young 定理的场景——SVD 截断直接给出全局最优。相比之下，用梯度下降直接优化 $A, B$ 只能得到局部最优（$A \to AR,\ B \to R^{-1}B$ 的旋转冗余还让优化面上出现平坦方向），而且慢得多。</p>
+<p>这个&quot;两步等于全局最优&quot;只在<strong>单层、二次损失</strong>下成立。一旦目标换成整个模型 36 层复合后的最终 loss，闭式解就不存在了——这正是训练路线能超过闭式路线的根本原因。同理，系列后期在 $AB$ 之外再加稀疏项时也破坏了这个结构，那里只能改用交替求解，不再有全局最优的保证。</p>
 <p>两个引申：</p>
 <ul>
 <li><strong>校准数据（calibration data）</strong>：上面的期望 $\mathbb{E}[\cdot]$ 在实践中用一小批真实文本的样本平均来估计。这批文本就叫校准数据——它是闭式方法唯一&quot;见过&quot;的数据，它的数量和多样性直接决定协方差估得准不准（第 5 篇整整一章在讲这件事）。</li>
@@ -736,6 +740,10 @@
 <p>$$\min_{A,B}\ \mathbb{E} \lVert M^* x - AB,x \rVert^2, \qquad A \in \mathbb{R}^{4096\times 384},\ B \in \mathbb{R}^{384\times 4096}$$</p>
 <p>Note the error is measured <strong>under the true distribution of the input $x$</strong>, not by comparing matrix entries directly — a matrix error of the same size does not matter if it lies along directions $x$ rarely takes. Folding that distributional factor into the SVD is exactly what whitening does below.</p>
 <p>So the full procedure is two steps: <strong>solve the regression for a full-rank target $M^<em>$, then low-rank-ify $M^</em>$ into the $A, B$ actually deployed.</strong> What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 5), adding a sparse term alongside $AB$ (part 5), and so on.</p>
+<p>You might ask: why the detour — why not optimize $A, B$ directly? Because <strong>the two-step procedure here yields the global optimum, provably.</strong> The objective splits cleanly around $M^*$ (the cross term vanishes):</p>
+<p>$$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^<em>x \rVert^2}_{\text{constant in } A,B} + \underbrace{\mathbb{E}\lVert (M^</em>-AB)x \rVert^2}_{\text{the only part to optimize}}$$</p>
+<p>The first term is residual no rank choice can remove; the second, in whitened coordinates, is $\lVert (M^*-AB)L\rVert_F^2$ — and &quot;best rank-$r$ approximation of a given matrix in Frobenius norm&quot; is exactly the Eckart–Young setting from the previous section, so SVD truncation is globally optimal. Gradient descent on $A, B$ directly would only find a local optimum (the rotation redundancy $A \to AR,\ B \to R^{-1}B$ also creates flat directions) and would be far slower.</p>
+<p>This equivalence holds only for a <strong>single layer with a quadratic loss</strong>. Once the objective becomes the final loss after composing all 36 layers, no closed form exists — which is precisely why the training route can beat the closed-form one. Likewise, adding a sparse term alongside $AB$ later in the series breaks the structure, so that part falls back to alternating solves with no global guarantee.</p>
 <p>Two extensions:</p>
 <ul>
 <li><strong>Calibration data</strong>: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever &quot;sees&quot;. Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).</li>
@@ -894,7 +902,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
 
   
@@ -1327,7 +1335,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
 
   
@@ -1858,7 +1866,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
 
   
@@ -2267,7 +2275,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
 
   
@@ -2662,7 +2670,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
 
   
@@ -3621,7 +3629,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
 
   
@@ -4286,7 +4294,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4383,7 +4391,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4481,7 +4489,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-08-31 06:47:26" itemprop="dateModified" datetime="2026-08-31T06:47:26+00:00">2026-08-31</time>
+      <time title="Modified: 2026-08-31 07:47:44" itemprop="dateModified" datetime="2026-08-31T07:47:44+00:00">2026-08-31</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
