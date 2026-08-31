@@ -184,7 +184,7 @@ $\Sigma_{xx}$ 叫 $x$ 的**协方差矩阵**（描述输入在各方向上的分
 | 矫正器（corrector） | 系列自创词：插在模型某处的一个小变换，负责把跑偏的中间结果拉回教师的轨迹 |
 | 截断税 | 系列自创词：把矩阵压到固定秩时不可避免的那部分 loss 损失（见第 4 节的"扔掉 34% 能量"） |
 
-最后一点阅读建议：系列各篇的实验结果都以"两个数字"报告（如 4.74 / 4.53），它们是**两段互不重叠的测试文本**上各自的 loss——相当于把每个实验做两次独立验证，两边同时变好才算真改进，只有一边变好多半是运气。
+最后一点阅读建议：系列各篇的实验结果常以"两个数字"报告（如 4.74 / 4.53）。按惯例，val loss 本该是一个固定测试集上的单一数值；我们多报一个是出于实用考虑：我们的测试集共 40 段文本，跑完一遍要 20 分钟，所以每次只评测其中一半。既然要挑一半，索引就干脆把两半分别评一次——前 20 段当主指标，后 20 段当独立复核。这么做的用处是判断改进的真伪：本系列后期单次改进往往只有 0.02~0.05，而不同文本之间的难度差异本身就有这个量级。如果两半同时变好，基本可以确定是真信号；只有一半变好则多半是数据抖动。它相当于一个简陋的误差棒——更规范的做法是切 4~8 段分别评测再报均值与标准差，我们受评测耗时所限没有这么做。两个数字的绝对差（前一半通常高 0.1~0.2）只反映两段文本难度不同，不必在意。
 
 
 
@@ -352,7 +352,7 @@ Two extensions:
 | corrector | series coinage: a small transform inserted somewhere in the model to pull drifted intermediate results back toward the teacher's trajectory |
 | truncation tax | series coinage: the unavoidable loss increase from forcing matrices to a fixed rank (the "34% of energy thrown away" of Section 4) |
 
-One final reading note: every experimental result in the series is reported as **two numbers** (e.g. 4.74 / 4.53) — losses on two disjoint stretches of test text, i.e. two independent replications. An improvement counts only when both move together; one-sided gains are usually luck.
+One final reading note: results in this series are often reported as **two numbers** (e.g. 4.74 / 4.53). Conventionally a val loss is a single number on a fixed test set; we report two for a practical reason. Our test set has 40 passages and a full pass takes 20 minutes, so each evaluation uses only half of it. Since we had to pick a half, we simply evaluate both: the first 20 passages as the headline metric, the last 20 as an independent replication. This matters for telling real improvements apart from noise: later in the series a single improvement is often just 0.02-0.05, which is also the scale of difficulty differences between text samples. If both halves improve together, the signal is real; a one-sided gain is usually noise. It is a crude error bar — the more rigorous approach would be 4-8 splits with a mean and standard deviation, which evaluation cost ruled out. The absolute gap between the two numbers (the first half runs 0.1-0.2 higher) merely reflects differing text difficulty and can be ignored.
 
 
 
