@@ -1,5 +1,5 @@
 ---
-title: "A Primer for the Low-Rank Compression Series (Part 0)"
+title: "Low-Rank Compression Series (0): A Primer — Everything You Need to Read This Series"
 date: 2026-08-30 08:00:00
 mathjax: true
 tags: [primer, LLM, compression, linear-algebra, tutorial]
@@ -13,7 +13,7 @@ tags: [primer, LLM, compression, linear-algebra, tutorial]
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 预备知识：读懂"低秩压缩"系列需要的一切（〇）
+## 低秩压缩系列（〇）：预备知识——读懂本系列需要的一切
 
 这个系列讲的是一件事：**把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨**。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查表。
 
@@ -255,7 +255,7 @@ $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rV
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## A Primer for the Low-Rank Compression Series (Part 0)
+## Low-Rank Compression Series (0): A Primer — Everything You Need to Read This Series
 
 This series is about one thing: **compressing an 8-billion-parameter language model down to 2.3 billion parameters without making it much dumber**. The main posts assume some machine-learning vocabulary; this page fills in all of it at once. If you know calculus and linear algebra, reading this primer should be enough to follow the whole series. If you already know language models, skip ahead and come back to the glossary (Section 9) as needed.
 
@@ -492,7 +492,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '预备知识：读懂"低秩压缩"系列需要的一切（〇）', en: 'A Primer for the Low-Rank Compression Series (Part 0)'};
+  var postTitles = {zh: '低秩压缩系列（〇）：预备知识——读懂本系列需要的一切', en: 'Low-Rank Compression Series (0): A Primer — Everything You Need to Read This Series'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }

@@ -1,5 +1,5 @@
 ---
-title: "Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression (Part 2)"
+title: "Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier"
 date: 2026-08-19
 mathjax: true
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-regression]
@@ -13,7 +13,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-reg
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界（二）
+## 低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -114,7 +114,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \underbrace{7
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression (Part 2)
+## Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -222,7 +222,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界（二）', en: 'Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression (Part 2)'};
+  var postTitles = {zh: '低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界', en: 'Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
