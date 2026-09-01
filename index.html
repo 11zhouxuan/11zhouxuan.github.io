@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
 
   
@@ -277,6 +277,15 @@
 <div class="lang-content lang-zh">
 <h2 id="低秩压缩系列（〇）：预备知识——读懂本系列需要的一切">低秩压缩系列（〇）：预备知识——读懂本系列需要的一切</h2>
 <p>这个系列讲的是一件事：<strong>把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨</strong>。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查表。</p>
+<h3 id="0-为什么做这件事：本系列的目的与动机">0. 为什么做这件事：本系列的目的与动机</h3>
+<p>训练一个能力不错的小语言模型，标准做法是从随机初始化开始，烧掉海量数据和 GPU 时间。但世界上已经有很多训练好的大模型，它们的权重里存着花大代价学到的知识。一个自然的问题是：<strong>能不能把大模型&quot;改造&quot;成小模型，把这份知识尽量带过去，让小模型不必从零学起？</strong></p>
+<p>本系列选择的改造手段是<strong>低秩分解</strong>：把大模型里的每个大矩阵换成两个瘦矩阵的乘积（第 5 节详细解释）。市面上更流行的压缩手段是<strong>量化</strong>——把每个数字的存储精度从 16 位压到 4 位。选低秩而不是量化，原因在目的：量化只是把<strong>同一个模型</strong>存得更省，结构没变，也没法在量化后的模型上继续训练；而低秩分解产生的是一个<strong>结构上真正更小的新模型</strong>，参数量通过 rank（保留多少个方向）自由调节，想要多小就有多小，并且可以正常继续训练。换句话说，我们做的不是&quot;部署时省显存&quot;，而是<strong>给小模型的预训练制造一个好起点</strong>。</p>
+<p>由此拆出本系列的两个研究问题：</p>
+<ol>
+<li><strong>不做任何训练，改造能做到多好？</strong> 只靠解方程（所谓闭式方法）从大模型构造小模型，极限在哪里、被什么卡住。这是第一到五篇的主线；途中发现的&quot;表示坍缩&quot;&quot;val loss 假象&quot;等现象本身也有独立价值。</li>
+<li><strong>一个好的起点对后续训练值多少？</strong> 同样的训练预算，从闭式改造的模型出发和从随机初始化出发，差距有多大、能维持多久。第三篇给出第一个答案，后续文章会沿着这条线走向更小的 rank 和 scaling law。</li>
+</ol>
+<p>Qwen3-8B → 2.29B 只是这个问题的第一个实验场，不是终点。</p>
 <h3 id="1-语言模型在做什么：预测下一个词">1. 语言模型在做什么：预测下一个词</h3>
 <p>语言模型的任务简单得出乎意料：<strong>给定前文，猜下一个词</strong>。</p>
 <p>输入&quot;今天天气真&quot;，模型输出一张概率表：&quot;好&quot; 35%、&quot;不错&quot; 20%、&quot;冷&quot; 8%……模型的全部能力——写文章、答题、写代码——都是把这个&quot;猜下一个词&quot;连续做几千次的结果。</p>
@@ -576,6 +585,15 @@
 <div class="lang-content lang-en" style="display:none">
 <h2 id="Low-Rank-Compression-Series-0-A-Primer-—-Everything-You-Need-to-Read-This-Series">Low-Rank Compression Series (0): A Primer — Everything You Need to Read This Series</h2>
 <p>This series is about one thing: <strong>compressing an 8-billion-parameter language model down to 2.3 billion parameters without making it much dumber</strong>. The main posts assume some machine-learning vocabulary; this page fills in all of it at once. If you know calculus and linear algebra, reading this primer should be enough to follow the whole series. If you already know language models, skip ahead and come back to the glossary (Section 9) as needed.</p>
+<h3 id="0-Why-We-Are-Doing-This-Purpose-and-Motivation">0. Why We Are Doing This: Purpose and Motivation</h3>
+<p>The standard way to obtain a capable small language model is to train one from random initialization, burning enormous amounts of data and GPU time. Yet the world is full of already-trained large models whose weights store knowledge acquired at great expense. A natural question: <strong>can we &quot;remodel&quot; a large model into a small one, carrying as much of that knowledge over as possible, so the small model does not start from zero?</strong></p>
+<p>Our remodeling tool is <strong>low-rank factorization</strong>: replace every large matrix in the model with a product of two thin matrices (Section 5 explains how). The more popular compression tool is <strong>quantization</strong> — storing each number in 4 bits instead of 16. We choose low-rank over quantization because of the goal: quantization stores <strong>the same model</strong> more cheaply, its structure unchanged, and you cannot continue training a quantized model; low-rank factorization produces a <strong>structurally smaller new model</strong> whose parameter count is freely adjustable through the rank (how many directions to keep) — as small as you want — and which trains normally. In other words, this is not about saving GPU memory at deployment; it is about <strong>manufacturing a good starting point for pretraining small models</strong>.</p>
+<p>This splits into the series' two research questions:</p>
+<ol>
+<li><strong>With no training at all, how good can the remodeling get?</strong> Building the small model from the large one purely by solving equations (so-called closed-form methods) — where is the limit, and what blocks it? This is the main thread of parts 1–5; the phenomena discovered along the way (&quot;representation collapse,&quot; &quot;the val-loss illusion&quot;) have standalone value.</li>
+<li><strong>How much is a good starting point worth to subsequent training?</strong> Given the same training budget, how large is the gap between starting from the closed-form remodel and starting from random initialization — and how long does it persist? Part 3 gives the first answer; later posts follow this thread toward smaller ranks and scaling laws.</li>
+</ol>
+<p>Qwen3-8B → 2.29B is the first testbed for this question, not the destination.</p>
 <h3 id="1-What-a-Language-Model-Does-Predict-the-Next-Word">1. What a Language Model Does: Predict the Next Word</h3>
 <p>The task is surprisingly simple: <strong>given the text so far, guess the next word.</strong></p>
 <p>Feed in &quot;The weather today is really&quot;, and the model outputs a probability table: &quot;nice&quot; 35%, &quot;cold&quot; 8%, ... Everything a model can do — write essays, answer questions, write code — is this guess repeated thousands of times.</p>
@@ -940,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
 
   
@@ -1373,7 +1391,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
 
   
@@ -1904,7 +1922,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
 
   
@@ -2313,7 +2331,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
 
   
@@ -2710,7 +2728,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
 
   
@@ -3677,7 +3695,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
 
   
@@ -4342,7 +4360,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4439,7 +4457,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4537,7 +4555,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
