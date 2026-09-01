@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利（四）  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四个实验方向，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据">
+    <meta name="description" content="中文   English    低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四个实验方向，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don&#39;t Stack (Part 4)">
+<meta property="og:title" content="Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap">
 <meta property="og:url" content="https://11zhouxuan.github.io/2026/08/25/closed-form-anatomy/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English    闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利（四）  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四个实验方向，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据">
+<meta property="og:description" content="中文   English    低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.09 收官。然后我们又打了四个实验方向，把等预算纪录推到 5.02，并且这一次拿到了&quot;真的到头了&quot;的结构性证据">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-25T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-01T05:49:42.726Z">
+<meta property="article:modified_time" content="2026-09-01T05:54:24.289Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -43,10 +43,10 @@
 <link rel="canonical" href="https://11zhouxuan.github.io/2026/08/25/closed-form-anatomy/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/25/closed-form-anatomy/","path":"2026/08/25/closed-form-anatomy/","title":"Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4)"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/25/closed-form-anatomy/","path":"2026/08/25/closed-form-anatomy/","title":"Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4) | Xuan's Blog</title>
+<title>Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap | Xuan's Blog</title>
   
 
 
@@ -175,7 +175,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%97%AD%E5%BC%8F%E5%A4%A9%E8%8A%B1%E6%9D%BF%E7%9A%84%E8%A7%A3%E5%89%96%EF%BC%9A%E4%B8%89%E7%AC%94%E8%B4%A6%E3%80%81oracle-%E5%88%86%E8%A7%A3%E4%B8%8E%E4%B8%8D%E5%8F%AF%E5%8F%A0%E5%8A%A0%E7%9A%84%E7%BA%A2%E5%88%A9%EF%BC%88%E5%9B%9B%EF%BC%89"><span class="nav-text">闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利（四）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%89%E7%AC%94%E8%B4%A6%EF%BC%9A5-05-%E5%88%B0-2-11-%E4%B9%8B%E9%97%B4%E7%9A%84%E9%92%B1%E8%8A%B1%E5%9C%A8%E5%93%AA%E4%BA%86"><span class="nav-text">1. 三笔账：5.05 到 2.11 之间的钱花在哪了</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%96%87%E7%8C%AE%E5%9D%90%E6%A0%87%EF%BC%9A%E6%88%91%E4%BB%AC%E5%88%B0%E5%BA%95%E5%9C%A8%E5%89%8D%E6%B2%BF%E7%9A%84%E4%BB%80%E4%B9%88%E4%BD%8D%E7%BD%AE"><span class="nav-text">2. 文献坐标：我们到底在前沿的什么位置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%80%EF%BC%9Aloss-%E6%95%8F%E6%84%9F%E5%BA%A6%E9%A9%B1%E5%8A%A8%E7%9A%84-rank-%E5%88%86%E9%85%8D%E2%80%94%E2%80%94%E6%96%B9%E5%90%91%E5%AF%B9%EF%BC%8C%E4%BD%86%E8%A6%81%E9%98%BB%E5%B0%BC"><span class="nav-text">3. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%BA%8C%EF%BC%9A%E5%B7%A8%E6%BF%80%E6%B4%BB%E9%80%9A%E9%81%93%E2%80%94%E2%80%94%E5%8F%8C%E8%B4%9F%E7%BB%93%E6%9E%9C%E4%B8%8E%E7%9C%9F%E6%AD%A3%E7%9A%84%E6%94%BE%E5%A4%A7%E6%9C%BA%E5%88%B6"><span class="nav-text">4. 实验方向二：巨激活通道——双负结果与真正的放大机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%89%EF%BC%9Arms-lift-%E9%9D%9E%E7%BA%BF%E6%80%A7%E7%9F%AB%E6%AD%A3%E5%99%A8%E2%80%94%E2%80%94%E6%9C%BA%E5%88%B6%E8%AF%81%E5%AE%9E%EF%BC%8C%E7%BA%A2%E5%88%A9%E5%BD%92%E9%9B%B6"><span class="nav-text">5. 实验方向三：rms-lift 非线性矫正器——机制证实，红利归零</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E5%9B%9B%EF%BC%9Aoracle-%E5%88%86%E8%A7%A3%E2%80%94%E2%80%94%E9%80%90%E4%BD%8D%E7%BD%AE%E6%B5%8B%E9%87%8F%E6%88%AA%E6%96%AD%E6%8D%9F%E5%A4%B1%E7%9A%84%E5%88%86%E5%B8%83"><span class="nav-text">6. 实验方向四：oracle 分解——逐位置测量截断损失的分布</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E7%BB%93%E8%AE%BA%EF%BC%9A%E4%B8%89%E6%8A%8A%E9%94%81%E3%80%81%E4%B8%89%E6%8A%8A%E9%92%A5%E5%8C%99%E4%B8%8E%E4%B8%89%E6%9D%A1%E5%AE%9A%E5%BE%8B"><span class="nav-text">7. 结论：三把锁、三把钥匙与三条定律</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Anatomy-of-the-Closed-Form-Ceiling-Three-Ledgers-an-Oracle-Decomposition-and-Dividends-That-Don-t-Stack-Part-4"><span class="nav-text">Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don&#39;t Stack (Part 4)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Three-Ledgers-Where-the-Nats-Between-5-05-and-2-11-Are-Spent"><span class="nav-text">1. Three Ledgers: Where the Nats Between 5.05 and 2.11 Are Spent</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Literature-Coordinates-Where-We-Actually-Sit-on-the-Frontier"><span class="nav-text">2. Literature Coordinates: Where We Actually Sit on the Frontier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Campaign-1-Loss-Aware-Rank-Allocation-%E2%80%94-Right-Direction-Needs-Damping"><span class="nav-text">3. Campaign 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Campaign-2-Massive-Activation-Channels-%E2%80%94-a-Double-Negative-and-the-True-Amplifier"><span class="nav-text">4. Campaign 2: Massive-Activation Channels — a Double Negative and the True Amplifier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Campaign-3-rms-Lift-Nonlinear-Correctors-%E2%80%94-Mechanism-Confirmed-Dividend-Zero"><span class="nav-text">5. Campaign 3: rms-Lift Nonlinear Correctors — Mechanism Confirmed, Dividend Zero</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Campaign-4-The-Oracle-Decomposition-%E2%80%94-the-Depth-Structure-of-the-Tax-and-Back-Loading"><span class="nav-text">6. Campaign 4: The Oracle Decomposition — the Depth Structure of the Tax, and Back-Loading</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-Conclusions-Three-Locks-Three-Keys-Three-Laws"><span class="nav-text">7. Conclusions: Three Locks, Three Keys, Three Laws</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E5%9B%9B%EF%BC%89%EF%BC%9A%E5%A4%A9%E8%8A%B1%E6%9D%BF%E7%9A%84%E8%A7%A3%E5%89%96%E2%80%94%E2%80%94%E7%94%A8-oracle-%E5%88%86%E8%A7%A3%E5%89%A9%E4%BD%99%E5%B7%AE%E8%B7%9D"><span class="nav-text">低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%89%E7%AC%94%E8%B4%A6%EF%BC%9A5-05-%E5%88%B0-2-11-%E4%B9%8B%E9%97%B4%E7%9A%84%E9%92%B1%E8%8A%B1%E5%9C%A8%E5%93%AA%E4%BA%86"><span class="nav-text">1. 三笔账：5.05 到 2.11 之间的钱花在哪了</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%96%87%E7%8C%AE%E5%9D%90%E6%A0%87%EF%BC%9A%E6%88%91%E4%BB%AC%E5%88%B0%E5%BA%95%E5%9C%A8%E5%89%8D%E6%B2%BF%E7%9A%84%E4%BB%80%E4%B9%88%E4%BD%8D%E7%BD%AE"><span class="nav-text">2. 文献坐标：我们到底在前沿的什么位置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%80%EF%BC%9Aloss-%E6%95%8F%E6%84%9F%E5%BA%A6%E9%A9%B1%E5%8A%A8%E7%9A%84-rank-%E5%88%86%E9%85%8D%E2%80%94%E2%80%94%E6%96%B9%E5%90%91%E5%AF%B9%EF%BC%8C%E4%BD%86%E8%A6%81%E9%98%BB%E5%B0%BC"><span class="nav-text">3. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%BA%8C%EF%BC%9A%E5%B7%A8%E6%BF%80%E6%B4%BB%E9%80%9A%E9%81%93%E2%80%94%E2%80%94%E5%8F%8C%E8%B4%9F%E7%BB%93%E6%9E%9C%E4%B8%8E%E7%9C%9F%E6%AD%A3%E7%9A%84%E6%94%BE%E5%A4%A7%E6%9C%BA%E5%88%B6"><span class="nav-text">4. 实验方向二：巨激活通道——双负结果与真正的放大机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%89%EF%BC%9Arms-lift-%E9%9D%9E%E7%BA%BF%E6%80%A7%E7%9F%AB%E6%AD%A3%E5%99%A8%E2%80%94%E2%80%94%E6%9C%BA%E5%88%B6%E8%AF%81%E5%AE%9E%EF%BC%8C%E7%BA%A2%E5%88%A9%E5%BD%92%E9%9B%B6"><span class="nav-text">5. 实验方向三：rms-lift 非线性矫正器——机制证实，红利归零</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E5%9B%9B%EF%BC%9Aoracle-%E5%88%86%E8%A7%A3%E2%80%94%E2%80%94%E9%80%90%E4%BD%8D%E7%BD%AE%E6%B5%8B%E9%87%8F%E6%88%AA%E6%96%AD%E6%8D%9F%E5%A4%B1%E7%9A%84%E5%88%86%E5%B8%83"><span class="nav-text">6. 实验方向四：oracle 分解——逐位置测量截断损失的分布</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E7%BB%93%E8%AE%BA%EF%BC%9A%E4%B8%89%E6%8A%8A%E9%94%81%E3%80%81%E4%B8%89%E6%8A%8A%E9%92%A5%E5%8C%99%E4%B8%8E%E4%B8%89%E6%9D%A1%E5%AE%9A%E5%BE%8B"><span class="nav-text">7. 结论：三把锁、三把钥匙与三条定律</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-4-Anatomy-of-the-Ceiling-%E2%80%94-an-Oracle-Decomposition-of-the-Remaining-Gap"><span class="nav-text">Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Three-Ledgers-Where-the-Nats-Between-5-05-and-2-11-Are-Spent"><span class="nav-text">1. Three Ledgers: Where the Nats Between 5.05 and 2.11 Are Spent</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Literature-Coordinates-Where-We-Actually-Sit-on-the-Frontier"><span class="nav-text">2. Literature Coordinates: Where We Actually Sit on the Frontier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Campaign-1-Loss-Aware-Rank-Allocation-%E2%80%94-Right-Direction-Needs-Damping"><span class="nav-text">3. Campaign 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Campaign-2-Massive-Activation-Channels-%E2%80%94-a-Double-Negative-and-the-True-Amplifier"><span class="nav-text">4. Campaign 2: Massive-Activation Channels — a Double Negative and the True Amplifier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Campaign-3-rms-Lift-Nonlinear-Correctors-%E2%80%94-Mechanism-Confirmed-Dividend-Zero"><span class="nav-text">5. Campaign 3: rms-Lift Nonlinear Correctors — Mechanism Confirmed, Dividend Zero</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Campaign-4-The-Oracle-Decomposition-%E2%80%94-the-Depth-Structure-of-the-Tax-and-Back-Loading"><span class="nav-text">6. Campaign 4: The Oracle Decomposition — the Depth Structure of the Tax, and Back-Loading</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-Conclusions-Three-Locks-Three-Keys-Three-Laws"><span class="nav-text">7. Conclusions: Three Locks, Three Keys, Three Laws</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -244,12 +244,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don&#39;t Stack (Part 4) | Xuan's Blog">
+      <meta itemprop="name" content="Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap | Xuan's Blog">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4)
+          Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap
         </h1>
 
         <div class="post-meta-container">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:49:42" itemprop="dateModified" datetime="2026-09-01T05:49:42+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 05:54:24" itemprop="dateModified" datetime="2026-09-01T05:54:24+00:00">2026-09-01</time>
     </span>
 
   
@@ -292,7 +292,7 @@
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
-<h2 id="闭式天花板的解剖：三笔账、oracle-分解与不可叠加的红利（四）">闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利（四）</h2>
+<h2 id="低秩压缩系列（四）：天花板的解剖——用-oracle-分解剩余差距">低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距</h2>
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
@@ -510,7 +510,7 @@
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
-<h2 id="Anatomy-of-the-Closed-Form-Ceiling-Three-Ledgers-an-Oracle-Decomposition-and-Dividends-That-Don-t-Stack-Part-4">Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4)</h2>
+<h2 id="Low-Rank-Compression-Series-4-Anatomy-of-the-Ceiling-—-an-Oracle-Decomposition-of-the-Remaining-Gap">Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap</h2>
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
@@ -736,7 +736,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利（四）', en: "Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4)"};
+  var postTitles = {zh: '低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距', en: "Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap"};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
@@ -765,13 +765,13 @@ switchLang('zh');
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/08/22/closed-form-ceiling/" rel="prev" title="The Closed-Form Ceiling: Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier (Part 3)">
-                  <i class="fa fa-angle-left"></i> The Closed-Form Ceiling: Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier (Part 3)
+                <a href="/2026/08/22/closed-form-ceiling/" rel="prev" title="Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier">
+                  <i class="fa fa-angle-left"></i> Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier
                 </a>
             </div>
             <div class="post-nav-item">
-                <a href="/2026/08/30/closed-form-moving-ceiling/" rel="next" title="The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering (Part 5)">
-                  The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering (Part 5) <i class="fa fa-angle-right"></i>
+                <a href="/2026/08/30/closed-form-moving-ceiling/" rel="next" title="Low-Rank Compression Series (5): The Ceiling That Kept Moving — Sparse Residuals, a Better Metric, and Calibration Data">
+                  Low-Rank Compression Series (5): The Ceiling That Kept Moving — Sparse Residuals, a Better Metric, and Calibration Data <i class="fa fa-angle-right"></i>
                 </a>
             </div>
           </div>
