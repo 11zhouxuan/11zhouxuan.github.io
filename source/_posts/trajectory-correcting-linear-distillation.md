@@ -1,5 +1,5 @@
 ---
-title: "Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression"
+title: "Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression (Part 2)"
 date: 2026-08-19
 mathjax: true
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-regression]
@@ -13,7 +13,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-reg
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界
+## 轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界（二）
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -40,7 +40,7 @@ $$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 这个目标有一个隐含假设：这一层在推理时会收到**教师轨迹上的干净输入**。但压缩后的模型里，第 $i$ 层收到的是**已经被前 $i-1$ 层的压缩误差污染的输入**。误差逐层累积，36 层后不是坍缩就是爆炸。
 
-三个"考虑误差传播"的目标，只差一个符号位置，结果天壤之别：
+记 $x\_t$ 为这一层在教师模型里本来会收到的干净输入，$x\_s$ 为压缩后的学生模型实际送进来的、已经漂移的输入。三个"考虑误差传播"的目标，只差在**输入用谁、目标用谁**，结果天壤之别：
 
 | 逐层目标 | 含义 | val loss |
 |---|---|---|
@@ -56,35 +56,37 @@ $$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 **第 1 步**：教师和学生对同样的数据前向，在该层入口配对采集 $x\_t$（教师轨迹输入）和 $x\_s$（学生轨迹输入），累积互协方差 $\Sigma\_{ts} = \sum x\_t x\_s^T$ 和自协方差 $\Sigma\_{ss} = \sum x\_s x\_s^T$（中心化版本）。
 
-**第 2 步**：解仿射岭回归
+**第 2 步**：解仿射岭回归（岭回归 = 带 $\lambda I$ 正则项的最小二乘，保证矩阵可逆、抑制对采样噪声的过拟合）：
 
 $$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarrow\quad M^\* = W\Sigma\_{ts}(\Sigma\_{ss} + \lambda I)^{-1}$$
 
 直觉：$\Sigma\_{ts}\Sigma\_{ss}^{-1}$ 是"从脏输入线性还原干净输入"的最优算子，再与 $W$ 复合——还原与变换合成在一个矩阵里。
 
-**第 3 步**：白化截断到 rank $r$。取 $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$，对 $M^\*L$ 做 SVD 截断——这在 $x\_s$ 的真实分布下是可证最优的截断（白化坐标里的 Eckart–Young）。截断后重算 $b = W\bar{x}\_t - AB\bar{x}\_s$，让 bias 顺带吸收截断在均值处的误差。
+**第 3 步**：白化截断到 rank $r$。直接对 $M^\*$ 做 SVD 截断隐含"输入各方向同等重要"的假设，而真实输入分布并非如此；先取 $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$ 把输入坐标变换到协方差为单位阵的"白化"坐标，再对 $M^\*L$ 做 SVD 截断，就是在 $x\_s$ 的真实分布下可证最优的截断（白化坐标里的 Eckart–Young 定理，推导见[预备篇](/2026/08/30/lord-compression-primer/)）。截断后重算 $b = W\bar{x}\_t - AB\bar{x}\_s$，让 bias 顺带吸收截断在均值处的误差。
 
 **第 4 步**：替换该层，处理下一层。下一层采集到的 $x\_s$ 自动包含新换上的层的误差，于是被下一层矫正。
 
 ### 4. 结果
 
-| 配置 | held-out val loss | 预测多样性 |
+| 配置 | val loss | 预测多样性 |
 |---|---|---|
 | v1（8 个统计 batch，无 bias） | 6.72 | 773 个 unique token |
-| **v2（32 个 train batch + bias）** | **5.59** | 1264 个 unique，top-1 为 " the"，位置间 KL=5.4 |
+| **v2（32 个 train batch + bias）** | **5.60** | 1264 个 unique，top-1 为 " the"，位置间 KL=5.4 |
+
+（本系列的 loss 后来统一按严格协议重测：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。本文轨迹矫正系列的数字均为重测值；第 1 节坍缩时代的数字仍是早期窗口的测量，只作定性对照。）
 
 完整版图：
 
-$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \underbrace{7.51}\_{\text{常数下界}} \to \mathbf{5.59} \to \underbrace{3.79}\_{\text{训练}} \to \underbrace{2.11}\_{\text{教师}}$$
+$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \underbrace{7.51}\_{\text{常数下界}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{训练}} \to \underbrace{2.11}\_{\text{教师}}$$
 
-5.59 **低于常数预测器的信息论下界**——模型真正携带 context→token 的互信息，这是所有闭式方法中的第一次。预测行为完全健康：top-1 是正确的高频词 " the"（教师也是），位置间分布 KL=5.4（坍缩模型是 0.007）。
+5.60 **低于常数预测器的信息论下界 7.51**——模型真正携带了从上下文到下一个 token 的互信息，这是所有闭式方法中的第一次。预测行为完全健康：top-1 是正确的高频词 " the"（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。
 
 ### 5. 方法的平台：三个负结果
 
 进一步的优化尝试全部失败，方法在 ~5.6 收敛：
 
-1. **不动点迭代 → 5.94（变差）**。用第一遍的学生重新采集统计、重解所有层，反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。**单遍顺序处理就是最优做法。**
-2. **谱驱动的 per-layer rank 分配 → 5.72（略差）**。均匀 rank 已接近最优；从均匀运行算出的分配无法迁移到新运行（漂移模式随分配改变）。
+1. **不动点迭代 → 5.95（变差）**。想法是"压缩后的学生漂移变了，那就用它重新采集统计、把所有层再解一遍，迭代到自洽"。实测反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。**单遍顺序处理就是最优做法。**
+2. **按奇异值谱分配 per-layer rank → 5.73（略差）**。给谱衰减慢（更难压）的层多分 rank、衰减快的少分。均匀 rank 已接近最优；从均匀运行算出的分配也无法迁移到新运行（漂移模式随分配改变）。
 3. **λ 不敏感**：$10^{-3}$ 与 $10^{-4}$ 差 0.01。
 
 ### 6. 剩下的差距在哪：R² 诊断
@@ -98,13 +100,13 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \underbrace{7
 | 中段（down\_proj 输入，即 SwiGLU 乘积） | **0.25~0.40** |
 | 尾段 | 回升至 ~0.6 |
 
-中段网络的漂移有一半以上是**非线性**的，其中 SwiGLU 的 gate×up 乘积处最严重——乘法把上游的线性误差二次化，产生了线性算子无法还原的成分。这就是 5.6 平台的成因：**逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距属于非线性漂移**，原理上需要非线性矫正器或全局优化（训练）才能跨越。
+中段网络的漂移有一半以上是**非线性**的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：**逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移**，原理上需要非线性矫正器或全局优化（训练）才能跨越。
 
 ### 7. 结论
 
-1. **低秩压缩的瓶颈不在表达能力，在优化目标**。rank-384 空间中存在 3.79 的点；"逐层逼近 W"找不到它，"逐层矫正轨迹"能走到 5.59。
+1. **低秩压缩的瓶颈不在表达能力，在优化目标**。rank-384 空间中存在 3.79 的点；"逐层逼近 W"找不到它，"逐层矫正轨迹"能走到 5.60。
 2. **闭式方法的正确姿势是回归而不是分解**：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。
-3. ~~逐层线性方法的天花板约为 5.6。~~ **【后续更新】** 5.6 平台随后被「免税矫正器」（lm_head 矫正 + 残差流全秩矫正器，均为零/低参数成本）推进到 **5.09**，并且我们用 oracle 实验测出了整个逐层范式的硬地板（≈4.0）。详见[完结篇《闭式压缩的天花板》](/2026/08/22/closed-form-ceiling/)。
+3. ~~逐层线性方法的天花板约为 5.6。~~ **【后续更新】** 5.6 平台随后被「免税矫正器」（lm_head 矫正 + 残差流全秩矫正器，均为零/低参数成本）推进到 **5.10**，并且我们用 oracle 实验测出了整个逐层范式的硬地板（≈4.0）。详见[完结篇《闭式压缩的天花板》](/2026/08/22/closed-form-ceiling/)。
 4. 更正上一篇的结论："闭式方法无法同时打破坍缩又降低 loss"是错的——错的是当时测试的所有方法共享的"逼近 W"目标，而不是闭式本身。
 
 </div>
@@ -112,7 +114,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \underbrace{7
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression
+## Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression (Part 2)
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -139,7 +141,7 @@ $$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 with a hidden assumption: at inference this layer will receive **clean inputs from the teacher's trajectory**. In the compressed model, layer $i$ actually receives inputs **corrupted by the accumulated error of layers $0..i-1$**. Over 36 layers the error either collapses or explodes.
 
-Three "error-propagation-aware" objectives differ only in where one symbol sits — with wildly different outcomes:
+Write $x\_t$ for the clean input this layer would have received inside the teacher, and $x\_s$ for the drifted input the compressed student actually feeds it. Three "error-propagation-aware" objectives differ only in **which input and which target they use** — with wildly different outcomes:
 
 | Layerwise objective | Meaning | val loss |
 |---|---|---|
@@ -155,35 +157,37 @@ Process blocks 0→35 sequentially. For layer $i$ (upstream already compressed):
 
 **Step 1**: Run teacher and student on the same data; capture paired inputs $x\_t$ (teacher trajectory) and $x\_s$ (student trajectory) at the layer's entrance; accumulate the cross-covariance $\Sigma\_{ts} = \sum x\_t x\_s^T$ and self-covariance $\Sigma\_{ss} = \sum x\_s x\_s^T$ (centered).
 
-**Step 2**: Solve the affine ridge regression
+**Step 2**: Solve the affine ridge regression (ridge = least squares with a $\lambda I$ regularizer, keeping the matrix invertible and damping overfit to sampling noise):
 
 $$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarrow\quad M^\* = W\Sigma\_{ts}(\Sigma\_{ss} + \lambda I)^{-1}$$
 
 Intuition: $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, composed with $W$ — restoration and transformation fused into one matrix.
 
-**Step 3**: Whitened rank-$r$ truncation. With $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$, SVD-truncate $M^\*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates). Recompute $b = W\bar{x}\_t - AB\bar{x}\_s$ afterwards so the bias also absorbs the truncation error at the mean.
+**Step 3**: Whitened rank-$r$ truncation. Truncating the SVD of $M^\*$ directly would implicitly assume all input directions matter equally, which the real input distribution violates; instead take $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$ to transform the input into "whitened" coordinates where the covariance is the identity, then SVD-truncate $M^\*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates; derivation in [the primer](/2026/08/30/lord-compression-primer/)). Recompute $b = W\bar{x}\_t - AB\bar{x}\_s$ afterwards so the bias also absorbs the truncation error at the mean.
 
 **Step 4**: Replace the layer, move on. The next layer's $x\_s$ automatically includes the newly introduced error, which the next regression corrects.
 
 ### 4. Results
 
-| Configuration | held-out val loss | Prediction diversity |
+| Configuration | val loss | Prediction diversity |
 |---|---|---|
 | v1 (8 stat batches, no bias) | 6.72 | 773 unique tokens |
-| **v2 (32 train batches + bias)** | **5.59** | 1264 unique, top-1 " the", cross-position KL 5.4 |
+| **v2 (32 train batches + bias)** | **5.60** | 1264 unique, top-1 " the", cross-position KL 5.4 |
+
+(The series' losses were later re-measured under one rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The trajectory-correction numbers in this post are the re-measured values; the collapse-era numbers in Section 1 remain early-window measurements, kept for qualitative contrast only.)
 
 The full landscape:
 
-$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{collapse illusion}} \to \underbrace{7.51}\_{\text{constant floor}} \to \mathbf{5.59} \to \underbrace{3.79}\_{\text{trained}} \to \underbrace{2.11}\_{\text{teacher}}$$
+$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{collapse illusion}} \to \underbrace{7.51}\_{\text{constant floor}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{trained}} \to \underbrace{2.11}\_{\text{teacher}}$$
 
-5.59 is **below the constant-predictor floor** — the model genuinely carries context→token mutual information, a first among all closed-form methods. Its behavior is healthy: top-1 is the correct high-frequency word " the" (same as the teacher), cross-position KL 5.4 (the collapsed model: 0.007).
+5.60 is **below the constant-predictor floor of 7.51** — the model genuinely carries mutual information from context to next token, a first among all closed-form methods. Its behavior is healthy: top-1 is the correct high-frequency word " the" (same as the teacher), and the KL divergence between output distributions at different positions is 5.4, i.e. predictions really do vary with context (the collapsed model: 0.007, the same distribution everywhere).
 
 ### 5. The Plateau: Three Negative Results
 
 Further optimization attempts all failed; the method converges at ~5.6:
 
-1. **Fixed-point iteration → 5.94 (worse)**. Re-collecting stats with the pass-1 student and re-solving destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. **A single sequential sweep is the sweet spot.**
-2. **Spectrum-driven per-layer rank allocation → 5.72 (slightly worse)**. Uniform ranks are already the sweet spot; an allocation computed from a uniform run does not transfer.
+1. **Fixed-point iteration → 5.95 (worse)**. The idea: the compressed student's drift has changed, so re-collect statistics with it and re-solve every layer, iterating toward self-consistency. In practice this destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. **A single sequential sweep is the best approach.**
+2. **Singular-spectrum-driven per-layer rank allocation → 5.73 (slightly worse)**. Give more rank to layers whose spectrum decays slowly (harder to compress), less to the rest. Uniform ranks are already near-optimal, and an allocation computed from a uniform run does not transfer to a new run (the drift pattern changes with the allocation).
 3. **λ-insensitive**: $10^{-3}$ vs $10^{-4}$ differ by 0.01.
 
 ### 6. Where the Remaining Gap Lives: the R² Diagnostic
@@ -197,13 +201,13 @@ Per layer, measure the fraction of the teacher input linearly recoverable from t
 | Mid-network (down\_proj input = SwiGLU product) | **0.25–0.40** |
 | Late blocks | recovers to ~0.6 |
 
-More than half of the mid-network drift is **nonlinear**, worst at the SwiGLU gate×up product — the multiplication squares upstream linear errors into components no linear operator can undo. This explains the 5.6 plateau: **layerwise linear correction has extracted all the linearly recoverable drift; the remaining 1.8-nat gap is nonlinear drift**, requiring nonlinear correctors or global optimization (training) to cross.
+More than half of the mid-network drift is **nonlinear**, worst at the SwiGLU gate×up product — multiplying two quantities that each carry error produces squared and cross terms, components no linear operator can undo. This explains the 5.6 plateau: **layerwise linear correction has extracted all the linearly recoverable drift; the remaining 1.8-nat gap (from 5.60 to the trained 3.79) is nonlinear drift**, requiring nonlinear correctors or global optimization (training) to cross.
 
 ### 7. Conclusions
 
-1. **The bottleneck of low-rank compression is not expressiveness but the optimization objective.** A 3.79 point exists in the rank-384 space; "approximate $W$ per layer" cannot find it, while "correct the trajectory per layer" reaches 5.59.
+1. **The bottleneck of low-rank compression is not expressiveness but the optimization objective.** A 3.79 point exists in the rank-384 space; "approximate $W$ per layer" cannot find it, while "correct the trajectory per layer" reaches 5.60.
 2. **The right closed-form primitive is regression, not factorization**: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.
-3. ~~The ceiling for layerwise-linear methods is ≈5.6.~~ **[Later update]** The 5.6 plateau was subsequently pushed to **5.09** by 'tax-free correctors' (the lm_head fix plus full-rank residual-stream correctors, at zero/low parameter cost), and an oracle experiment established the hard floor of the entire layerwise paradigm (≈4.0). See [the finale: The Closed-Form Ceiling](/2026/08/22/closed-form-ceiling/).
+3. ~~The ceiling for layerwise-linear methods is ≈5.6.~~ **[Later update]** The 5.6 plateau was subsequently pushed to **5.10** by 'tax-free correctors' (the lm_head fix plus full-rank residual-stream correctors, at zero/low parameter cost), and an oracle experiment established the hard floor of the entire layerwise paradigm (≈4.0). See [the finale: The Closed-Form Ceiling](/2026/08/22/closed-form-ceiling/).
 4. A correction to the previous post: "closed-form methods cannot simultaneously break collapse and lower loss" was wrong — what was broken was the shared "approximate $W$" objective of every method tested then, not closed-form itself.
 
 </div>
@@ -218,7 +222,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界', en: 'Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression'};
+  var postTitles = {zh: '轨迹矫正线性蒸馏：突破低秩压缩的闭式方法边界（二）', en: 'Trajectory-Correcting Linear Distillation: Breaking the Closed-Form Frontier in Low-Rank LLM Compression (Part 2)'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }

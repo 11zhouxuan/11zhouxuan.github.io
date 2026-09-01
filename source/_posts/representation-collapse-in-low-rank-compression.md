@@ -1,5 +1,5 @@
 ---
-title: "Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model"
+title: "Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model (Part 1)"
 date: 2026-08-17
 mathjax: true
 tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, MLP]
@@ -13,7 +13,7 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好
+## 低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好（一）
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -206,7 +206,7 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model
+## Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model (Part 1)
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -406,7 +406,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好', en: 'Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model'};
+  var postTitles = {zh: '低秩压缩中的表示坍缩：为什么 val loss 好不等于模型好（一）', en: 'Representation Collapse in Low-Rank Compression: When Low Loss Means a Broken Model (Part 1)'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }

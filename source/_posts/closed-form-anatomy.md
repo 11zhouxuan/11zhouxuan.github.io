@@ -1,5 +1,5 @@
 ---
-title: "Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack"
+title: "Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4)"
 date: 2026-08-25
 mathjax: true
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bound, rank-allocation]
@@ -13,7 +13,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利
+## 闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利（四）
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -142,7 +142,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.59\_{\text{轨迹矫正}} \to 5.09\_{\text{�
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack
+## Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4)
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -278,7 +278,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利', en: "Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack"};
+  var postTitles = {zh: '闭式天花板的解剖：三笔账、oracle 分解与不可叠加的红利（四）', en: "Anatomy of the Closed-Form Ceiling: Three Ledgers, an Oracle Decomposition, and Dividends That Don't Stack (Part 4)"};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }

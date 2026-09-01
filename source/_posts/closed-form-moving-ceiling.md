@@ -1,5 +1,5 @@
 ---
-title: "The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering"
+title: "The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering (Part 5)"
 date: 2026-08-30
 mathjax: true
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, calibration]
@@ -13,7 +13,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 会移动的天花板：稀疏残差、换一把尺子与校准数据工程
+## 会移动的天花板：稀疏残差、换一把尺子与校准数据工程（五）
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -126,7 +126,7 @@ $$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}\_{\text{稀疏×度量}}
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering
+## The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering (Part 5)
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -246,7 +246,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '会移动的天花板：稀疏残差、换一把尺子与校准数据工程', en: 'The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering'};
+  var postTitles = {zh: '会移动的天花板：稀疏残差、换一把尺子与校准数据工程（五）', en: 'The Ceiling That Kept Moving: Sparse Residuals, a Change of Metric, and Calibration-Data Engineering (Part 5)'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
