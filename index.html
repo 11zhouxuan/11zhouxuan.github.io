@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
 
   
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
 
   
@@ -1391,7 +1391,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
 
   
@@ -1922,7 +1922,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
 
   
@@ -1945,10 +1945,11 @@ switchLang('zh');
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<p>这是低秩压缩三部曲的完结篇（<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">第一篇：表示坍缩</a>，<a href="/2026/08/19/trajectory-correcting-linear-distillation/">第二篇：轨迹矫正线性蒸馏</a>）。上一篇结束时，闭式（无训练）方法停在 val loss 5.59。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对&quot;闭式 init + 训练&quot;的完整路线意味着什么。</p>
+<p>这是低秩压缩三部曲的完结篇（<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">第一篇：表示坍缩</a>，<a href="/2026/08/19/trajectory-correcting-linear-distillation/">第二篇：轨迹矫正线性蒸馏</a>）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对&quot;闭式 init + 训练&quot;的完整路线意味着什么。</p>
+<p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 5 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）</p>
 <h3 id="1-消融的意外：便宜的赢了贵的">1. 消融的意外：便宜的赢了贵的</h3>
-<p>上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维），让乘法交叉项 $g\delta_u + u\delta_g$ 在扩展空间中重新变得线性可表——理论上非常对症。同时顺手加了一个&quot;免费&quot;组件：lm_head 矫正。</p>
-<p>消融结果完全出乎预料（held-out，同为 rank-384 基础）：</p>
+<p>上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维）——乘法处的误差交叉项 $g\delta_u + u\delta_g$（$\delta$ 是各自的漂移误差）在原空间里是非线性的，但在这个扩展空间里重新变成了线性可表，理论上非常对症。同时顺手加了一个&quot;免费&quot;组件：lm_head 矫正。</p>
+<p>消融实验（逐个拆掉组件、分别测量每个组件的贡献）的结果完全出乎预料（同为 rank-384 基础）：</p>
 <table>
 <thead>
 <tr>
@@ -1960,33 +1961,34 @@ switchLang('zh');
 <tbody>
 <tr>
 <td>扩展特征</td>
-<td>−0.09 nat</td>
+<td>−0.06 nat</td>
 <td><strong>+340M 参数</strong></td>
 </tr>
 <tr>
 <td><strong>lm_head 矫正</strong></td>
-<td><strong>−0.28 nat</strong></td>
+<td><strong>−0.29 nat</strong></td>
 <td><strong>≈0 参数</strong></td>
 </tr>
 </tbody>
 </table>
-<p>精心设计的特征工程收益微薄（纯误差二阶项 $\delta_g\delta_u$ 在扩展空间中依然不可表），而&quot;免费&quot;的那个贡献了三倍的改善。两者严格可加：$5.59 - 0.28 - 0.09 = 5.22 \approx 5.23$（实测）。</p>
+<p>精心设计的特征工程收益微薄（纯误差二阶项 $\delta_g\delta_u$ 在扩展空间中依然不可表），而&quot;免费&quot;的那个贡献了近五倍的改善。两者基本可加：$5.60 - 0.29 - 0.06 = 5.26$，实测组合 5.23——比简单相加还略好一点，差距在折间波动的边缘。</p>
 <h3 id="2-免税矫正器原理">2. 免税矫正器原理</h3>
+<p>先解释本篇反复出现的一个词：把一个矩阵砍到 rank 384 必然损失一部分逼近精度，这份不可避免的损失我们称为<strong>截断税</strong>。全网 252 个低秩层，每层都在交税。</p>
 <p>lm_head 矫正为什么这么值？出口流水线是：36 个 block → final RMSNorm → lm_head（4096→151936，未压缩）→ logits。所有压缩方法只矫正被压缩的层，而 lm_head &quot;没被压缩所以没人碰&quot;——但它收到的<strong>输入</strong>已经漂移了。解一个 4096×4096 的全秩回归 $P$（学生 final hidden → 教师 final hidden），吸收进头部权重：</p>
 <p>$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$</p>
-<p>形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它强在四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是<strong>全秩</strong>的——这是全网唯一不付 rank-384 截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。</p>
+<p>形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它强在四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是<strong>全秩</strong>的——这是全网唯一不付截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。</p>
 <p>这提炼出一个通用原理：<strong>把预算花在免截断税的位置</strong>。全网还有一类这样的位置——block 之间的残差流。每 6 个 block 插一个满秩矫正 $h \leftarrow Ph + b$（拟合学生残差 → 教师残差，$W=I$ 无需截断，16.8M 参数/个），block rank 从 384 降到 353 配平预算：</p>
 <table>
 <thead>
 <tr>
 <th>同预算配置（2.29B）</th>
-<th>held-out val loss</th>
+<th>val loss</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>v2</td>
-<td>5.59</td>
+<td>5.60</td>
 </tr>
 <tr>
 <td>+ lm_head 矫正</td>
@@ -1998,24 +2000,25 @@ switchLang('zh');
 </tr>
 <tr>
 <td>+ 11 个残差矫正器（K=3，rank 316）</td>
-<td><strong>5.09</strong></td>
+<td><strong>5.10</strong></td>
 </tr>
 <tr>
 <td>对照：v2 rank=768（<strong>2 倍参数</strong>）</td>
-<td>5.14</td>
+<td>5.12</td>
 </tr>
 </tbody>
 </table>
-<p>同预算的免税矫正器打败了两倍参数的暴力加 rank。K=6→3 只再赚 0.02——红利在此饱和。<strong>闭式同预算纪录：5.09。</strong></p>
+<p>同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。<strong>闭式同预算纪录：5.10。</strong></p>
 <h3 id="3-oracle-上界：逐层范式的地板在-4-0">3. oracle 上界：逐层范式的地板在 ~4.0</h3>
-<p>5.09 距离训练可达的 3.3 还有多远的闭式空间？我们直接测量&quot;矫正器的理论极限&quot;：用作弊的方式让每个子层<strong>真的收到教师的干净输入</strong>（配对前向 + 运行时替换 q/k/v 和 gate/up 的输入张量），每层只贡献自己的局部截断误差，误差在残差流中只加性累积、不再穿过非线性复合。这个 oracle 的 loss 上界了&quot;rank-r 线性层 + 任意输入侧矫正器&quot;整个家族——无论矫正器是线性、分段还是任意非线性，它最多做到把输入还原干净。</p>
+<p>5.10 距离训练可达的 3.3 还有多远的闭式空间？我们直接测量&quot;矫正器的理论极限&quot;。做法是一个 <strong>oracle 实验</strong>——允许作弊、专门用来测理论上限的实验：运行时把每个子层的输入张量替换成教师的干净值（配对前向，替换 q/k/v 和 gate/up 的输入），于是每层只贡献自己的局部截断误差，误差在残差流中只加性累积、不再穿过非线性复合。</p>
+<p>这个作弊模型的 loss 是&quot;rank-r 线性层 + 任意输入侧矫正器&quot;整个家族的<strong>地板</strong>：无论矫正器是线性、分段还是任意非线性，它最多做到把输入还原干净——也就是最多做到 oracle 的水平，不可能更低。实测：</p>
 <p>$$\text{oracle} = 4.0 \sim 4.3$$</p>
 <p>即使漂移矫正做到神级，rank-384 局部截断误差之和也要付 4 个 nat。想到 2.5？对这个范式<strong>严格不可达</strong>。</p>
 <p>但同时出现了一个更深的事实：<strong>训练（step 500 时 3.20）已经打穿了 oracle 界（4.0）</strong>。逻辑上完全自洽：oracle 只约束&quot;每层模仿教师对应层&quot;的范式，而梯度训练<strong>重组了各层的分工</strong>——训练出的层不再是教师各层的逼近，而是一组全新的因子化方案，其复合效果超越逐层模仿的极限。这是第二篇&quot;瓶颈在优化目标不在表达能力&quot;论点的最强版本。</p>
 <h3 id="4-悬崖调查：block-16-是非线性放大器">4. 悬崖调查：block 16 是非线性放大器</h3>
 <p>逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自<strong>单独一层</strong>：</p>
 <p>$$R^2:\ \underbrace{0.815}_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}_{\text{一层砍掉 0.543}}$$</p>
-<p>其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊（MLP 输出幅度是邻居的 2 倍、override ratio 0.60 vs 邻居 0.25——文献中 massive-activation 层的典型特征）。</p>
+<p>其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊：MLP 输出幅度是邻居的 2 倍，override ratio（MLP 输出相对残差流的幅度之比）0.60 vs 邻居的 0.25——这是文献中 massive activation 层（少数激活幅度异常大的层）的典型特征。</p>
 <p>两个定点打击实验都失败了：block 16 MLP 全秩（连矫正都满血）→ 5.40，更差；前载 rank（0-16 用 480、17-35 用 298，减少流入悬崖的漂移）→ 5.38，也更差。结论：<strong>悬崖不是压缩造成的，是教师自己的功能特性</strong>——入口处 18% 的非线性残余误差被它的原生大幅度非线性计算放大成出口处 73% 的不可恢复纠缠。容量、分配、线性矫正三类武器全部无效；这 18% 对可负担的 rank 提升也不敏感。闭式极限就此锁定在 ~5.1。</p>
 <h3 id="5-训练判决：好的闭式-init-值-200-步训练">5. 训练判决：好的闭式 init 值 200+ 步训练</h3>
 <p>双臂对照（同 seed、同数据序、同 global batch），只差初始化：</p>
@@ -2082,17 +2085,17 @@ switchLang('zh');
 <ol>
 <li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
 </ol>
-<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.09}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 界}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
-<p><strong>【后续更新】</strong> 纪录随后被 loss-aware rank 分配与 back-load 深度倾斜推进到 <strong>5.02</strong>，并且 oracle 分解实验揭示了截断税的深度分布（几乎全部在 block 18-35）。详见<a href="/2026/08/25/closed-form-anatomy/">第四篇《闭式天花板的解剖》</a>。</p>
+<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 地板}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p><strong>【后续更新】</strong> 纪录随后被 loss 感知 rank 分配推进到 <strong>5.06</strong>（早期文章报告过 5.02，来自旧的小窗口评估；严格协议重测后，当时以为有效的 back-load 深度倾斜与 loss 感知分配统计上打平），并且 oracle 分解实验揭示了截断税的深度分布（几乎全部在 block 18-35）。详见<a href="/2026/08/25/closed-form-anatomy/">第四篇《天花板的解剖》</a>。</p>
 <ol start="2">
 <li>
 <p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
 </li>
 <li>
-<p><strong>闭式极限的成因链</strong>：实际 5.09 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 &lt; 4.0）。</p>
+<p><strong>闭式极限的成因链</strong>：实际 5.10 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 &lt; 4.0）。</p>
 </li>
 <li>
-<p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.09）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
+<p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
 </li>
 </ol>
 </div>
@@ -2102,10 +2105,11 @@ switchLang('zh');
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<p>This concludes the low-rank compression trilogy (<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">part 1: representation collapse</a>, <a href="/2026/08/19/trajectory-correcting-linear-distillation/">part 2: trajectory-correcting linear distillation</a>). Part 2 ended with closed-form (training-free) methods at val loss 5.59. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the &quot;closed-form init + training&quot; pipeline.</p>
+<p>This concludes the low-rank compression trilogy (<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">part 1: representation collapse</a>, <a href="/2026/08/19/trajectory-correcting-linear-distillation/">part 2: trajectory-correcting linear distillation</a>). Part 2 ended with closed-form (training-free) methods at val loss 5.60. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the &quot;closed-form init + training&quot; pipeline.</p>
+<p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 5 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)</p>
 <h3 id="1-An-Ablation-Surprise-the-Cheap-Component-Beats-the-Expensive-One">1. An Ablation Surprise: the Cheap Component Beats the Expensive One</h3>
-<p>Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim), making the cross terms $g\delta_u + u\delta_g$ linear again in the extended space — theoretically well-aimed. We also added a &quot;free&quot; component along the way: an lm_head correction.</p>
-<p>The ablation was a complete surprise (held-out, rank-384 base):</p>
+<p>Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim) — the error cross terms $g\delta_u + u\delta_g$ (where $\delta$ is each factor's drift) are nonlinear in the original space but become linearly representable in the extended one; theoretically well-aimed. We also added a &quot;free&quot; component along the way: an lm_head correction.</p>
+<p>The ablation (removing components one at a time to measure each one's contribution) was a complete surprise (rank-384 base):</p>
 <table>
 <thead>
 <tr>
@@ -2117,33 +2121,34 @@ switchLang('zh');
 <tbody>
 <tr>
 <td>Extended features</td>
-<td>−0.09 nat</td>
+<td>−0.06 nat</td>
 <td><strong>+340M params</strong></td>
 </tr>
 <tr>
 <td><strong>lm_head correction</strong></td>
-<td><strong>−0.28 nat</strong></td>
+<td><strong>−0.29 nat</strong></td>
 <td><strong>≈0 params</strong></td>
 </tr>
 </tbody>
 </table>
-<p>The carefully engineered features underdelivered (the pure second-order term $\delta_g\delta_u$ remains unrepresentable even in the extended space), while the free component contributed 3× more. The two are strictly additive: $5.59 - 0.28 - 0.09 = 5.22 \approx 5.23$ (measured).</p>
+<p>The carefully engineered features underdelivered (the pure second-order term $\delta_g\delta_u$ remains unrepresentable even in the extended space), while the free component contributed nearly 5× more. The two are essentially additive: $5.60 - 0.29 - 0.06 = 5.26$, versus 5.23 measured for the combination — slightly better than the plain sum, a gap at the edge of the fold noise.</p>
 <h3 id="2-The-Tax-Free-Corrector-Principle">2. The Tax-Free Corrector Principle</h3>
+<p>First, a word used throughout this post: cutting a matrix to rank 384 inevitably loses some approximation accuracy; we call this unavoidable loss the <strong>truncation tax</strong>. All 252 low-rank layers in the network pay it.</p>
 <p>Why is the lm_head fix so valuable? The exit pipeline is: 36 blocks → final RMSNorm → lm_head (4096→151936, uncompressed) → logits. Every compression method corrects only compressed layers, and lm_head is &quot;uncompressed, so nobody touches it&quot; — yet its <strong>input</strong> has drifted. Solve a full-rank 4096×4096 regression $P$ (student final hidden → teacher final hidden) and absorb it:</p>
 <p>$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$</p>
-<p>Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four multipliers: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is <strong>full-rank</strong> — the only spot in the network that pays no rank-384 truncation tax; it is the last hop, feeding straight into logits; every token passes through it.</p>
+<p>Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four multipliers: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is <strong>full-rank</strong> — the only spot in the network that pays no truncation tax; it is the last hop, feeding straight into logits; every token passes through it.</p>
 <p>This generalizes into a principle: <strong>spend budget where corrections are truncation-tax-free</strong>. One more family of such spots exists — the residual stream between blocks. Insert a full-rank corrector $h \leftarrow Ph + b$ every 6 blocks (student residual → teacher residual; $W=I$, no truncation needed; 16.8M params each), shrinking block ranks 384→353 to stay on budget:</p>
 <table>
 <thead>
 <tr>
 <th>Equal-budget configuration (2.29B)</th>
-<th>held-out val loss</th>
+<th>val loss</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>v2</td>
-<td>5.59</td>
+<td>5.60</td>
 </tr>
 <tr>
 <td>+ lm_head fix</td>
@@ -2155,24 +2160,25 @@ switchLang('zh');
 </tr>
 <tr>
 <td>+ 11 residual correctors (K=3, rank 316)</td>
-<td><strong>5.09</strong></td>
+<td><strong>5.10</strong></td>
 </tr>
 <tr>
 <td>Reference: v2 rank=768 (<strong>2× params</strong>)</td>
-<td>5.14</td>
+<td>5.12</td>
 </tr>
 </tbody>
 </table>
-<p>Equal-budget tax-free correctors beat brute-force rank at twice the parameters. K=6→3 buys only 0.02 more — the dividend saturates here. <strong>Closed-form equal-budget record: 5.09.</strong></p>
+<p>Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. <strong>Closed-form equal-budget record: 5.10.</strong></p>
 <h3 id="3-The-Oracle-Bound-the-Layerwise-Paradigm-s-Floor-Is-4-0">3. The Oracle Bound: the Layerwise Paradigm's Floor Is ~4.0</h3>
-<p>How much closed-form room remains between 5.09 and the 3.3 that training reaches? We measured the theoretical limit of correctors directly: cheat by giving every sublayer the <strong>teacher's clean input</strong> at runtime (paired forwards + input-tensor swapping at the q/k/v and gate/up entrances), so each layer contributes only its own local truncation error, and errors accumulate additively in the residual stream without compounding through nonlinearities. This oracle's loss upper-bounds the entire family &quot;rank-r linear layers + arbitrary input-side correctors&quot; — no corrector, however nonlinear, can do better than restoring clean inputs.</p>
+<p>How much closed-form room remains between 5.10 and the 3.3 that training reaches? We measured the theoretical limit of correctors directly, with an <strong>oracle experiment</strong> — an experiment that is allowed to cheat, used purely to establish a theoretical bound: at runtime, swap every sublayer's input tensor for the teacher's clean value (paired forwards, swapping at the q/k/v and gate/up entrances), so each layer contributes only its own local truncation error, and errors accumulate additively in the residual stream without compounding through nonlinearities.</p>
+<p>This cheating model's loss is the <strong>floor</strong> for the entire family &quot;rank-r linear layers + arbitrary input-side correctors&quot;: no corrector, however nonlinear, can do better than restoring the inputs to clean — that is, no better than the oracle. Measured:</p>
 <p>$$\text{oracle} = 4.0 \sim 4.3$$</p>
 <p>Even with god-tier drift correction, the summed local truncation errors of rank 384 cost 4 nats. A target of 2.5 is <strong>provably unreachable</strong> for this paradigm.</p>
 <p>Simultaneously, a deeper fact emerged: <strong>training (3.20 at step 500) has already broken through the oracle bound (4.0)</strong>. This is logically consistent and profound: the oracle only binds the &quot;each layer imitates its teacher counterpart&quot; paradigm, whereas gradient training <strong>reorganizes the division of labor across layers</strong> — the trained layers are no longer approximations of individual teacher layers but a new factorized solution whose composition beats what layerwise imitation permits. This is the strongest form of part 2's thesis that the bottleneck is the optimization objective, not expressiveness.</p>
 <h3 id="4-The-Cliff-Block-16-Is-a-Nonlinear-Amplifier">4. The Cliff: Block 16 Is a Nonlinear Amplifier</h3>
 <p>Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a <strong>single layer</strong>:</p>
 <p>$$R^2:\ \underbrace{0.815}_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}_{\text{one layer destroys 0.543}}$$</p>
-<p>Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself (MLP output 2× its neighbors' magnitude, override ratio 0.60 vs 0.25 — the signature of a massive-activation layer).</p>
+<p>Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself: MLP output 2× its neighbors' magnitude, override ratio (the MLP output's magnitude relative to the residual stream) 0.60 vs their 0.25 — the signature of a massive-activation layer (one of the few layers with abnormally large activations, a documented phenomenon).</p>
 <p>Two targeted interventions both failed: keeping block-16's MLP fully DENSE (full-rank lindist maps) → 5.40, worse; front-loading ranks (480 for blocks 0-16, 298 after, to reduce the drift flowing into the cliff) → 5.38, also worse. Conclusion: <strong>the cliff is not caused by compression — it is the teacher's own function</strong>: the ~18% nonlinear residue arriving at its input (insensitive to affordable rank increases) gets amplified by its native large-magnitude nonlinear computation into 73% unrecoverable entanglement at its output. Capacity, allocation, and linear correction are all powerless. The closed-form limit locks in at ~5.1.</p>
 <h3 id="5-The-Training-Verdict-a-Good-Closed-Form-Init-Is-Worth-200-Steps">5. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps</h3>
 <p>A two-arm controlled comparison (same seed, data order, global batch), differing only in initialization:</p>
@@ -2239,17 +2245,17 @@ switchLang('zh');
 <ol>
 <li><strong>The final closed-form landscape</strong> (85% compression, equal 2.29B budget):</li>
 </ol>
-<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.09}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle bound}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
-<p><strong>[Later update]</strong> The record was subsequently pushed to <strong>5.02</strong> by loss-aware rank allocation and back-loaded depth tilting, and an oracle-decomposition experiment revealed the depth distribution of the truncation tax (almost entirely in blocks 18-35). See <a href="/2026/08/25/closed-form-anatomy/">part 4: Anatomy of the Closed-Form Ceiling</a>.</p>
+<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle floor}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p><strong>[Later update]</strong> The record was subsequently pushed to <strong>5.06</strong> by loss-aware rank allocation (early posts reported 5.02, from the old small-window evaluation; under the rigorous protocol, the back-loaded depth tilt then believed effective turned out statistically tied with loss-aware allocation), and an oracle-decomposition experiment revealed the depth distribution of the truncation tax (almost entirely in blocks 18-35). See <a href="/2026/08/25/closed-form-anatomy/">part 4: Anatomy of the Ceiling</a>.</p>
 <ol start="2">
 <li>
 <p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget at <strong>truncation-tax-free</strong> spots (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
 </li>
 <li>
-<p><strong>The causal chain of the ceiling</strong>: the space between practical 5.09 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 &lt; 4.0).</p>
+<p><strong>The causal chain of the ceiling</strong>: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 &lt; 4.0).</p>
 </li>
 <li>
-<p><strong>The engineering takeaway</strong>: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.09) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.</p>
+<p><strong>The engineering takeaway</strong>: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.</p>
 </li>
 </ol>
 </div>
@@ -2331,7 +2337,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
 
   
@@ -2728,7 +2734,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
 
   
@@ -3695,7 +3701,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
 
   
@@ -4360,7 +4366,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4457,7 +4463,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4555,7 +4561,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 05:58:53" itemprop="dateModified" datetime="2026-09-01T05:58:53+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
