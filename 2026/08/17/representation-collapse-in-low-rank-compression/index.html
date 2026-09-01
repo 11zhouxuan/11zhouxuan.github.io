@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-01T06:35:36.692Z">
+<meta property="article:modified_time" content="2026-09-01T08:54:06.774Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 06:35:36" itemprop="dateModified" datetime="2026-09-01T06:35:36+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-01 08:54:06" itemprop="dateModified" datetime="2026-09-01T08:54:06+00:00">2026-09-01</time>
     </span>
 
   
@@ -296,11 +296,13 @@
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
 <h3 id="1-一个意外的发现">1. 一个意外的发现</h3>
-<p>实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘积 $AB$（低秩分解），把总参数量压到 2.29B，然后比较两种截断方式：</p>
-<ul>
-<li><strong>plain SVD</strong>：直接对 $W$ 做 SVD 截断，每层统一保留 rank 384。val loss = 18.65。</li>
-<li><strong>ASVD（激活加权 SVD）</strong>：截断前先按每个输入通道的平均激活幅度加权——直觉是&quot;常被用到的通道要逼近得更准&quot;，加权强度由指数 $\alpha$ 控制（$\alpha=1.0$ 即按幅度原样加权）。再配合<strong>逐层 rank 分配</strong>：重要性（$\lVert WS\rVert_F$）高的层多给 rank、低的少给，平均 rank 357，分得最少的 Block 0 只有 32。val loss = <strong>8.50</strong>。</li>
-</ul>
+<p>实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘积 $AB$（低秩分解），把总参数量压到 2.29B，然后比较两种截断方式。</p>
+<p><strong>plain SVD</strong>：对 $W$ 做奇异值分解 $W = U\Sigma V^T$，只保留最大的 $r$ 个奇异值，$W \approx U_r \Sigma_r V_r^T$，取 $A = U_r\Sigma_r$、$B = V_r^T$。由 Eckart–Young 定理（见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>），这是下面这个目标的最优解：</p>
+<p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2$$</p>
+<p>每层统一保留 rank 384，得到 val loss = 18.65。</p>
+<p><strong>ASVD（激活加权 SVD）</strong>：直觉是&quot;常被用到的输入通道要逼近得更准&quot;。取对角加权矩阵 $S = \mathrm{diag}(\mathbb{E}[\lvert x_i\rvert]^{\alpha})$——第 $i$ 个对角元是该输入通道平均激活幅度的 $\alpha$ 次方，指数 $\alpha$ 控制加权强度（$\alpha=1.0$ 即按幅度原样加权）——把目标换成加权误差：</p>
+<p>$$\min_{A,B}\ \lVert (W - AB)\ S \rVert_F^2$$</p>
+<p>解法与 plain SVD 同构：对 $WS$ 做 SVD 截断得 $U_r\Sigma_r V_r^T$，再取 $A = U_r\Sigma_r$、$B = V_r^T S^{-1}$，权重就在&quot;高激活通道误差放大、低激活通道误差缩小&quot;的度量下最优。再配合<strong>逐层 rank 分配</strong>：重要性（$\lVert WS\rVert_F$）高的层多给 rank、低的少给，平均 rank 357，分得最少的 Block 0 只有 32。得到 val loss = <strong>8.50</strong>。</p>
 <p>8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：</p>
 <table>
 <thead>
@@ -355,7 +357,7 @@
 <p>坍缩模型的 8.50 恰好落在这个下界之上 1 nat——它是一个接近最优的常数预测器。直接测量也证实了&quot;常数函数&quot;：采样 64 个位置，输出分布之间的两两 KL 散度（衡量两个概率分布差异的量，完全相同时为 0）平均只有 <strong>0.007</strong>，而正常模型在 1~10 量级。</p>
 <h3 id="3-坍缩的机制">3. 坍缩的机制</h3>
 <p><strong>为什么 ASVD 导致坍缩而 plain SVD 不会？</strong></p>
-<p>ASVD 对每层用 $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$ 加权——$S$ 是个对角矩阵，第 $i$ 个对角元就是第 $i$ 个输入通道激活幅度的平均值。关键观察：<strong>相邻层的 $S$ 高度相似</strong>（残差连接让激活分布逐层变化缓慢）。这意味着：</p>
+<p>回看第 1 节的加权矩阵 $S$（对角元 = 各输入通道的平均激活幅度）。关键观察：<strong>相邻层的 $S$ 高度相似</strong>（残差连接让激活分布逐层变化缓慢）。这意味着：</p>
 <ul>
 <li>每一层的 SVD 截断都优先保留 $S$ 大的方向（高激活通道）</li>
 <li>每一层都丢掉 $S$ 小的方向</li>
@@ -732,11 +734,13 @@
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
 <h3 id="1-An-Unexpected-Finding">1. An Unexpected Finding</h3>
-<p>The subject is Qwen3-8B (36 layers, our teacher model, val loss 2.11). We replace every linear layer $W$ with a product of two thin matrices $AB$ (low-rank factorization), squeezing the total parameter count to 2.29B, and compare two truncation schemes:</p>
-<ul>
-<li><strong>Plain SVD</strong>: truncate the SVD of $W$ directly, keeping a uniform rank 384 in every layer. Val loss = 18.65.</li>
-<li><strong>ASVD (activation-weighted SVD)</strong>: before truncating, weight each input channel by its average activation magnitude — the intuition being &quot;channels that get used a lot deserve a more accurate approximation.&quot; The weighting strength is an exponent $\alpha$ ($\alpha=1.0$ means weighting by the raw magnitudes). Combined with <strong>per-layer rank allocation</strong>: layers with higher importance ($\lVert WS\rVert_F$) get more rank, others less — mean rank 357, with Block 0 starved at rank 32. Val loss = <strong>8.50</strong>.</li>
-</ul>
+<p>The subject is Qwen3-8B (36 layers, our teacher model, val loss 2.11). We replace every linear layer $W$ with a product of two thin matrices $AB$ (low-rank factorization), squeezing the total parameter count to 2.29B, and compare two truncation schemes.</p>
+<p><strong>Plain SVD</strong>: take the singular value decomposition $W = U\Sigma V^T$, keep only the largest $r$ singular values, $W \approx U_r \Sigma_r V_r^T$, and set $A = U_r\Sigma_r$, $B = V_r^T$. By the Eckart–Young theorem (see <a href="/2026/08/30/lord-compression-primer/">the primer</a>), this is the optimum of</p>
+<p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2$$</p>
+<p>With a uniform rank 384 in every layer: val loss = 18.65.</p>
+<p><strong>ASVD (activation-weighted SVD)</strong>: the intuition is &quot;channels that get used a lot deserve a more accurate approximation.&quot; Take the diagonal weighting matrix $S = \mathrm{diag}(\mathbb{E}[\lvert x_i\rvert]^{\alpha})$ — the $i$-th entry is input channel $i$'s average activation magnitude raised to the power $\alpha$, which controls the weighting strength ($\alpha=1.0$ means weighting by the raw magnitudes) — and switch the objective to the weighted error:</p>
+<p>$$\min_{A,B}\ \lVert (W - AB)\ S \rVert_F^2$$</p>
+<p>The solution mirrors plain SVD: SVD-truncate $WS$ to get $U_r\Sigma_r V_r^T$, then set $A = U_r\Sigma_r$, $B = V_r^T S^{-1}$ — optimal in a metric that amplifies errors on high-activation channels and shrinks them elsewhere. Combined with <strong>per-layer rank allocation</strong>: layers with higher importance ($\lVert WS\rVert_F$) get more rank, others less — mean rank 357, with Block 0 starved at rank 32. Val loss = <strong>8.50</strong>.</p>
 <p>8.50 versus 18.65 — ASVD appears more than twice as good. But when we inspect the model's actual token predictions:</p>
 <table>
 <thead>
@@ -791,7 +795,7 @@
 <p>The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal constant predictor. Direct measurement confirms constancy: across 64 sampled positions, the mean pairwise KL divergence between output distributions (a measure of how much two distributions differ; 0 means identical) is only <strong>0.007</strong>, versus 1–10 for normal models.</p>
 <h3 id="3-The-Collapse-Mechanism">3. The Collapse Mechanism</h3>
 <p><strong>Why does ASVD cause collapse while plain SVD does not?</strong></p>
-<p>ASVD weights each layer by $S = \text{diag}(\mathbb{E}[\lvert x_i\rvert])$ — a diagonal matrix whose $i$-th entry is the average activation magnitude of input channel $i$. The key observation: <strong>adjacent layers have highly similar $S$</strong> (residual connections keep activation distributions changing slowly from layer to layer). This means:</p>
+<p>Recall the weighting matrix $S$ from Section 1 (diagonal entries = each input channel's average activation magnitude). The key observation: <strong>adjacent layers have highly similar $S$</strong> (residual connections keep activation distributions changing slowly from layer to layer). This means:</p>
 <ul>
 <li>Every layer's SVD truncation preferentially retains directions where $S$ is large</li>
 <li>Every layer discards directions where $S$ is small</li>
