@@ -17,6 +17,19 @@ tags: [primer, LLM, compression, linear-algebra, tutorial]
 
 这个系列讲的是一件事：**把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨**。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查表。
 
+### 0. 为什么做这件事：本系列的目的与动机
+
+训练一个能力不错的小语言模型，标准做法是从随机初始化开始，烧掉海量数据和 GPU 时间。但世界上已经有很多训练好的大模型，它们的权重里存着花大代价学到的知识。一个自然的问题是：**能不能把大模型"改造"成小模型，把这份知识尽量带过去，让小模型不必从零学起？**
+
+本系列选择的改造手段是**低秩分解**：把大模型里的每个大矩阵换成两个瘦矩阵的乘积（第 5 节详细解释）。市面上更流行的压缩手段是**量化**——把每个数字的存储精度从 16 位压到 4 位。选低秩而不是量化，原因在目的：量化只是把**同一个模型**存得更省，结构没变，也没法在量化后的模型上继续训练；而低秩分解产生的是一个**结构上真正更小的新模型**，参数量通过 rank（保留多少个方向）自由调节，想要多小就有多小，并且可以正常继续训练。换句话说，我们做的不是"部署时省显存"，而是**给小模型的预训练制造一个好起点**。
+
+由此拆出本系列的两个研究问题：
+
+1. **不做任何训练，改造能做到多好？** 只靠解方程（所谓闭式方法）从大模型构造小模型，极限在哪里、被什么卡住。这是第一到五篇的主线；途中发现的"表示坍缩""val loss 假象"等现象本身也有独立价值。
+2. **一个好的起点对后续训练值多少？** 同样的训练预算，从闭式改造的模型出发和从随机初始化出发，差距有多大、能维持多久。第三篇给出第一个答案，后续文章会沿着这条线走向更小的 rank 和 scaling law。
+
+Qwen3-8B → 2.29B 只是这个问题的第一个实验场，不是终点。
+
 ### 1. 语言模型在做什么：预测下一个词
 
 语言模型的任务简单得出乎意料：**给定前文，猜下一个词**。
@@ -258,6 +271,19 @@ $$\mathbb{E}\lVert y - ABx \rVert^2 = \underbrace{\mathbb{E}\lVert y - M^\*x \rV
 ## Low-Rank Compression Series (0): A Primer — Everything You Need to Read This Series
 
 This series is about one thing: **compressing an 8-billion-parameter language model down to 2.3 billion parameters without making it much dumber**. The main posts assume some machine-learning vocabulary; this page fills in all of it at once. If you know calculus and linear algebra, reading this primer should be enough to follow the whole series. If you already know language models, skip ahead and come back to the glossary (Section 9) as needed.
+
+### 0. Why We Are Doing This: Purpose and Motivation
+
+The standard way to obtain a capable small language model is to train one from random initialization, burning enormous amounts of data and GPU time. Yet the world is full of already-trained large models whose weights store knowledge acquired at great expense. A natural question: **can we "remodel" a large model into a small one, carrying as much of that knowledge over as possible, so the small model does not start from zero?**
+
+Our remodeling tool is **low-rank factorization**: replace every large matrix in the model with a product of two thin matrices (Section 5 explains how). The more popular compression tool is **quantization** — storing each number in 4 bits instead of 16. We choose low-rank over quantization because of the goal: quantization stores **the same model** more cheaply, its structure unchanged, and you cannot continue training a quantized model; low-rank factorization produces a **structurally smaller new model** whose parameter count is freely adjustable through the rank (how many directions to keep) — as small as you want — and which trains normally. In other words, this is not about saving GPU memory at deployment; it is about **manufacturing a good starting point for pretraining small models**.
+
+This splits into the series' two research questions:
+
+1. **With no training at all, how good can the remodeling get?** Building the small model from the large one purely by solving equations (so-called closed-form methods) — where is the limit, and what blocks it? This is the main thread of parts 1–5; the phenomena discovered along the way ("representation collapse," "the val-loss illusion") have standalone value.
+2. **How much is a good starting point worth to subsequent training?** Given the same training budget, how large is the gap between starting from the closed-form remodel and starting from random initialization — and how long does it persist? Part 3 gives the first answer; later posts follow this thread toward smaller ranks and scaling laws.
+
+Qwen3-8B → 2.29B is the first testbed for this question, not the destination.
 
 ### 1. What a Language Model Does: Predict the Next Word
 
