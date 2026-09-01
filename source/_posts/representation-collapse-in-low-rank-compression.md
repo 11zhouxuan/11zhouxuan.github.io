@@ -19,9 +19,12 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 ### 1. 一个意外的发现
 
-对一个 36 层的 LLM 做低秩分解（每个线性层 $W$ 替换为 $AB$），使用激活加权 SVD（ASVD，$\alpha=1.0$）配合**逐层 rank 分配**（按 $\lVert WS\rVert\_F$ 分配，平均 rank 357，Block 0 只分到 rank 32）得到的模型 val loss = 8.50。作为对比，plain SVD（均匀 rank=384）的 val loss = 18.65——ASVD 看似好了一倍多。
+实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘积 $AB$（低秩分解），把总参数量压到 2.29B，然后比较两种截断方式：
 
-但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：
+- **plain SVD**：直接对 $W$ 做 SVD 截断，每层统一保留 rank 384。val loss = 18.65。
+- **ASVD（激活加权 SVD）**：截断前先按每个输入通道的平均激活幅度加权——直觉是"常被用到的通道要逼近得更准"，加权强度由指数 $\alpha$ 控制（$\alpha=1.0$ 即按幅度原样加权）。再配合**逐层 rank 分配**：重要性（$\lVert WS\rVert\_F$）高的层多给 rank、低的少给，平均 rank 357，分得最少的 Block 0 只有 32。val loss = **8.50**。
+
+8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：
 
 | 方法 | val loss | 预测的 unique token 数 | top-1 预测占比 | top-1 是什么 |
 |---|---|---|---|---|
@@ -36,25 +39,25 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 这看似矛盾：一个"更坏"的模型（只能输出一个 token）怎么比"更好"的模型（能输出 433 种 token）loss 更低？
 
-原因是交叉熵 loss 的性质。当模型**完全没有预测能力**时，最优策略是：
+原因在交叉熵 loss 的定义里：它只看模型给**正确答案**分了多少概率——每个位置计 $-\log q(\text{正确 token})$，再在所有位置上取平均。
 
-$$\text{把所有概率集中到出现频率最高的 token 上}$$
+当模型完全没有区分能力时，最优策略不是乱猜，而是**每个位置都输出同一个固定的概率分布**，把概率按各 token 在语料中的真实频率来分。这样虽然每个位置都"不知道答案"，但至少高频 token（比如逗号，占英文文本约 3.6% 的位置）稳定拿到不低的概率，平均惩罚最小。坍缩模型正是这么做的：它在每个位置都给逗号约 10% 的概率（实测 top-1 prob = 0.0995），得到 CE ≈ 8.5。
 
-逗号在英文文本中出现频率约 3.6%。如果模型以 ~10% 的概率输出逗号（softmax 后 top-1 prob = 0.0995），这给出 CE ≈ 8.5。而如果模型试图**区分不同 token 但区分得很差**（random/plain SVD），每个预测都高 confidence 指向错误的 token → CE 远超 11.93（均匀分布）甚至到 17~19。
+反过来，一个**试图区分 token 但区分得很差**的模型（random 权重、plain SVD）会把概率押在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，CE = $\ln 151936 \approx 11.93$；押错注比平均分配更糟，所以 random 和 plain SVD 冲到了 17~19。
 
-**"全押一个高频 token"是预测能力为零时的 loss-最优退化策略。** ASVD 的 8.50 不代表"逼近得好"，而是代表"模型已经放弃预测，退化成了常数函数"。
+**"全押高频 token"是预测能力为零时的 loss-最优退化策略。** ASVD 的 8.50 不代表"逼近得好"，而是代表"模型已经放弃预测，退化成了常数函数"。
 
-信息论上可以精确验证这一点。如果模型是常数预测器（每个位置输出同一个分布 $q$），它的 CE 等于语料 unigram 分布 $p$ 与 $q$ 的交叉熵，下界是 unigram 熵：
+信息论上可以精确验证这一点。如果模型是常数预测器（每个位置输出同一个分布 $q$），它的 CE 就等于语料的 unigram 分布 $p$（即各 token 的出现频率分布）与 $q$ 之间的交叉熵，其下界是 $p$ 自己的熵：
 
 $$\min\_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上实测）}$$
 
-坍缩模型的 8.50 恰好落在这个下界之上 1 nat——它是一个接近最优的常数预测器。同时直接测量证实了"常数函数"：采样 64 个位置，输出分布之间的两两 KL 散度平均只有 **0.007**（正常模型 KL 在 1~10 量级）。
+坍缩模型的 8.50 恰好落在这个下界之上 1 nat——它是一个接近最优的常数预测器。直接测量也证实了"常数函数"：采样 64 个位置，输出分布之间的两两 KL 散度（衡量两个概率分布差异的量，完全相同时为 0）平均只有 **0.007**，而正常模型在 1~10 量级。
 
 ### 3. 坍缩的机制
 
 **为什么 ASVD 导致坍缩而 plain SVD 不会？**
 
-ASVD 对每层用 $S = \text{diag}(\mathbb{E}[\lvert x\_i\rvert])$ 加权。关键观察：**相邻层的 $S$ 高度相似**（因为残差连接让激活分布变化缓慢）。这意味着：
+ASVD 对每层用 $S = \text{diag}(\mathbb{E}[\lvert x\_i\rvert])$ 加权——$S$ 是个对角矩阵，第 $i$ 个对角元就是第 $i$ 个输入通道激活幅度的平均值。关键观察：**相邻层的 $S$ 高度相似**（残差连接让激活分布逐层变化缓慢）。这意味着：
 
 - 每一层的 SVD 截断都优先保留 $S$ 大的方向（高激活通道）
 - 每一层都丢掉 $S$ 小的方向
@@ -78,9 +81,9 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 
 ### 3.5 坍缩的微观机制：MLP 是凶手
 
-进一步的诊断实验追踪了 effective rank 在网络每个子组件中的变化，揭示了更精确的坍缩机制。
+进一步的诊断实验追踪了 **effective rank（有效秩，下称 erank）** 在网络每个子组件中的变化。erank 衡量一批向量实际张开了多少个独立方向：hidden state 名义上是 4096 维，但如果所有 token 的向量都挤在少数几个方向上，erank 就只有个位数。它是"表示多样性"的直接读数。
 
-> **测量对象说明**：本节的追踪数据来自均匀 rank=384、$\alpha=0.5$ 的 ASVD 变体（val loss 10.83）。它没有完全坍缩成常数函数（保留了 546 个 unique 预测），但表示已高度退化（最终 erank=7、pcos=0.92）——是观察"多样性如何被逐层耗尽"的合适对象。完全坍缩的 8.50 模型（$\alpha=1.0$ + 逐层 rank）是同一机制的更极端版本。
+> **测量对象说明**：本节的追踪数据来自均匀 rank=384、$\alpha=0.5$ 的 ASVD 变体（val loss 10.83）。它没有完全坍缩成常数函数（保留了 546 个 unique 预测），但表示已高度退化：最终 erank=7，不同 token 输出向量的两两平均 cosine 相似度（下称 pcos，越接近 1 表示所有 token 的输出越趋同）高达 0.92——是观察"多样性如何被逐层耗尽"的合适对象。完全坍缩的 8.50 模型（$\alpha=1.0$ + 逐层 rank）是同一机制的更极端版本。
 
 **Effective rank（erank）在 residual stream 中的变化：**
 
@@ -121,10 +124,12 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 
 关键不是 MLP 输出的幅度，而是**MLP 输出对不同 token 是否不同**：
 
-| 指标 | Teacher | ASVD | Plain SVD |
+| 指标（36 层平均） | Teacher | ASVD | Plain SVD |
 |---|---|---|---|
-| MLP output pcos（36 层平均） | 0.20 | **0.73** | 0.27 |
-| MLP override ratio（36 层平均） | 0.40 | 0.30 | 1.40 |
+| MLP 输出 pcos | 0.20 | **0.73** | 0.27 |
+| MLP override ratio | 0.40 | 0.30 | 1.40 |
+
+（override ratio = MLP 输出与残差流本身的幅度之比，衡量 MLP 对残差流的改写力度。）
 
 **ASVD 的 MLP 对所有 token 输出几乎相同的向量**（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。
 
@@ -144,7 +149,7 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 
 ### 5. 打破坍缩的尝试
 
-我们尝试了对相邻层的输出方向施加正交约束：
+既然坍缩来自"36 层反复保留同一组方向"，一个自然的对策是强迫相邻层保留的方向互相错开：在每层截断时加一个正交惩罚项（表中的 0.3 是惩罚权重），或者干脆让 ASVD 和 plain SVD 逐层交替：
 
 | 方法 | val loss | unique 预测 | top-1 占比 |
 |---|---|---|---|
@@ -166,11 +171,9 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 | + down\_proj rank=1024 | 2.67B | 11.33 | 否 |
 | + down\_proj rank=768（预算匹配） | 2.29B | 12.31 | 否 |
 
-**没有任何非坍缩配置能接近坍缩态的 8.50**——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：
+**没有任何非坍缩配置能接近坍缩态的 8.50**——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：在这一族配置里，**坍缩得越彻底，loss 越低；打破坍缩，loss 就变差**。
 
-$$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$
-
-在模型**真的没有足够能力区分 token** 的情况下（rank=384 在 85% 压缩率下），坍缩到高频 token 就是 loss-最优的策略。**打破坍缩等于强迫模型做它做不到的事 → loss 变差。**
+原因回到第 2 节：在模型**真的没有足够能力区分 token** 的情况下（rank=384、85% 压缩率），坍缩到高频 token 就是 loss-最优的策略，打破坍缩等于强迫模型做它做不到的事。
 
 ### 5.5 验证：坍缩是真实的，但对配置敏感
 
@@ -209,9 +212,12 @@ $$\text{坍缩程度} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \
 
 ### 1. An Unexpected Finding
 
-Applying low-rank factorization to a 36-layer LLM (replacing each linear layer $W$ with $AB$) using activation-weighted SVD (ASVD, $\alpha=1.0$) with **per-layer rank allocation** (proportional to $\lVert WS\rVert\_F$; mean rank 357, Block 0 starved at rank 32) yields a val loss of 8.50. For comparison, plain SVD (uniform rank=384) gives 18.65 — ASVD appears more than twice as good.
+The subject is Qwen3-8B (36 layers, our teacher model, val loss 2.11). We replace every linear layer $W$ with a product of two thin matrices $AB$ (low-rank factorization), squeezing the total parameter count to 2.29B, and compare two truncation schemes:
 
-But when we inspect the model's actual token predictions:
+- **Plain SVD**: truncate the SVD of $W$ directly, keeping a uniform rank 384 in every layer. Val loss = 18.65.
+- **ASVD (activation-weighted SVD)**: before truncating, weight each input channel by its average activation magnitude — the intuition being "channels that get used a lot deserve a more accurate approximation." The weighting strength is an exponent $\alpha$ ($\alpha=1.0$ means weighting by the raw magnitudes). Combined with **per-layer rank allocation**: layers with higher importance ($\lVert WS\rVert\_F$) get more rank, others less — mean rank 357, with Block 0 starved at rank 32. Val loss = **8.50**.
+
+8.50 versus 18.65 — ASVD appears more than twice as good. But when we inspect the model's actual token predictions:
 
 | Method | val loss | Unique tokens predicted | Top-1 fraction | Top-1 token |
 |---|---|---|---|---|
@@ -226,25 +232,25 @@ But when we inspect the model's actual token predictions:
 
 This seems paradoxical: how can a "worse" model (only one token) have lower loss than a "better" one (433 distinct tokens)?
 
-The answer lies in the nature of cross-entropy loss. When a model has **zero predictive ability**, the optimal strategy is:
+The answer is in the definition of cross-entropy loss: it only measures how much probability the model assigns to the **correct answer** — each position scores $-\log q(\text{correct token})$, averaged over all positions.
 
-$$\text{Concentrate all probability on the highest-frequency token}$$
+When a model has no ability to distinguish tokens, the optimal strategy is not to guess wildly, but to **output the same fixed probability distribution at every position**, allocating probability according to each token's true frequency in the corpus. Every position is still "wrong," but at least the frequent tokens (like the comma, which fills about 3.6% of positions in English text) reliably receive decent probability, minimizing the average penalty. That is exactly what the collapsed model does: it gives the comma about 10% probability at every position (measured top-1 prob = 0.0995), yielding CE ≈ 8.5.
 
-Commas appear in ~3.6% of positions in English text. If the model outputs ~10% probability for comma (softmax top-1 prob = 0.0995), this gives CE ≈ 8.5. Meanwhile, a model that **tries to distinguish tokens but fails** (random/plain SVD) outputs high-confidence predictions pointing at wrong tokens → CE far exceeds 11.93 (uniform) and reaches 17–19.
+Conversely, a model that **tries to distinguish tokens but fails** (random weights, plain SVD) bets its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty explodes. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives CE = $\ln 151936 \approx 11.93$; betting wrong is worse than spreading uniformly, which is how random and plain SVD reach 17–19.
 
-**"All-in on one frequent token" is the loss-optimal degenerate strategy when predictive ability is zero.** ASVD's 8.50 does not mean "good approximation" — it means "the model has given up predicting and collapsed to a constant function."
+**"All-in on frequent tokens" is the loss-optimal degenerate strategy when predictive ability is zero.** ASVD's 8.50 does not mean "good approximation" — it means "the model has given up predicting and collapsed to a constant function."
 
-This can be verified information-theoretically. If the model is a constant predictor (outputting the same distribution $q$ at every position), its CE equals the cross-entropy between the corpus unigram distribution $p$ and $q$, lower-bounded by the unigram entropy:
+This can be verified information-theoretically. If the model is a constant predictor (outputting the same distribution $q$ at every position), its CE equals the cross-entropy between $q$ and the corpus unigram distribution $p$ (the frequency distribution of tokens), lower-bounded by the entropy of $p$ itself:
 
 $$\min\_q H(p, q) = H(p) \approx 7.51 \text{ nats (measured on our val data)}$$
 
-The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal constant predictor. Direct measurement confirms constancy: across 64 sampled positions, the mean pairwise KL between output distributions is only **0.007** (normal models range 1–10).
+The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal constant predictor. Direct measurement confirms constancy: across 64 sampled positions, the mean pairwise KL divergence between output distributions (a measure of how much two distributions differ; 0 means identical) is only **0.007**, versus 1–10 for normal models.
 
 ### 3. The Collapse Mechanism
 
 **Why does ASVD cause collapse while plain SVD does not?**
 
-ASVD weights each layer by $S = \text{diag}(\mathbb{E}[\lvert x\_i\rvert])$. The key observation: **adjacent layers have highly similar $S$** (because residual connections keep activation distributions stable). This means:
+ASVD weights each layer by $S = \text{diag}(\mathbb{E}[\lvert x\_i\rvert])$ — a diagonal matrix whose $i$-th entry is the average activation magnitude of input channel $i$. The key observation: **adjacent layers have highly similar $S$** (residual connections keep activation distributions changing slowly from layer to layer). This means:
 
 - Every layer's SVD truncation preferentially retains directions where $S$ is large
 - Every layer discards directions where $S$ is small
@@ -268,9 +274,9 @@ The final cos=0.95 looks like "good alignment" — but it is an **illusion**. It
 
 ### 3.5 Microscopic Mechanism: The MLP Is the Killer
 
-Further diagnostic experiments traced effective rank (erank) changes through every sub-component of the network, revealing a more precise collapse mechanism.
+Further diagnostic experiments traced the **effective rank (erank)** through every sub-component of the network. Erank measures how many independent directions a batch of vectors actually spans: the hidden state is nominally 4096-dimensional, but if all tokens' vectors crowd into a few directions, the erank is in the single digits. It is a direct readout of representation diversity.
 
-> **What was measured**: the traces in this section come from the uniform rank=384, $\alpha=0.5$ ASVD variant (val loss 10.83). It does not fully collapse into a constant function (it retains 546 unique predictions), but its representations are severely degenerate (final erank=7, pcos=0.92) — a suitable subject for observing how token diversity gets depleted layer by layer. The fully collapsed 8.50 model ($\alpha=1.0$ + per-layer ranks) is a more extreme instance of the same mechanism.
+> **What was measured**: the traces in this section come from the uniform rank=384, $\alpha=0.5$ ASVD variant (val loss 10.83). It does not fully collapse into a constant function (it retains 546 unique predictions), but its representations are severely degenerate: final erank=7, and the mean pairwise cosine similarity between different tokens' output vectors (hereafter pcos; closer to 1 means the outputs are more alike) reaches 0.92 — a suitable subject for observing how token diversity gets depleted layer by layer. The fully collapsed 8.50 model ($\alpha=1.0$ + per-layer ranks) is a more extreme instance of the same mechanism.
 
 **Effective rank in the residual stream:**
 
@@ -316,6 +322,8 @@ The key is not the MLP output magnitude, but **whether the MLP output differs ac
 | MLP output pcos | 0.20 | **0.73** | 0.27 |
 | MLP override ratio | 0.40 | 0.30 | 1.40 |
 
+(Override ratio = the magnitude of the MLP output relative to the residual stream itself — how strongly the MLP rewrites the stream.)
+
 **ASVD's MLP outputs are nearly identical across all tokens** (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).
 
 In the residual addition $h\_{new} = h\_{old} + \text{MLP}(h\_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.
@@ -334,7 +342,7 @@ Our case is an extreme version of "improper value matrices" — low-rank truncat
 
 ### 5. Attempts to Break the Collapse
 
-We tried imposing orthogonality constraints between adjacent layers' output directions:
+Since the collapse comes from "36 layers repeatedly keeping the same set of directions," a natural countermeasure is to force adjacent layers to keep different directions: add an orthogonality penalty during each layer's truncation (0.3 in the table is the penalty weight), or simply alternate ASVD and plain SVD across layers:
 
 | Method | val loss | Unique predictions | Top-1 fraction |
 |---|---|---|---|
@@ -356,11 +364,9 @@ Further rank-reallocation experiments (run on the uniform rank=384, $\alpha=0.5$
 | + down\_proj rank=1024 | 2.67B | 11.33 | No |
 | + down\_proj rank=768 (budget-matched) | 2.29B | 12.31 | No |
 
-**No non-collapsed configuration comes close to the collapsed 8.50** — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff:
+**No non-collapsed configuration comes close to the collapsed 8.50** — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff: within this family of configurations, **the more complete the collapse, the lower the loss; breaking the collapse makes the loss worse**.
 
-$$\text{Collapse} \uparrow \quad \Longleftrightarrow \quad \text{val loss} \downarrow$$
-
-When the model **genuinely lacks the capacity to distinguish tokens** (rank=384 at 85% compression), collapsing to the highest-frequency token IS the loss-optimal strategy. **Breaking collapse forces the model to attempt what it cannot do → loss increases.**
+The reason is Section 2 again: when the model **genuinely lacks the capacity to distinguish tokens** (rank 384 at 85% compression), collapsing to frequent tokens IS the loss-optimal strategy, and breaking the collapse forces the model to attempt what it cannot do.
 
 ### 5.5 Verification: The Collapse Is Real, but Config-Sensitive
 
