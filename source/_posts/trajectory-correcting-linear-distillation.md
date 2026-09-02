@@ -60,7 +60,7 @@ $$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 >
 > **输入**：教师模型（线性层 $W\_1, \dots, W\_{252}$，按前向顺序编号）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$
 >
-> **对 $\ell = 1, 2, \dots, 252$ 依次执行：**
+> **对 $\ell = 1, 2, \dots, 252$ 依次执行**（循环体内的 $x\_t, x\_s, \Sigma, M^\*, A, B, b$ 都属于当前的第 $\ell$ 层，为简洁省略层标）：
 >
 > 1. 教师与当前学生（前 $\ell-1$ 层已替换）在 $D$ 上配对前向，在第 $\ell$ 层入口采集教师输入 $x\_t$ 与学生输入 $x\_s$，累积均值 $\bar{x}\_t, \bar{x}\_s$ 和中心化协方差 $\Sigma\_{ts} = \sum x\_t x\_s^T$、$\Sigma\_{ss} = \sum x\_s x\_s^T$
 > 2. 岭回归：$M^\* = W\_\ell \Sigma\_{ts} (\Sigma\_{ss} + \lambda I)^{-1}$
@@ -177,7 +177,7 @@ The complete algorithm is a single loop:
 >
 > **Input**: teacher model (linear layers $W\_1, \dots, W\_{252}$ in forward order), calibration data $D$, target rank $r$, regularization strength $\lambda$
 >
-> **For $\ell = 1, 2, \dots, 252$:**
+> **For $\ell = 1, 2, \dots, 252$** (inside the loop, $x\_t, x\_s, \Sigma, M^\*, A, B, b$ all belong to the current layer $\ell$; the layer index is dropped for brevity):
 >
 > 1. Run teacher and the current student (layers $1..\ell-1$ already replaced) on $D$ in paired forwards; at layer $\ell$'s entrance collect the teacher input $x\_t$ and student input $x\_s$; accumulate the means $\bar{x}\_t, \bar{x}\_s$ and centered covariances $\Sigma\_{ts} = \sum x\_t x\_s^T$, $\Sigma\_{ss} = \sum x\_s x\_s^T$
 > 2. Ridge regression: $M^\* = W\_\ell \Sigma\_{ts} (\Sigma\_{ss} + \lambda I)^{-1}$
