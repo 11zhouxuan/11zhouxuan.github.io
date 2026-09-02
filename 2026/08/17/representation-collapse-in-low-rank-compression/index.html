@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T07:22:47.826Z">
+<meta property="article:modified_time" content="2026-09-02T08:06:25.276Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 07:22:47" itemprop="dateModified" datetime="2026-09-02T07:22:47+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
     </span>
 
   
@@ -311,20 +311,23 @@
 </blockquote>
 <p>由 Eckart–Young 定理（见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>），这一步是下面这个目标的最优解：</p>
 <p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p><strong>方法二：ASVD（激活加权 SVD）</strong>，直觉是&quot;常被用到的输入通道要逼近得更准&quot;，因此需要少量数据来测量&quot;哪些通道常被用到&quot;。这批数据称为<strong>校准数据</strong>：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活幅度，不做任何梯度更新——这也是&quot;闭式方法&quot;（解方程直接得答案）的共同特征。</p>
+<p><strong>方法二：ASVD（激活加权 SVD）</strong>，直觉是&quot;经常取到大值的那些输入分量要逼近得更准&quot;，因此需要少量数据来测量各分量实际有多大。这批数据称为<strong>校准数据</strong> $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活，不做任何梯度更新——这也是&quot;闭式方法&quot;（解方程直接得答案）的共同特征。</p>
+<p>先把要测的量写清楚。第 $\ell$ 层的权重 $W_\ell \in \mathbb{R}^{m \times n}$ 作用在输入向量 $x \in \mathbb{R}^{n}$ 上，$x$ 的第 $i$ 个分量 $x_i$ 就是所谓的第 $i$ 个<strong>输入通道</strong>（$n$ 是该层的输入维度，例如 q_proj 的 $n = 4096$）。所谓某个通道的<strong>激活幅度</strong>，就是它在校准数据全部 token 位置上取绝对值后的平均：</p>
+<p>$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert, \qquad i = 1, \dots, n$$</p>
+<p>（$\lvert D \rvert$ 是校准数据里的 token 位置总数，$x$ 遍历每个位置在该层入口处的输入向量。）</p>
 <blockquote>
 <p><strong>算法 B：ASVD 截断 + 逐层 rank 分配</strong></p>
 <p><strong>输入</strong>：$W_1, \dots, W_{252}$，校准数据 $D$，加权指数 $\alpha$，参数预算</p>
 <ol>
-<li><strong>测量激活</strong>：教师在 $D$ 上前向，记录每层每个输入通道的平均绝对激活 $\mathbb{E}[\lvert x_i \rvert]$，构造对角加权矩阵
-$$S_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x_1 \rvert]^{\alpha},\ \dots,\ \mathbb{E}[\lvert x_n \rvert]^{\alpha}\big)$$</li>
+<li><strong>测量激活</strong>：教师在 $D$ 上前向，对每层按上式算出 $s_1, \dots, s_n$，构造对角加权矩阵
+$$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\big)$$</li>
 <li><strong>分配秩</strong>：以 $\lVert W_\ell S_\ell \rVert_F$ 作为层 $\ell$ 的重要性，按重要性正比分配 $r_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）</li>
 <li><strong>加权截断</strong>：对每层，对 $W_\ell S_\ell$ 做 SVD 保留前 $r_\ell$ 项得 $U_r \Sigma_r V_r^T$，令 $A_\ell = U_r \Sigma_r$、$B_\ell = V_r^T S_\ell^{-1}$（乘回 $S_\ell^{-1}$ 把加权撤销，使 $A_\ell B_\ell \approx W_\ell$）</li>
 <li>把各层替换为 $x \mapsto A_\ell B_\ell x$</li>
 </ol>
 <p><strong>输出</strong>：学生模型（$\alpha = 1.0$ 时 val loss = <strong>8.50</strong>）</p>
 </blockquote>
-<p>第 3 步求解的是加权目标——同样的误差，落在高激活通道上算得更重：</p>
+<p>第 3 步求解的是加权目标——同样大小的误差，落在 $s_i$ 大的分量上算得更重：</p>
 <p>$$\min_{A,B}\ \lVert (W - AB) S \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
 <p>在看结果之前，把<strong>真正的目标</strong>也写下来，它是全系列的参照系。压缩的本意是：把每个 $W_\ell$ 换成 $A_\ell B_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低：</p>
 <p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{预算}$$</p>
@@ -383,12 +386,12 @@ $$S_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x_1 \rvert]^{\alpha},\ \dots,\ \m
 <p>坍缩模型的 8.50 恰好落在这个下界之上 1 nat——它是一个接近最优的常数预测器。直接测量也证实了&quot;常数函数&quot;：采样 64 个位置，输出分布之间的两两 KL 散度（衡量两个概率分布差异的量，完全相同时为 0）平均只有 <strong>0.007</strong>，而正常模型在 1~10 量级。</p>
 <h3 id="3-坍缩的机制">3. 坍缩的机制</h3>
 <p><strong>为什么 ASVD 导致坍缩而 plain SVD 不会？</strong></p>
-<p>回看第 1 节的加权矩阵 $S$（对角元 = 各输入通道的平均激活幅度）。关键观察：<strong>相邻层的 $S$ 高度相似</strong>（残差连接让激活分布逐层变化缓慢）。这意味着：</p>
+<p>回看第 1 节的加权矩阵 $S$（对角元是各输入分量的平均绝对值 $s_i$ 的 $\alpha$ 次方）。关键观察：<strong>相邻层的 $S$ 高度相似</strong>（残差连接让激活分布逐层变化缓慢）。这意味着：</p>
 <ul>
-<li>每一层的 SVD 截断都优先保留 $S$ 大的方向（高激活通道）</li>
-<li>每一层都丢掉 $S$ 小的方向</li>
-<li>36 层叠加后，$S$ 小的方向被<strong>反复压制 36 次</strong></li>
-<li>最终 hidden state 只剩 $S$ 大的那几个方向 → <strong>所有 token 的表示坍缩到同一方向</strong></li>
+<li>每一层的 SVD 截断都优先保留 $s_i$ 大的那些方向</li>
+<li>每一层都丢掉 $s_i$ 小的方向</li>
+<li>36 层叠加后，$s_i$ 小的方向被<strong>反复压制 36 次</strong></li>
+<li>最终 hidden state 只剩 $s_i$ 大的那几个方向 → <strong>所有 token 的表示坍缩到同一方向</strong></li>
 </ul>
 <p>Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定——不同层的主方向不同，所以不会系统性地压制同一组方向。</p>
 <p>实验验证了这一点。逐层测量 hidden state 与教师的 cosine 相似度：</p>
@@ -605,7 +608,7 @@ $$S_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x_1 \rvert]^{\alpha},\ \dots,\ \m
 <p>（override ratio = MLP 输出与残差流本身的幅度之比，衡量 MLP 对残差流的改写力度。）</p>
 <p><strong>ASVD 的 MLP 对所有 token 输出几乎相同的向量</strong>（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。</p>
 <p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。</p>
-<p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留高激活通道），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
+<p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留 $s_i$ 大的那些分量），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
 <h3 id="4-文献中的对应">4. 文献中的对应</h3>
 <p>这个现象在 transformer 研究中已有理论解释：</p>
 <ul>
@@ -772,20 +775,23 @@ $$S_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x_1 \rvert]^{\alpha},\ \dots,\ \m
 </blockquote>
 <p>By the Eckart–Young theorem (see <a href="/2026/08/30/lord-compression-primer/">the primer</a>), this step is the optimum of</p>
 <p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p><strong>Method 2: ASVD (activation-weighted SVD)</strong> — the intuition is &quot;channels that get used a lot deserve a more accurate approximation,&quot; which requires a little data to measure which channels those are. That data is called <strong>calibration data</strong>: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).</p>
+<p><strong>Method 2: ASVD (activation-weighted SVD)</strong> — the intuition is &quot;input components that often take large values deserve a more accurate approximation,&quot; which requires a little data to measure how large each component actually gets. That data is called <strong>calibration data</strong> $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).</p>
+<p>Let us write down precisely what gets measured. Layer $\ell$'s weight $W_\ell \in \mathbb{R}^{m \times n}$ acts on an input vector $x \in \mathbb{R}^{n}$; the $i$-th component $x_i$ of $x$ is what we call the $i$-th <strong>input channel</strong> ($n$ is the layer's input dimension, e.g. $n = 4096$ for q_proj). A channel's <strong>activation magnitude</strong> is its absolute value averaged over every token position in the calibration data:</p>
+<p>$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert, \qquad i = 1, \dots, n$$</p>
+<p>($\lvert D \rvert$ is the total number of token positions in the calibration data, and $x$ ranges over each position's input vector at that layer's entrance.)</p>
 <blockquote>
 <p><strong>Algorithm B: ASVD truncation + per-layer rank allocation</strong></p>
 <p><strong>Input</strong>: $W_1, \dots, W_{252}$, calibration data $D$, weighting exponent $\alpha$, parameter budget</p>
 <ol>
-<li><strong>Measure activations</strong>: run the teacher over $D$, record each layer's per-input-channel mean absolute activation $\mathbb{E}[\lvert x_i \rvert]$, and build the diagonal weighting matrix
-$$S_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x_1 \rvert]^{\alpha},\ \dots,\ \mathbb{E}[\lvert x_n \rvert]^{\alpha}\big)$$</li>
+<li><strong>Measure activations</strong>: run the teacher over $D$, compute $s_1, \dots, s_n$ per layer with the formula above, and build the diagonal weighting matrix
+$$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\big)$$</li>
 <li><strong>Allocate ranks</strong>: treat $\lVert W_\ell S_\ell \rVert_F$ as layer $\ell$'s importance and assign $r_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)</li>
 <li><strong>Weighted truncation</strong>: per layer, take the top-$r_\ell$ SVD of $W_\ell S_\ell$ as $U_r \Sigma_r V_r^T$ and set $A_\ell = U_r \Sigma_r$, $B_\ell = V_r^T S_\ell^{-1}$ (multiplying $S_\ell^{-1}$ back undoes the weighting so that $A_\ell B_\ell \approx W_\ell$)</li>
 <li>Replace each layer with $x \mapsto A_\ell B_\ell x$</li>
 </ol>
 <p><strong>Output</strong>: the student model (val loss = <strong>8.50</strong> at $\alpha = 1.0$)</p>
 </blockquote>
-<p>Step 3 solves the weighted objective — the same error counts for more when it lands on a high-activation channel:</p>
+<p>Step 3 solves the weighted objective — an error of the same size counts for more when it lands on a component with large $s_i$:</p>
 <p>$$\min_{A,B}\ \lVert (W - AB) S \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
 <p>Before looking at the results, let us also write down the <strong>true objective</strong> — the reference point for the whole series. What compression actually wants: replace each $W_\ell$ with $A_\ell B_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget:</p>
 <p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{budget}$$</p>
@@ -844,12 +850,12 @@ $$S_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x_1 \rvert]^{\alpha},\ \dots,\ \m
 <p>The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal constant predictor. Direct measurement confirms constancy: across 64 sampled positions, the mean pairwise KL divergence between output distributions (a measure of how much two distributions differ; 0 means identical) is only <strong>0.007</strong>, versus 1–10 for normal models.</p>
 <h3 id="3-The-Collapse-Mechanism">3. The Collapse Mechanism</h3>
 <p><strong>Why does ASVD cause collapse while plain SVD does not?</strong></p>
-<p>Recall the weighting matrix $S$ from Section 1 (diagonal entries = each input channel's average activation magnitude). The key observation: <strong>adjacent layers have highly similar $S$</strong> (residual connections keep activation distributions changing slowly from layer to layer). This means:</p>
+<p>Recall the weighting matrix $S$ from Section 1 (diagonal entries are each input component's mean absolute value $s_i$ raised to $\alpha$). The key observation: <strong>adjacent layers have highly similar $S$</strong> (residual connections keep activation distributions changing slowly from layer to layer). This means:</p>
 <ul>
-<li>Every layer's SVD truncation preferentially retains directions where $S$ is large</li>
-<li>Every layer discards directions where $S$ is small</li>
-<li>Over 36 layers, small-$S$ directions are <strong>suppressed 36 times over</strong></li>
-<li>The hidden state ultimately retains only the few large-$S$ directions → <strong>all tokens' representations collapse to the same direction</strong></li>
+<li>Every layer's SVD truncation preferentially retains the directions where $s_i$ is large</li>
+<li>Every layer discards the directions where $s_i$ is small</li>
+<li>Over 36 layers, small-$s_i$ directions are <strong>suppressed 36 times over</strong></li>
+<li>The hidden state ultimately retains only the few large-$s_i$ directions → <strong>all tokens' representations collapse to the same direction</strong></li>
 </ul>
 <p>Plain SVD uses no weighting; the retained directions are determined by each layer's own singular structure — different layers have different principal directions, so there is no systematic suppression of the same set of directions.</p>
 <p>Experiments confirm this. Measuring the cosine similarity between student and teacher hidden states layer by layer:</p>
@@ -1066,7 +1072,7 @@ $$S_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x_1 \rvert]^{\alpha},\ \dots,\ \m
 <p>(Override ratio = the magnitude of the MLP output relative to the residual stream itself — how strongly the MLP rewrites the stream.)</p>
 <p><strong>ASVD's MLP outputs are nearly identical across all tokens</strong> (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).</p>
 <p>In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.</p>
-<p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (high-activation channels) while discarding the <strong>token-specific differences</strong>.</p>
+<p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (the components with large $s_i$) while discarding the <strong>token-specific differences</strong>.</p>
 <h3 id="4-Connection-to-Literature">4. Connection to Literature</h3>
 <p>This phenomenon has theoretical explanations in transformer research:</p>
 <ul>
