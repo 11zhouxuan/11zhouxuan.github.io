@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #5366d6;
+  background: #4f9e40;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3046,9 +3046,6 @@ pre {
   .post-body .lang-content mjx-container[display="true"]::after {
     font-size: 0.8em;
   }
-}
-.post-body .num-blue {
-  color: #1565c0;
 }
 .post-body,
 .post-body p,

@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（〇）：预备知识——读懂本系列需要的一切 这个系列讲的是一件事：把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查表。 0">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T08:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T10:02:40.259Z">
+<meta property="article:modified_time" content="2026-09-02T11:46:04.775Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -264,7 +264,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 10:02:40" itemprop="dateModified" datetime="2026-09-02T10:02:40+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 11:46:04" itemprop="dateModified" datetime="2026-09-02T11:46:04+00:00">2026-09-02</time>
     </span>
 
   
@@ -990,78 +990,6 @@ switchLang('zh');
 <noscript>
   <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
 </noscript>
-<script>
-// Give standalone numbers in post prose the same blue as the math, so a
-// sentence like "CE = ln 151936 ≈ 11.93" is not half black, half blue.
-//
-// Two safeguards keep this from corrupting formulas: it runs only after
-// MathJax resolves (formula source is by then replaced by <mjx-container>),
-// and it never touches a text node that still contains '$' or a backslash,
-// so unrendered LaTeX source is always left alone.
-(function () {
-  var SKIP = { PRE: 1, CODE: 1, A: 1, H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1,
-               SCRIPT: 1, STYLE: 1, BUTTON: 1, SVG: 1 };
-  var NUM_RE = /(\d+(?:[.,]\d+)?%?)/g;
-
-  function paint(root) {
-    if (!root) return;
-    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: function (node) {
-        var v = node.nodeValue;
-        if (!/\d/.test(v)) return NodeFilter.FILTER_REJECT;
-        if (v.indexOf('$') !== -1 || v.indexOf('\\') !== -1) return NodeFilter.FILTER_REJECT;
-        for (var el = node.parentNode; el && el !== root; el = el.parentNode) {
-          var tag = el.nodeName.toUpperCase();
-          if (SKIP[tag] || tag.indexOf('MJX') === 0) return NodeFilter.FILTER_REJECT;
-          if (el.classList && el.classList.contains('num-blue')) return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
-      }
-    });
-    var targets = [], n;
-    while ((n = walker.nextNode())) targets.push(n);
-    targets.forEach(function (node) {
-      var frag = document.createDocumentFragment(), touched = false;
-      node.nodeValue.split(NUM_RE).forEach(function (part, i) {
-        if (!part) return;
-        if (i % 2 === 1) {
-          var span = document.createElement('span');
-          span.className = 'num-blue';
-          span.textContent = part;
-          frag.appendChild(span);
-          touched = true;
-        } else {
-          frag.appendChild(document.createTextNode(part));
-        }
-      });
-      if (touched) node.parentNode.replaceChild(frag, node);
-    });
-  }
-
-  function run() { paint(document.querySelector('.post-body')); }
-
-  // Wait for MathJax; if it never appears (page without math), paint anyway.
-  function runAfterMath() {
-    var tries = 0;
-    (function poll() {
-      if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
-        MathJax.startup.promise.then(run).catch(run);
-      } else if (++tries < 200) {
-        setTimeout(poll, 100);
-      } else {
-        run();
-      }
-    })();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', runAfterMath);
-  } else {
-    runAfterMath();
-  }
-  document.addEventListener('page:loaded', runAfterMath);
-})();
-</script>
 
 </body>
 </html>
