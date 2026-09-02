@@ -86,7 +86,7 @@ $$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{252}}\ \mathbb{E}\_u\Big[\mathrm{CE}\bi
 
 当模型完全没有区分能力时，最优策略不是乱猜，而是**每个位置都输出同一个固定的概率分布**，把概率按各 token 在语料中的真实频率来分。这样虽然每个位置都"不知道答案"，但至少高频 token（比如逗号，占英文文本约 3.6% 的位置）稳定拿到不低的概率，平均惩罚最小。坍缩模型正是这么做的：它在每个位置都给逗号约 10% 的概率（实测 top-1 prob = 0.0995），得到 CE ≈ 8.5。
 
-反过来，一个**试图区分 token 但区分得很差**的模型（random 权重、plain SVD）会把概率押在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，CE = $\ln 151936 \approx 11.93$；押错注比平均分配更糟，所以 random 和 plain SVD 冲到了 17~19。
+反过来，一个**试图区分 token 但区分得很差**的模型（random 权重、plain SVD）会把概率押在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，$\mathrm{CE} = \ln 151936 \approx 11.93$；押错注比平均分配更糟，所以 random 和 plain SVD 冲到了 17~19。
 
 **"全押高频 token"是预测能力为零时的 loss-最优退化策略。** ASVD 的 8.50 不代表"逼近得好"，而是代表"模型已经放弃预测，退化成了常数函数"。
 
@@ -320,7 +320,7 @@ The answer is in the definition of cross-entropy loss: it only measures how much
 
 When a model has no ability to distinguish tokens, the optimal strategy is not to guess wildly, but to **output the same fixed probability distribution at every position**, allocating probability according to each token's true frequency in the corpus. Every position is still "wrong," but at least the frequent tokens (like the comma, which fills about 3.6% of positions in English text) reliably receive decent probability, minimizing the average penalty. That is exactly what the collapsed model does: it gives the comma about 10% probability at every position (measured top-1 prob = 0.0995), yielding CE ≈ 8.5.
 
-Conversely, a model that **tries to distinguish tokens but fails** (random weights, plain SVD) bets its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty explodes. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives CE = $\ln 151936 \approx 11.93$; betting wrong is worse than spreading uniformly, which is how random and plain SVD reach 17–19.
+Conversely, a model that **tries to distinguish tokens but fails** (random weights, plain SVD) bets its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty explodes. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives $\mathrm{CE} = \ln 151936 \approx 11.93$; betting wrong is worse than spreading uniformly, which is how random and plain SVD reach 17–19.
 
 **"All-in on frequent tokens" is the loss-optimal degenerate strategy when predictive ability is zero.** ASVD's 8.50 does not mean "good approximation" — it means "the model has given up predicting and collapsed to a constant function."
 
