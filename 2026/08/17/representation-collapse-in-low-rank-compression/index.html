@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T08:06:25.276Z">
+<meta property="article:modified_time" content="2026-09-02T08:10:02.049Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -311,18 +311,16 @@
 </blockquote>
 <p>由 Eckart–Young 定理（见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>），这一步是下面这个目标的最优解：</p>
 <p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p><strong>方法二：ASVD（激活加权 SVD）</strong>，直觉是&quot;经常取到大值的那些输入分量要逼近得更准&quot;，因此需要少量数据来测量各分量实际有多大。这批数据称为<strong>校准数据</strong> $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活，不做任何梯度更新——这也是&quot;闭式方法&quot;（解方程直接得答案）的共同特征。</p>
-<p>先把要测的量写清楚。第 $\ell$ 层的权重 $W_\ell \in \mathbb{R}^{m \times n}$ 作用在输入向量 $x \in \mathbb{R}^{n}$ 上，$x$ 的第 $i$ 个分量 $x_i$ 就是所谓的第 $i$ 个<strong>输入通道</strong>（$n$ 是该层的输入维度，例如 q_proj 的 $n = 4096$）。所谓某个通道的<strong>激活幅度</strong>，就是它在校准数据全部 token 位置上取绝对值后的平均：</p>
-<p>$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert, \qquad i = 1, \dots, n$$</p>
-<p>（$\lvert D \rvert$ 是校准数据里的 token 位置总数，$x$ 遍历每个位置在该层入口处的输入向量。）</p>
+<p><strong>方法二：ASVD（激活加权 SVD）</strong>，直觉是&quot;$W_\ell x$ 里那些实际取值更大的输入分量，要逼近得更准&quot;。这需要少量数据来测量各分量实际有多大，这批数据称为<strong>校准数据</strong> $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来做统计，不做任何梯度更新——这也是&quot;闭式方法&quot;（解方程直接得答案）的共同特征。</p>
+<p>记第 $\ell$ 层为 $W_\ell \in \mathbb{R}^{m \times n}$，输入向量 $x \in \mathbb{R}^{n}$（例如 q_proj 的 $n = 4096$）。</p>
 <blockquote>
 <p><strong>算法 B：ASVD 截断 + 逐层 rank 分配</strong></p>
-<p><strong>输入</strong>：$W_1, \dots, W_{252}$，校准数据 $D$，加权指数 $\alpha$，参数预算</p>
+<p><strong>输入</strong>：$W_1, \dots, W_{252}$，校准数据 $D$，指数 $\alpha$，参数预算</p>
 <ol>
-<li><strong>测量激活</strong>：教师在 $D$ 上前向，对每层按上式算出 $s_1, \dots, s_n$，构造对角加权矩阵
-$$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\big)$$</li>
-<li><strong>分配秩</strong>：以 $\lVert W_\ell S_\ell \rVert_F$ 作为层 $\ell$ 的重要性，按重要性正比分配 $r_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）</li>
-<li><strong>加权截断</strong>：对每层，对 $W_\ell S_\ell$ 做 SVD 保留前 $r_\ell$ 项得 $U_r \Sigma_r V_r^T$，令 $A_\ell = U_r \Sigma_r$、$B_\ell = V_r^T S_\ell^{-1}$（乘回 $S_\ell^{-1}$ 把加权撤销，使 $A_\ell B_\ell \approx W_\ell$）</li>
+<li>教师在 $D$ 上前向，在第 $\ell$ 层入口收集所有 token 位置的输入向量，逐分量取绝对值后求平均：
+$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert \quad (i = 1, \dots, n), \qquad S_\ell = \mathrm{diag}\big(s_1^{\alpha}, \dots, s_n^{\alpha}\big)$$</li>
+<li>令层 $\ell$ 的重要性为 $\lVert W_\ell S_\ell \rVert_F$，按重要性正比分配 $r_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）</li>
+<li>对 $W_\ell S_\ell$ 做 SVD 保留前 $r_\ell$ 项得 $U_r \Sigma_r V_r^T$，令 $A_\ell = U_r \Sigma_r$、$B_\ell = V_r^T S_\ell^{-1}$（乘回 $S_\ell^{-1}$ 把加权撤销，使 $A_\ell B_\ell \approx W_\ell$）</li>
 <li>把各层替换为 $x \mapsto A_\ell B_\ell x$</li>
 </ol>
 <p><strong>输出</strong>：学生模型（$\alpha = 1.0$ 时 val loss = <strong>8.50</strong>）</p>
@@ -775,18 +773,16 @@ $$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\
 </blockquote>
 <p>By the Eckart–Young theorem (see <a href="/2026/08/30/lord-compression-primer/">the primer</a>), this step is the optimum of</p>
 <p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p><strong>Method 2: ASVD (activation-weighted SVD)</strong> — the intuition is &quot;input components that often take large values deserve a more accurate approximation,&quot; which requires a little data to measure how large each component actually gets. That data is called <strong>calibration data</strong> $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).</p>
-<p>Let us write down precisely what gets measured. Layer $\ell$'s weight $W_\ell \in \mathbb{R}^{m \times n}$ acts on an input vector $x \in \mathbb{R}^{n}$; the $i$-th component $x_i$ of $x$ is what we call the $i$-th <strong>input channel</strong> ($n$ is the layer's input dimension, e.g. $n = 4096$ for q_proj). A channel's <strong>activation magnitude</strong> is its absolute value averaged over every token position in the calibration data:</p>
-<p>$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert, \qquad i = 1, \dots, n$$</p>
-<p>($\lvert D \rvert$ is the total number of token positions in the calibration data, and $x$ ranges over each position's input vector at that layer's entrance.)</p>
+<p><strong>Method 2: ASVD (activation-weighted SVD)</strong> — the intuition is &quot;in $W_\ell x$, the input components that actually take larger values deserve a more accurate approximation.&quot; That requires a little data to measure how large each component gets; this data is called <strong>calibration data</strong> $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only for statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).</p>
+<p>Write layer $\ell$ as $W_\ell \in \mathbb{R}^{m \times n}$ acting on input vectors $x \in \mathbb{R}^{n}$ (e.g. $n = 4096$ for q_proj).</p>
 <blockquote>
 <p><strong>Algorithm B: ASVD truncation + per-layer rank allocation</strong></p>
-<p><strong>Input</strong>: $W_1, \dots, W_{252}$, calibration data $D$, weighting exponent $\alpha$, parameter budget</p>
+<p><strong>Input</strong>: $W_1, \dots, W_{252}$, calibration data $D$, exponent $\alpha$, parameter budget</p>
 <ol>
-<li><strong>Measure activations</strong>: run the teacher over $D$, compute $s_1, \dots, s_n$ per layer with the formula above, and build the diagonal weighting matrix
-$$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\big)$$</li>
-<li><strong>Allocate ranks</strong>: treat $\lVert W_\ell S_\ell \rVert_F$ as layer $\ell$'s importance and assign $r_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)</li>
-<li><strong>Weighted truncation</strong>: per layer, take the top-$r_\ell$ SVD of $W_\ell S_\ell$ as $U_r \Sigma_r V_r^T$ and set $A_\ell = U_r \Sigma_r$, $B_\ell = V_r^T S_\ell^{-1}$ (multiplying $S_\ell^{-1}$ back undoes the weighting so that $A_\ell B_\ell \approx W_\ell$)</li>
+<li>Run the teacher over $D$; at layer $\ell$'s entrance collect the input vectors at all token positions and average their componentwise absolute values:
+$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert \quad (i = 1, \dots, n), \qquad S_\ell = \mathrm{diag}\big(s_1^{\alpha}, \dots, s_n^{\alpha}\big)$$</li>
+<li>Let layer $\ell$'s importance be $\lVert W_\ell S_\ell \rVert_F$ and assign $r_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)</li>
+<li>Take the top-$r_\ell$ SVD of $W_\ell S_\ell$ as $U_r \Sigma_r V_r^T$ and set $A_\ell = U_r \Sigma_r$, $B_\ell = V_r^T S_\ell^{-1}$ (multiplying $S_\ell^{-1}$ back undoes the weighting so that $A_\ell B_\ell \approx W_\ell$)</li>
 <li>Replace each layer with $x \mapsto A_\ell B_\ell x$</li>
 </ol>
 <p><strong>Output</strong>: the student model (val loss = <strong>8.50</strong> at $\alpha = 1.0$)</p>

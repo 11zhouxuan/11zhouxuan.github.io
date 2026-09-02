@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -987,7 +987,7 @@ switchLang('zh');
 <h3 id="0-先看最终配方：四处改动写进同一个式子">0. 先看最终配方：四处改动写进同一个式子</h3>
 <p>第二篇确立的逐层目标是：解出 $M^*$ 后在白化度量下截断，$\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$。本篇终点的逐层目标：</p>
 <p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{改动②：loss 敏感度度量}} \big(M^* - AB - \underbrace{S}_{\text{改动①：稀疏残差}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
-<p>其中 $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ 是输出通道 $j$ 的 loss 梯度二阶矩；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。</p>
+<p>其中 $y_j$ 是该层输出向量的第 $j$ 个分量，$w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。</p>
 <p>下面按发生顺序逐个讲这四处改动。</p>
 <h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿截断税">1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税</h3>
 <p>截断税（~2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
@@ -1020,7 +1020,7 @@ switchLang('zh');
 <p>21% 即最优——<strong>文献的&quot;sparse 为主（70/30）&quot;结论不迁移</strong>，因为我们的低秩部分是轨迹矫正回归（远强于他们的朴素 SVD），S 只需要补真正的重尾。这也是一个方法论提醒：移植文献结论时，配比参数依附于基线强度。</p>
 <h3 id="2-换度量：输出敏感度加权截断">2. 换度量：输出敏感度加权截断</h3>
 <p>第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下&quot;几乎无损&quot;（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：<strong>我们的截断在错误的目标函数下最优</strong>。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。</p>
-<p>修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
+<p>修法仍是闭式的。设 $y_j$ 为该层输出向量的第 $j$ 个分量，测 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
 <p>SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。<strong>单独 −0.07（4.98），零参数成本</strong>——lm_head 矫正以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个&quot;邻近&quot;的 artifact 上测一次即可（见第 5 节的迭代失败）。</p>
 <h3 id="3-超线性叠加：修正-小改进不叠加">3. 超线性叠加：修正&quot;小改进不叠加&quot;</h3>
@@ -1165,7 +1165,7 @@ switchLang('zh');
 <h3 id="0-The-Final-Recipe-First-Four-Changes-in-One-Formula">0. The Final Recipe First: Four Changes in One Formula</h3>
 <p>Part 2 established the layerwise objective: solve for $M^*$, then truncate in the whitened metric, $\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$. This post's endpoint objective per layer:</p>
 <p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{change ②: loss-sensitivity metric}} \big(M^* - AB - \underbrace{S}_{\text{change ①: sparse residual}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
-<p>where $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ is output channel $j$'s loss-gradient second moment; solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).</p>
+<p>where $y_j$ is the $j$-th component of the layer's output vector and $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).</p>
 <p>The sections below introduce these four changes in the order they happened.</p>
 <h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-the-Truncation-Tax">1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax</h3>
 <p>The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage on the content pathway: the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>: it is by nature &quot;a few large entries at arbitrary positions.&quot; It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
@@ -1198,7 +1198,7 @@ switchLang('zh');
 <p>21% is the optimum — <strong>the literature's sparse-heavy (70/30) recipe does not transfer</strong>, because our low-rank part is trajectory-correcting regression (far stronger than their plain SVD), so S only needs to catch the genuine heavy tails. A methodological reminder: ratio hyperparameters are attached to baseline strength.</p>
 <h3 id="2-Changing-the-Metric-Output-Sensitivity-Weighted-Truncation">2. Changing the Metric: Output-Sensitivity-Weighted Truncation</h3>
 <p>Part 4's loss-distribution map left one anomaly unexplained: qkv@late looks &quot;nearly lossless&quot; in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: <strong>our truncation was optimal under the wrong objective</strong>. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.</p>
-<p>The fix stays closed-form. Measure each output channel's loss-gradient second moment $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
+<p>The fix stays closed-form. Let $y_j$ be the $j$-th component of the layer's output vector and measure $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
 <p>— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. <strong>−0.07 on its own (4.98) at zero parameter cost</strong>, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a &quot;nearby&quot; artifact suffices (see Section 5's iteration failure).</p>
 <h3 id="3-Super-Additive-Stacking-Amending-the-No-Stacking-Rule">3. Super-Additive Stacking: Amending the No-Stacking Rule</h3>
@@ -1409,7 +1409,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -1948,7 +1948,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -2371,7 +2371,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -2802,7 +2802,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -2841,18 +2841,16 @@ switchLang('zh');
 </blockquote>
 <p>由 Eckart–Young 定理（见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>），这一步是下面这个目标的最优解：</p>
 <p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p><strong>方法二：ASVD（激活加权 SVD）</strong>，直觉是&quot;经常取到大值的那些输入分量要逼近得更准&quot;，因此需要少量数据来测量各分量实际有多大。这批数据称为<strong>校准数据</strong> $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活，不做任何梯度更新——这也是&quot;闭式方法&quot;（解方程直接得答案）的共同特征。</p>
-<p>先把要测的量写清楚。第 $\ell$ 层的权重 $W_\ell \in \mathbb{R}^{m \times n}$ 作用在输入向量 $x \in \mathbb{R}^{n}$ 上，$x$ 的第 $i$ 个分量 $x_i$ 就是所谓的第 $i$ 个<strong>输入通道</strong>（$n$ 是该层的输入维度，例如 q_proj 的 $n = 4096$）。所谓某个通道的<strong>激活幅度</strong>，就是它在校准数据全部 token 位置上取绝对值后的平均：</p>
-<p>$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert, \qquad i = 1, \dots, n$$</p>
-<p>（$\lvert D \rvert$ 是校准数据里的 token 位置总数，$x$ 遍历每个位置在该层入口处的输入向量。）</p>
+<p><strong>方法二：ASVD（激活加权 SVD）</strong>，直觉是&quot;$W_\ell x$ 里那些实际取值更大的输入分量，要逼近得更准&quot;。这需要少量数据来测量各分量实际有多大，这批数据称为<strong>校准数据</strong> $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来做统计，不做任何梯度更新——这也是&quot;闭式方法&quot;（解方程直接得答案）的共同特征。</p>
+<p>记第 $\ell$ 层为 $W_\ell \in \mathbb{R}^{m \times n}$，输入向量 $x \in \mathbb{R}^{n}$（例如 q_proj 的 $n = 4096$）。</p>
 <blockquote>
 <p><strong>算法 B：ASVD 截断 + 逐层 rank 分配</strong></p>
-<p><strong>输入</strong>：$W_1, \dots, W_{252}$，校准数据 $D$，加权指数 $\alpha$，参数预算</p>
+<p><strong>输入</strong>：$W_1, \dots, W_{252}$，校准数据 $D$，指数 $\alpha$，参数预算</p>
 <ol>
-<li><strong>测量激活</strong>：教师在 $D$ 上前向，对每层按上式算出 $s_1, \dots, s_n$，构造对角加权矩阵
-$$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\big)$$</li>
-<li><strong>分配秩</strong>：以 $\lVert W_\ell S_\ell \rVert_F$ 作为层 $\ell$ 的重要性，按重要性正比分配 $r_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）</li>
-<li><strong>加权截断</strong>：对每层，对 $W_\ell S_\ell$ 做 SVD 保留前 $r_\ell$ 项得 $U_r \Sigma_r V_r^T$，令 $A_\ell = U_r \Sigma_r$、$B_\ell = V_r^T S_\ell^{-1}$（乘回 $S_\ell^{-1}$ 把加权撤销，使 $A_\ell B_\ell \approx W_\ell$）</li>
+<li>教师在 $D$ 上前向，在第 $\ell$ 层入口收集所有 token 位置的输入向量，逐分量取绝对值后求平均：
+$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert \quad (i = 1, \dots, n), \qquad S_\ell = \mathrm{diag}\big(s_1^{\alpha}, \dots, s_n^{\alpha}\big)$$</li>
+<li>令层 $\ell$ 的重要性为 $\lVert W_\ell S_\ell \rVert_F$，按重要性正比分配 $r_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）</li>
+<li>对 $W_\ell S_\ell$ 做 SVD 保留前 $r_\ell$ 项得 $U_r \Sigma_r V_r^T$，令 $A_\ell = U_r \Sigma_r$、$B_\ell = V_r^T S_\ell^{-1}$（乘回 $S_\ell^{-1}$ 把加权撤销，使 $A_\ell B_\ell \approx W_\ell$）</li>
 <li>把各层替换为 $x \mapsto A_\ell B_\ell x$</li>
 </ol>
 <p><strong>输出</strong>：学生模型（$\alpha = 1.0$ 时 val loss = <strong>8.50</strong>）</p>
@@ -3305,18 +3303,16 @@ $$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\
 </blockquote>
 <p>By the Eckart–Young theorem (see <a href="/2026/08/30/lord-compression-primer/">the primer</a>), this step is the optimum of</p>
 <p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p><strong>Method 2: ASVD (activation-weighted SVD)</strong> — the intuition is &quot;input components that often take large values deserve a more accurate approximation,&quot; which requires a little data to measure how large each component actually gets. That data is called <strong>calibration data</strong> $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).</p>
-<p>Let us write down precisely what gets measured. Layer $\ell$'s weight $W_\ell \in \mathbb{R}^{m \times n}$ acts on an input vector $x \in \mathbb{R}^{n}$; the $i$-th component $x_i$ of $x$ is what we call the $i$-th <strong>input channel</strong> ($n$ is the layer's input dimension, e.g. $n = 4096$ for q_proj). A channel's <strong>activation magnitude</strong> is its absolute value averaged over every token position in the calibration data:</p>
-<p>$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert, \qquad i = 1, \dots, n$$</p>
-<p>($\lvert D \rvert$ is the total number of token positions in the calibration data, and $x$ ranges over each position's input vector at that layer's entrance.)</p>
+<p><strong>Method 2: ASVD (activation-weighted SVD)</strong> — the intuition is &quot;in $W_\ell x$, the input components that actually take larger values deserve a more accurate approximation.&quot; That requires a little data to measure how large each component gets; this data is called <strong>calibration data</strong> $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only for statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).</p>
+<p>Write layer $\ell$ as $W_\ell \in \mathbb{R}^{m \times n}$ acting on input vectors $x \in \mathbb{R}^{n}$ (e.g. $n = 4096$ for q_proj).</p>
 <blockquote>
 <p><strong>Algorithm B: ASVD truncation + per-layer rank allocation</strong></p>
-<p><strong>Input</strong>: $W_1, \dots, W_{252}$, calibration data $D$, weighting exponent $\alpha$, parameter budget</p>
+<p><strong>Input</strong>: $W_1, \dots, W_{252}$, calibration data $D$, exponent $\alpha$, parameter budget</p>
 <ol>
-<li><strong>Measure activations</strong>: run the teacher over $D$, compute $s_1, \dots, s_n$ per layer with the formula above, and build the diagonal weighting matrix
-$$S_\ell = \mathrm{diag}\big(s_1^{\alpha},\ s_2^{\alpha},\ \dots,\ s_n^{\alpha}\big)$$</li>
-<li><strong>Allocate ranks</strong>: treat $\lVert W_\ell S_\ell \rVert_F$ as layer $\ell$'s importance and assign $r_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)</li>
-<li><strong>Weighted truncation</strong>: per layer, take the top-$r_\ell$ SVD of $W_\ell S_\ell$ as $U_r \Sigma_r V_r^T$ and set $A_\ell = U_r \Sigma_r$, $B_\ell = V_r^T S_\ell^{-1}$ (multiplying $S_\ell^{-1}$ back undoes the weighting so that $A_\ell B_\ell \approx W_\ell$)</li>
+<li>Run the teacher over $D$; at layer $\ell$'s entrance collect the input vectors at all token positions and average their componentwise absolute values:
+$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert \quad (i = 1, \dots, n), \qquad S_\ell = \mathrm{diag}\big(s_1^{\alpha}, \dots, s_n^{\alpha}\big)$$</li>
+<li>Let layer $\ell$'s importance be $\lVert W_\ell S_\ell \rVert_F$ and assign $r_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)</li>
+<li>Take the top-$r_\ell$ SVD of $W_\ell S_\ell$ as $U_r \Sigma_r V_r^T$ and set $A_\ell = U_r \Sigma_r$, $B_\ell = V_r^T S_\ell^{-1}$ (multiplying $S_\ell^{-1}$ back undoes the weighting so that $A_\ell B_\ell \approx W_\ell$)</li>
 <li>Replace each layer with $x \mapsto A_\ell B_\ell x$</li>
 </ol>
 <p><strong>Output</strong>: the student model (val loss = <strong>8.50</strong> at $\alpha = 1.0$)</p>
@@ -3825,7 +3821,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -4490,7 +4486,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4587,7 +4583,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4685,7 +4681,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">

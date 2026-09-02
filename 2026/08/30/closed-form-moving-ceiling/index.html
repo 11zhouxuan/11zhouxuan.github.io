@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（五）：会移动的天花板——稀疏残差、更好的度量与校准数据  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  第四篇用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 4.59——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T08:06:25.276Z">
+<meta property="article:modified_time" content="2026-09-02T08:10:02.049Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="calibration">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:06:25" itemprop="dateModified" datetime="2026-09-02T08:06:25+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:10:02" itemprop="dateModified" datetime="2026-09-02T08:10:02+00:00">2026-09-02</time>
     </span>
 
   
@@ -302,7 +302,7 @@
 <h3 id="0-先看最终配方：四处改动写进同一个式子">0. 先看最终配方：四处改动写进同一个式子</h3>
 <p>第二篇确立的逐层目标是：解出 $M^*$ 后在白化度量下截断，$\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$。本篇终点的逐层目标：</p>
 <p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{改动②：loss 敏感度度量}} \big(M^* - AB - \underbrace{S}_{\text{改动①：稀疏残差}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
-<p>其中 $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ 是输出通道 $j$ 的 loss 梯度二阶矩；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。</p>
+<p>其中 $y_j$ 是该层输出向量的第 $j$ 个分量，$w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。</p>
 <p>下面按发生顺序逐个讲这四处改动。</p>
 <h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿截断税">1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税</h3>
 <p>截断税（~2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
@@ -335,7 +335,7 @@
 <p>21% 即最优——<strong>文献的&quot;sparse 为主（70/30）&quot;结论不迁移</strong>，因为我们的低秩部分是轨迹矫正回归（远强于他们的朴素 SVD），S 只需要补真正的重尾。这也是一个方法论提醒：移植文献结论时，配比参数依附于基线强度。</p>
 <h3 id="2-换度量：输出敏感度加权截断">2. 换度量：输出敏感度加权截断</h3>
 <p>第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下&quot;几乎无损&quot;（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：<strong>我们的截断在错误的目标函数下最优</strong>。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。</p>
-<p>修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
+<p>修法仍是闭式的。设 $y_j$ 为该层输出向量的第 $j$ 个分量，测 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
 <p>SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。<strong>单独 −0.07（4.98），零参数成本</strong>——lm_head 矫正以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个&quot;邻近&quot;的 artifact 上测一次即可（见第 5 节的迭代失败）。</p>
 <h3 id="3-超线性叠加：修正-小改进不叠加">3. 超线性叠加：修正&quot;小改进不叠加&quot;</h3>
@@ -480,7 +480,7 @@
 <h3 id="0-The-Final-Recipe-First-Four-Changes-in-One-Formula">0. The Final Recipe First: Four Changes in One Formula</h3>
 <p>Part 2 established the layerwise objective: solve for $M^*$, then truncate in the whitened metric, $\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$. This post's endpoint objective per layer:</p>
 <p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{change ②: loss-sensitivity metric}} \big(M^* - AB - \underbrace{S}_{\text{change ①: sparse residual}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
-<p>where $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ is output channel $j$'s loss-gradient second moment; solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).</p>
+<p>where $y_j$ is the $j$-th component of the layer's output vector and $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).</p>
 <p>The sections below introduce these four changes in the order they happened.</p>
 <h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-the-Truncation-Tax">1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax</h3>
 <p>The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage on the content pathway: the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>: it is by nature &quot;a few large entries at arbitrary positions.&quot; It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
@@ -513,7 +513,7 @@
 <p>21% is the optimum — <strong>the literature's sparse-heavy (70/30) recipe does not transfer</strong>, because our low-rank part is trajectory-correcting regression (far stronger than their plain SVD), so S only needs to catch the genuine heavy tails. A methodological reminder: ratio hyperparameters are attached to baseline strength.</p>
 <h3 id="2-Changing-the-Metric-Output-Sensitivity-Weighted-Truncation">2. Changing the Metric: Output-Sensitivity-Weighted Truncation</h3>
 <p>Part 4's loss-distribution map left one anomaly unexplained: qkv@late looks &quot;nearly lossless&quot; in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: <strong>our truncation was optimal under the wrong objective</strong>. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.</p>
-<p>The fix stays closed-form. Measure each output channel's loss-gradient second moment $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
+<p>The fix stays closed-form. Let $y_j$ be the $j$-th component of the layer's output vector and measure $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
 <p>— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. <strong>−0.07 on its own (4.98) at zero parameter cost</strong>, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a &quot;nearby&quot; artifact suffices (see Section 5's iteration failure).</p>
 <h3 id="3-Super-Additive-Stacking-Amending-the-No-Stacking-Rule">3. Super-Additive Stacking: Amending the No-Stacking Rule</h3>
