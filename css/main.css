@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #ff5cec;
+  background: #ff5306;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3046,4 +3046,22 @@ pre {
   .post-body .lang-content mjx-container[display="true"]::after {
     font-size: 0.8em;
   }
+}
+.post-body .num-blue {
+  color: #1565c0;
+}
+.post-body,
+.post-body p,
+.post-body li,
+.post-body td,
+.post-body th,
+.post-title,
+.post-body h1,
+.post-body h2,
+.post-body h3,
+.post-body h4 {
+  font-family: "Source Serif 4", "Iowan Old Style", Georgia, "Songti SC", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+}
+.post-body blockquote {
+  font-family: inherit;
 }

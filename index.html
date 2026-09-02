@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
 
   
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
 
   
@@ -1409,7 +1409,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
 
   
@@ -1948,7 +1948,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
 
   
@@ -2371,7 +2371,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
 
   
@@ -2802,7 +2802,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
 
   
@@ -2908,7 +2908,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p>这看似矛盾：一个&quot;更坏&quot;的模型（只能输出一个 token）怎么比&quot;更好&quot;的模型（能输出 433 种 token）loss 更低？</p>
 <p>原因在交叉熵 loss 的定义里：它只看模型给<strong>正确答案</strong>分了多少概率——每个位置计 $-\log q(\text{正确 token})$，再在所有位置上取平均。</p>
 <p>当模型完全没有区分能力时，最优策略不是乱猜，而是<strong>每个位置都输出同一个固定的概率分布</strong>，把概率按各 token 在语料中的真实频率来分。这样虽然每个位置都&quot;不知道答案&quot;，但至少高频 token（比如逗号，占英文文本约 3.6% 的位置）稳定拿到不低的概率，平均惩罚最小。坍缩模型正是这么做的：它在每个位置都给逗号约 10% 的概率（实测 top-1 prob = 0.0995），得到 CE ≈ 8.5。</p>
-<p>反过来，一个<strong>试图区分 token 但区分得很差</strong>的模型（random 权重、plain SVD）会把概率押在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，CE = $\ln 151936 \approx 11.93$；押错注比平均分配更糟，所以 random 和 plain SVD 冲到了 17~19。</p>
+<p>反过来，一个<strong>试图区分 token 但区分得很差</strong>的模型（random 权重、plain SVD）会把概率押在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，$\mathrm{CE} = \ln 151936 \approx 11.93$；押错注比平均分配更糟，所以 random 和 plain SVD 冲到了 17~19。</p>
 <p><strong>&quot;全押高频 token&quot;是预测能力为零时的 loss-最优退化策略。</strong> ASVD 的 8.50 不代表&quot;逼近得好&quot;，而是代表&quot;模型已经放弃预测，退化成了常数函数&quot;。</p>
 <p>信息论上可以精确验证这一点。如果模型是常数预测器（每个位置输出同一个分布 $q$），它的 CE 就等于语料的 unigram 分布 $p$（即各 token 的出现频率分布）与 $q$ 之间的交叉熵，其下界是 $p$ 自己的熵：</p>
 <p>$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上实测）}$$</p>
@@ -3371,7 +3371,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p>This seems paradoxical: how can a &quot;worse&quot; model (only one token) have lower loss than a &quot;better&quot; one (433 distinct tokens)?</p>
 <p>The answer is in the definition of cross-entropy loss: it only measures how much probability the model assigns to the <strong>correct answer</strong> — each position scores $-\log q(\text{correct token})$, averaged over all positions.</p>
 <p>When a model has no ability to distinguish tokens, the optimal strategy is not to guess wildly, but to <strong>output the same fixed probability distribution at every position</strong>, allocating probability according to each token's true frequency in the corpus. Every position is still &quot;wrong,&quot; but at least the frequent tokens (like the comma, which fills about 3.6% of positions in English text) reliably receive decent probability, minimizing the average penalty. That is exactly what the collapsed model does: it gives the comma about 10% probability at every position (measured top-1 prob = 0.0995), yielding CE ≈ 8.5.</p>
-<p>Conversely, a model that <strong>tries to distinguish tokens but fails</strong> (random weights, plain SVD) bets its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty explodes. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives CE = $\ln 151936 \approx 11.93$; betting wrong is worse than spreading uniformly, which is how random and plain SVD reach 17–19.</p>
+<p>Conversely, a model that <strong>tries to distinguish tokens but fails</strong> (random weights, plain SVD) bets its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty explodes. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives $\mathrm{CE} = \ln 151936 \approx 11.93$; betting wrong is worse than spreading uniformly, which is how random and plain SVD reach 17–19.</p>
 <p><strong>&quot;All-in on frequent tokens&quot; is the loss-optimal degenerate strategy when predictive ability is zero.</strong> ASVD's 8.50 does not mean &quot;good approximation&quot; — it means &quot;the model has given up predicting and collapsed to a constant function.&quot;</p>
 <p>This can be verified information-theoretically. If the model is a constant predictor (outputting the same distribution $q$ at every position), its CE equals the cross-entropy between $q$ and the corpus unigram distribution $p$ (the frequency distribution of tokens), lower-bounded by the entropy of $p$ itself:</p>
 <p>$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats (measured on our val data)}$$</p>
@@ -3823,7 +3823,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
 
   
@@ -4488,7 +4488,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4585,7 +4585,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4683,7 +4683,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4782,6 +4782,78 @@ function switchLang(lang) {
 <noscript>
   <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
 </noscript>
+<script>
+// Color standalone numbers in post prose the same blue as the math, so a
+// sentence like "CE = ln 151936 ≈ 11.93" is not half black, half blue.
+//
+// Two safeguards keep this from corrupting formulas: it only runs after
+// MathJax has finished typesetting (so formula source is already replaced by
+// <mjx-container> elements), and it never touches a text node that still
+// contains '$' or '\' — i.e. unrendered LaTeX source is always left alone.
+(function () {
+  var SKIP = { PRE: 1, CODE: 1, A: 1, H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1,
+               SCRIPT: 1, STYLE: 1, BUTTON: 1, SVG: 1 };
+  var NUM = /(\d+(?:[.,]\d+)?%?)/g;
+
+  function paint(root) {
+    if (!root) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var v = node.nodeValue;
+        if (!/\d/.test(v)) return NodeFilter.FILTER_REJECT;
+        if (v.indexOf('$') !== -1 || v.indexOf('\\') !== -1) return NodeFilter.FILTER_REJECT;
+        for (var el = node.parentNode; el && el !== root; el = el.parentNode) {
+          var tag = el.nodeName.toUpperCase();
+          if (SKIP[tag] || tag.indexOf('MJX') === 0) return NodeFilter.FILTER_REJECT;
+          if (el.classList && el.classList.contains('num-blue')) return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var targets = [], n;
+    while ((n = walker.nextNode())) targets.push(n);
+    targets.forEach(function (node) {
+      var frag = document.createDocumentFragment();
+      node.nodeValue.split(NUM).forEach(function (part, i) {
+        if (!part) return;
+        if (i % 2 === 1) {
+          var span = document.createElement('span');
+          span.className = 'num-blue';
+          span.textContent = part;
+          frag.appendChild(span);
+        } else {
+          frag.appendChild(document.createTextNode(part));
+        }
+      });
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+
+  function run() { paint(document.querySelector('.post-body')); }
+
+  // Wait for MathJax to finish; if it never shows up (page without math),
+  // give up after ~20s and paint anyway.
+  function runAfterMath() {
+    var tries = 0;
+    (function poll() {
+      if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+        MathJax.startup.promise.then(run).catch(run);
+      } else if (++tries < 200) {
+        setTimeout(poll, 100);
+      } else {
+        run();
+      }
+    })();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runAfterMath);
+  } else {
+    runAfterMath();
+  }
+  document.addEventListener('page:loaded', runAfterMath);
+})();
+</script>
 
 </body>
 </html>

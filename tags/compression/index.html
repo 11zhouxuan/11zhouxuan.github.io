@@ -399,6 +399,78 @@
 <noscript>
   <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
 </noscript>
+<script>
+// Color standalone numbers in post prose the same blue as the math, so a
+// sentence like "CE = ln 151936 ≈ 11.93" is not half black, half blue.
+//
+// Two safeguards keep this from corrupting formulas: it only runs after
+// MathJax has finished typesetting (so formula source is already replaced by
+// <mjx-container> elements), and it never touches a text node that still
+// contains '$' or '\' — i.e. unrendered LaTeX source is always left alone.
+(function () {
+  var SKIP = { PRE: 1, CODE: 1, A: 1, H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1,
+               SCRIPT: 1, STYLE: 1, BUTTON: 1, SVG: 1 };
+  var NUM = /(\d+(?:[.,]\d+)?%?)/g;
+
+  function paint(root) {
+    if (!root) return;
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var v = node.nodeValue;
+        if (!/\d/.test(v)) return NodeFilter.FILTER_REJECT;
+        if (v.indexOf('$') !== -1 || v.indexOf('\\') !== -1) return NodeFilter.FILTER_REJECT;
+        for (var el = node.parentNode; el && el !== root; el = el.parentNode) {
+          var tag = el.nodeName.toUpperCase();
+          if (SKIP[tag] || tag.indexOf('MJX') === 0) return NodeFilter.FILTER_REJECT;
+          if (el.classList && el.classList.contains('num-blue')) return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+    var targets = [], n;
+    while ((n = walker.nextNode())) targets.push(n);
+    targets.forEach(function (node) {
+      var frag = document.createDocumentFragment();
+      node.nodeValue.split(NUM).forEach(function (part, i) {
+        if (!part) return;
+        if (i % 2 === 1) {
+          var span = document.createElement('span');
+          span.className = 'num-blue';
+          span.textContent = part;
+          frag.appendChild(span);
+        } else {
+          frag.appendChild(document.createTextNode(part));
+        }
+      });
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+
+  function run() { paint(document.querySelector('.post-body')); }
+
+  // Wait for MathJax to finish; if it never shows up (page without math),
+  // give up after ~20s and paint anyway.
+  function runAfterMath() {
+    var tries = 0;
+    (function poll() {
+      if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+        MathJax.startup.promise.then(run).catch(run);
+      } else if (++tries < 200) {
+        setTimeout(poll, 100);
+      } else {
+        run();
+      }
+    })();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runAfterMath);
+  } else {
+    runAfterMath();
+  }
+  document.addEventListener('page:loaded', runAfterMath);
+})();
+</script>
 
 </body>
 </html>
