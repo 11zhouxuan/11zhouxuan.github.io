@@ -101,7 +101,6 @@ footer:
 custom_file_path:
   head: source/_data/head.njk
   style: source/_data/styles.styl
-  bodyEnd: source/_data/body-end.njk
 
 # Post Settings
 post_meta:
