@@ -52,27 +52,33 @@ $$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 ### 3. 方法：逐层仿射岭回归
 
-从 Block 0 到 35 顺序处理。处理第 $i$ 层时（前面各层已压缩）：
+完整算法只有一个循环：
 
-**第 1 步**：教师和学生对同样的数据前向，在该层入口配对采集 $x\_t$（教师轨迹输入）和 $x\_s$（学生轨迹输入），累积互协方差 $\Sigma\_{ts} = \sum x\_t x\_s^T$ 和自协方差 $\Sigma\_{ss} = \sum x\_s x\_s^T$（中心化版本）。
+> **算法 1：轨迹矫正线性蒸馏**
+>
+> **输入**：教师模型（线性层 $W\_1, \dots, W\_{252}$，按前向顺序编号）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$
+>
+> **对 $\ell = 1, 2, \dots, 252$ 依次执行：**
+>
+> 1. 教师与当前学生（前 $\ell-1$ 层已替换）在 $D$ 上配对前向，在第 $\ell$ 层入口采集教师输入 $x\_t$ 与学生输入 $x\_s$，累积均值 $\bar{x}\_t, \bar{x}\_s$ 和中心化协方差 $\Sigma\_{ts} = \sum x\_t x\_s^T$、$\Sigma\_{ss} = \sum x\_s x\_s^T$
+> 2. 岭回归：$M^\* = W\_\ell \Sigma\_{ts} (\Sigma\_{ss} + \lambda I)^{-1}$
+> 3. 白化截断：$L = \mathrm{chol}(\Sigma\_{ss} + \lambda I)$，对 $M^\* L$ 做 SVD 保留前 $r$ 项得 $U\_r \Sigma\_r V\_r^T$，令 $A = U\_r \Sigma\_r$、$B = V\_r^T L^{-1}$
+> 4. 偏置：$b = W\_\ell \bar{x}\_t - AB\bar{x}\_s$；把第 $\ell$ 层替换为 $x \mapsto ABx + b$
+>
+> **输出**：所有线性层替换完毕的学生模型
 
-**第 2 步**：解仿射岭回归（岭回归 = 带 $\lambda I$ 正则项的最小二乘，保证矩阵可逆、抑制对采样噪声的过拟合）：
+其中第 2 步的 $M^\*$ 是下面这个仿射岭回归的解，**本篇的全部改进都在这一个式子里**：
 
-$$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarrow\quad M^\* = W\Sigma\_{ts}(\Sigma\_{ss} + \lambda I)^{-1}$$
+$$(M^\*, b^\*) = \arg\min\_{M, b}\ \mathbb{E}\big\lVert W\_\ell x\_t - M x\_s - b \big\rVert^2$$
 
-直觉：$\Sigma\_{ts}\Sigma\_{ss}^{-1}$ 是"从脏输入线性还原干净输入"的最优算子，再与 $W$ 复合——还原与变换合成在一个矩阵里。
+目标 $W\_\ell x\_t$ 是教师轨迹的干净输出，输入 $x\_s$ 是学生的漂移输入，期望取自学生的真实运行分布。对比第一篇的代理目标 $\min \lVert (W - AB) S \rVert\_F^2$——那里输入分布和逼近目标都活在教师的世界里——这一处换目标贡献了 8.50 → 5.60 的全部差距。
 
-**第 3 步**：白化截断到 rank $r$。直接对 $M^\*$ 做 SVD 截断隐含"输入各方向同等重要"的假设，而真实输入分布并非如此；先取 $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$ 把输入坐标变换到协方差为单位阵的"白化"坐标，再对 $M^\*L$ 做 SVD 截断，就是在 $x\_s$ 的真实分布下可证最优的截断（白化坐标里的 Eckart–Young 定理，推导见[预备篇](/2026/08/30/lord-compression-primer/)）。截断后重算 $b = W\bar{x}\_t - AB\bar{x}\_s$，让 bias 顺带吸收截断在均值处的误差。
+每一步的理由：
 
-**第 4 步**：替换该层，处理下一层。下一层采集到的 $x\_s$ 自动包含新换上的层的误差，于是被下一层矫正。
-
-**把整个方法写成公式，一共两行**（本篇的全部改进都在第一行的期望符号里）。对每个线性层 $\ell$，按前向顺序：
-
-$$(M\_\ell^\*, b\_\ell^\*) = \arg\min\_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W\_\ell x\_t}\_{\text{目标：教师轨迹的干净输出}} - M \underbrace{x\_s}\_{\text{输入：学生的漂移输入}} - b \Big\rVert^2$$
-
-$$A\_\ell B\_\ell = \mathrm{SVD}\_r\big(M\_\ell^\* L\_\ell\big) L\_\ell^{-1}, \qquad L\_\ell = \mathrm{chol}\big(\Sigma\_{ss}^{(\ell)} + \lambda I\big)$$
-
-对比第一篇的代理目标 $\min \lVert (W - AB) S \rVert\_F^2$：那里输入分布和逼近目标都活在教师的世界里；这里**输入来自学生的真实运行分布、目标来自教师轨迹**——每一层同时在做压缩和对上游误差的纠错。这一处换目标就是本篇的全部改动，8.50 → 5.60 的差距全部由它贡献。
+- **顺序处理（循环体）**：第 $\ell$ 层采集到的 $x\_s$ 自动携带前面所有已替换层的误差，本层的回归顺带矫正它——矫正链因此逐层自洽。
+- **第 2 步（岭回归）**：带 $\lambda I$ 正则项的最小二乘，求逆稳定、抑制对采样噪声的过拟合。直觉：$\Sigma\_{ts}\Sigma\_{ss}^{-1}$ 是"从脏输入线性还原干净输入"的最优算子，与 $W\_\ell$ 复合成一个矩阵。
+- **第 3 步（白化截断）**：直接截断 $M^\*$ 隐含"输入各方向同等重要"的假设，而真实输入分布并非如此；先用 $L$ 变换到协方差为单位阵的白化坐标再截断，是 $x\_s$ 真实分布下可证最优的截断（白化坐标里的 Eckart–Young 定理，推导见[预备篇](/2026/08/30/lord-compression-primer/)）。
+- **第 4 步（偏置）**：$b$ 顺带吸收截断在均值处的误差。
 
 ### 4. 结果
 
@@ -161,27 +167,33 @@ Only the third CORRECTS drift. Each layer stops imitating $W$ and becomes a corr
 
 ### 3. The Method: Layerwise Affine Ridge Regression
 
-Process blocks 0→35 sequentially. For layer $i$ (upstream already compressed):
+The complete algorithm is a single loop:
 
-**Step 1**: Run teacher and student on the same data; capture paired inputs $x\_t$ (teacher trajectory) and $x\_s$ (student trajectory) at the layer's entrance; accumulate the cross-covariance $\Sigma\_{ts} = \sum x\_t x\_s^T$ and self-covariance $\Sigma\_{ss} = \sum x\_s x\_s^T$ (centered).
+> **Algorithm 1: Trajectory-Correcting Linear Distillation**
+>
+> **Input**: teacher model (linear layers $W\_1, \dots, W\_{252}$ in forward order), calibration data $D$, target rank $r$, regularization strength $\lambda$
+>
+> **For $\ell = 1, 2, \dots, 252$:**
+>
+> 1. Run teacher and the current student (layers $1..\ell-1$ already replaced) on $D$ in paired forwards; at layer $\ell$'s entrance collect the teacher input $x\_t$ and student input $x\_s$; accumulate the means $\bar{x}\_t, \bar{x}\_s$ and centered covariances $\Sigma\_{ts} = \sum x\_t x\_s^T$, $\Sigma\_{ss} = \sum x\_s x\_s^T$
+> 2. Ridge regression: $M^\* = W\_\ell \Sigma\_{ts} (\Sigma\_{ss} + \lambda I)^{-1}$
+> 3. Whitened truncation: $L = \mathrm{chol}(\Sigma\_{ss} + \lambda I)$; take the top-$r$ SVD of $M^\* L$ as $U\_r \Sigma\_r V\_r^T$; set $A = U\_r \Sigma\_r$, $B = V\_r^T L^{-1}$
+> 4. Bias: $b = W\_\ell \bar{x}\_t - AB\bar{x}\_s$; replace layer $\ell$ with $x \mapsto ABx + b$
+>
+> **Output**: the student model with all linear layers replaced
 
-**Step 2**: Solve the affine ridge regression (ridge = least squares with a $\lambda I$ regularizer, keeping the matrix invertible and damping overfit to sampling noise):
+The $M^\*$ of step 2 solves the affine ridge regression below — **all of this post's improvement is inside this one equation**:
 
-$$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarrow\quad M^\* = W\Sigma\_{ts}(\Sigma\_{ss} + \lambda I)^{-1}$$
+$$(M^\*, b^\*) = \arg\min\_{M, b}\ \mathbb{E}\big\lVert W\_\ell x\_t - M x\_s - b \big\rVert^2$$
 
-Intuition: $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, composed with $W$ — restoration and transformation fused into one matrix.
+The target $W\_\ell x\_t$ is the teacher trajectory's clean output; the input $x\_s$ is the student's drifted input; the expectation runs over the student's real running distribution. Contrast with part 1's proxy $\min \lVert (W - AB) S \rVert\_F^2$ — there, both the input distribution and the target live in the teacher's world — and this single change of objective accounts for all of 8.50 → 5.60.
 
-**Step 3**: Whitened rank-$r$ truncation. Truncating the SVD of $M^\*$ directly would implicitly assume all input directions matter equally, which the real input distribution violates; instead take $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$ to transform the input into "whitened" coordinates where the covariance is the identity, then SVD-truncate $M^\*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates; derivation in [the primer](/2026/08/30/lord-compression-primer/)). Recompute $b = W\bar{x}\_t - AB\bar{x}\_s$ afterwards so the bias also absorbs the truncation error at the mean.
+Why each step:
 
-**Step 4**: Replace the layer, move on. The next layer's $x\_s$ automatically includes the newly introduced error, which the next regression corrects.
-
-**The entire method, written out as formulas — just two lines** (all of this post's improvement lives in the first line's expectation). For each linear layer $\ell$, in forward order:
-
-$$(M\_\ell^\*, b\_\ell^\*) = \arg\min\_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W\_\ell x\_t}\_{\text{target: clean teacher-trajectory output}} - M \underbrace{x\_s}\_{\text{input: the student's drifted input}} - b \Big\rVert^2$$
-
-$$A\_\ell B\_\ell = \mathrm{SVD}\_r\big(M\_\ell^\* L\_\ell\big) L\_\ell^{-1}, \qquad L\_\ell = \mathrm{chol}\big(\Sigma\_{ss}^{(\ell)} + \lambda I\big)$$
-
-Contrast with part 1's proxy $\min \lVert (W - AB) S \rVert\_F^2$: there, both the input distribution and the target live in the teacher's world; here **the input comes from the student's real running distribution and the target from the teacher's trajectory** — every layer simultaneously compresses and corrects upstream error. This single change of objective is the post's entire delta, and it accounts for all of 8.50 → 5.60.
+- **Sequential processing (the loop)**: layer $\ell$'s collected $x\_s$ automatically carries the errors of all previously replaced layers, so this layer's regression corrects them in passing — the corrector chain stays self-consistent layer by layer.
+- **Step 2 (ridge)**: least squares with a $\lambda I$ regularizer — stable inversion, damped overfit to sampling noise. Intuition: $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, fused with $W\_\ell$ into one matrix.
+- **Step 3 (whitened truncation)**: truncating $M^\*$ directly assumes all input directions matter equally, which the real input distribution violates; transforming with $L$ into whitened coordinates (identity covariance) first makes the truncation provably optimal under $x\_s$'s true distribution (Eckart–Young in whitened coordinates; derivation in [the primer](/2026/08/30/lord-compression-primer/)).
+- **Step 4 (bias)**: $b$ absorbs the truncation error at the mean.
 
 ### 4. Results
 
