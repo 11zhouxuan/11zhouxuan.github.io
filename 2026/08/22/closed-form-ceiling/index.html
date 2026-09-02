@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  这是低秩压缩三部曲的完结篇（第一篇：表示坍缩，第二篇：轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T05:31:49.968Z">
+<meta property="article:modified_time" content="2026-09-02T05:37:49.548Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:31:49" itemprop="dateModified" datetime="2026-09-02T05:31:49+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:37:49" itemprop="dateModified" datetime="2026-09-02T05:37:49+00:00">2026-09-02</time>
     </span>
 
   
@@ -436,7 +436,6 @@
 <li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
 </ol>
 <p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 地板}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
-<p><strong>【后续更新】</strong> 纪录随后被 loss 感知 rank 分配推进到 <strong>5.06</strong>（早期文章报告过 5.02，来自旧的小窗口评估；严格协议重测后，当时以为有效的 back-load 深度倾斜与 loss 感知分配统计上打平），并且 oracle 分解实验揭示了截断税的深度分布（几乎全部在 block 18-35）。详见<a href="/2026/08/25/closed-form-anatomy/">第四篇《天花板的解剖》</a>。</p>
 <ol start="2">
 <li>
 <p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
@@ -448,6 +447,7 @@
 <p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
 </li>
 </ol>
+<p>实际的 5.10 和 oracle 地板 4.0 之间还隔着 1.1 nat。这段空间的结构是什么、还能挖出多少，是<a href="/2026/08/25/closed-form-anatomy/">第四篇</a>的主题。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -596,7 +596,6 @@
 <li><strong>The final closed-form landscape</strong> (85% compression, equal 2.29B budget):</li>
 </ol>
 <p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle floor}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
-<p><strong>[Later update]</strong> The record was subsequently pushed to <strong>5.06</strong> by loss-aware rank allocation (early posts reported 5.02, from the old small-window evaluation; under the rigorous protocol, the back-loaded depth tilt then believed effective turned out statistically tied with loss-aware allocation), and an oracle-decomposition experiment revealed the depth distribution of the truncation tax (almost entirely in blocks 18-35). See <a href="/2026/08/25/closed-form-anatomy/">part 4: Anatomy of the Ceiling</a>.</p>
 <ol start="2">
 <li>
 <p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget at <strong>truncation-tax-free</strong> spots (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
@@ -608,6 +607,7 @@
 <p><strong>The engineering takeaway</strong>: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.</p>
 </li>
 </ol>
+<p>Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of <a href="/2026/08/25/closed-form-anatomy/">part 4</a>.</p>
 </div>
 <script>
 function switchLang(lang) {
