@@ -39,21 +39,27 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 $$\min\_{A,B}\ \lVert W - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
-**方法二：ASVD（激活加权 SVD）**，直觉是"常被用到的输入通道要逼近得更准"，因此需要少量数据来测量"哪些通道常被用到"。这批数据称为**校准数据**：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活幅度，不做任何梯度更新——这也是"闭式方法"（解方程直接得答案）的共同特征。
+**方法二：ASVD（激活加权 SVD）**，直觉是"经常取到大值的那些输入分量要逼近得更准"，因此需要少量数据来测量各分量实际有多大。这批数据称为**校准数据** $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活，不做任何梯度更新——这也是"闭式方法"（解方程直接得答案）的共同特征。
+
+先把要测的量写清楚。第 $\ell$ 层的权重 $W\_\ell \in \mathbb{R}^{m \times n}$ 作用在输入向量 $x \in \mathbb{R}^{n}$ 上，$x$ 的第 $i$ 个分量 $x\_i$ 就是所谓的第 $i$ 个**输入通道**（$n$ 是该层的输入维度，例如 q_proj 的 $n = 4096$）。所谓某个通道的**激活幅度**，就是它在校准数据全部 token 位置上取绝对值后的平均：
+
+$$s\_i = \frac{1}{\lvert D\rvert}\sum\_{x \in D} \lvert x\_i \rvert, \qquad i = 1, \dots, n$$
+
+（$\lvert D \rvert$ 是校准数据里的 token 位置总数，$x$ 遍历每个位置在该层入口处的输入向量。）
 
 > **算法 B：ASVD 截断 + 逐层 rank 分配**
 >
 > **输入**：$W\_1, \dots, W\_{252}$，校准数据 $D$，加权指数 $\alpha$，参数预算
 >
-> 1. **测量激活**：教师在 $D$ 上前向，记录每层每个输入通道的平均绝对激活 $\mathbb{E}[\lvert x\_i \rvert]$，构造对角加权矩阵
->    $$S\_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x\_1 \rvert]^{\alpha},\ \dots,\ \mathbb{E}[\lvert x\_n \rvert]^{\alpha}\big)$$
+> 1. **测量激活**：教师在 $D$ 上前向，对每层按上式算出 $s\_1, \dots, s\_n$，构造对角加权矩阵
+>    $$S\_\ell = \mathrm{diag}\big(s\_1^{\alpha},\ s\_2^{\alpha},\ \dots,\ s\_n^{\alpha}\big)$$
 > 2. **分配秩**：以 $\lVert W\_\ell S\_\ell \rVert\_F$ 作为层 $\ell$ 的重要性，按重要性正比分配 $r\_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）
 > 3. **加权截断**：对每层，对 $W\_\ell S\_\ell$ 做 SVD 保留前 $r\_\ell$ 项得 $U\_r \Sigma\_r V\_r^T$，令 $A\_\ell = U\_r \Sigma\_r$、$B\_\ell = V\_r^T S\_\ell^{-1}$（乘回 $S\_\ell^{-1}$ 把加权撤销，使 $A\_\ell B\_\ell \approx W\_\ell$）
 > 4. 把各层替换为 $x \mapsto A\_\ell B\_\ell x$
 >
 > **输出**：学生模型（$\alpha = 1.0$ 时 val loss = **8.50**）
 
-第 3 步求解的是加权目标——同样的误差，落在高激活通道上算得更重：
+第 3 步求解的是加权目标——同样大小的误差，落在 $s\_i$ 大的分量上算得更重：
 
 $$\min\_{A,B}\ \lVert (W - AB) S \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
@@ -96,12 +102,12 @@ $$\min\_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上�
 
 **为什么 ASVD 导致坍缩而 plain SVD 不会？**
 
-回看第 1 节的加权矩阵 $S$（对角元 = 各输入通道的平均激活幅度）。关键观察：**相邻层的 $S$ 高度相似**（残差连接让激活分布逐层变化缓慢）。这意味着：
+回看第 1 节的加权矩阵 $S$（对角元是各输入分量的平均绝对值 $s\_i$ 的 $\alpha$ 次方）。关键观察：**相邻层的 $S$ 高度相似**（残差连接让激活分布逐层变化缓慢）。这意味着：
 
-- 每一层的 SVD 截断都优先保留 $S$ 大的方向（高激活通道）
-- 每一层都丢掉 $S$ 小的方向
-- 36 层叠加后，$S$ 小的方向被**反复压制 36 次**
-- 最终 hidden state 只剩 $S$ 大的那几个方向 → **所有 token 的表示坍缩到同一方向**
+- 每一层的 SVD 截断都优先保留 $s\_i$ 大的那些方向
+- 每一层都丢掉 $s\_i$ 小的方向
+- 36 层叠加后，$s\_i$ 小的方向被**反复压制 36 次**
+- 最终 hidden state 只剩 $s\_i$ 大的那几个方向 → **所有 token 的表示坍缩到同一方向**
 
 Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定——不同层的主方向不同，所以不会系统性地压制同一组方向。
 
@@ -174,7 +180,7 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 
 这意味着在残差加法 $h\_{new} = h\_{old} + \text{MLP}(h\_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。
 
-**根本原因**：down\_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down\_proj 只保留了 384 个线性组合——这些组合恰好是所有 token **共享的成分**（因为 ASVD 的加权偏好保留高激活通道），而 **token-specific 的差异成分被丢弃**。
+**根本原因**：down\_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down\_proj 只保留了 384 个线性组合——这些组合恰好是所有 token **共享的成分**（因为 ASVD 的加权偏好保留 $s\_i$ 大的那些分量），而 **token-specific 的差异成分被丢弃**。
 
 ### 4. 文献中的对应
 
@@ -269,21 +275,27 @@ By the Eckart–Young theorem (see [the primer](/2026/08/30/lord-compression-pri
 
 $$\min\_{A,B}\ \lVert W - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
-**Method 2: ASVD (activation-weighted SVD)** — the intuition is "channels that get used a lot deserve a more accurate approximation," which requires a little data to measure which channels those are. That data is called **calibration data**: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).
+**Method 2: ASVD (activation-weighted SVD)** — the intuition is "input components that often take large values deserve a more accurate approximation," which requires a little data to measure how large each component actually gets. That data is called **calibration data** $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).
+
+Let us write down precisely what gets measured. Layer $\ell$'s weight $W\_\ell \in \mathbb{R}^{m \times n}$ acts on an input vector $x \in \mathbb{R}^{n}$; the $i$-th component $x\_i$ of $x$ is what we call the $i$-th **input channel** ($n$ is the layer's input dimension, e.g. $n = 4096$ for q_proj). A channel's **activation magnitude** is its absolute value averaged over every token position in the calibration data:
+
+$$s\_i = \frac{1}{\lvert D\rvert}\sum\_{x \in D} \lvert x\_i \rvert, \qquad i = 1, \dots, n$$
+
+($\lvert D \rvert$ is the total number of token positions in the calibration data, and $x$ ranges over each position's input vector at that layer's entrance.)
 
 > **Algorithm B: ASVD truncation + per-layer rank allocation**
 >
 > **Input**: $W\_1, \dots, W\_{252}$, calibration data $D$, weighting exponent $\alpha$, parameter budget
 >
-> 1. **Measure activations**: run the teacher over $D$, record each layer's per-input-channel mean absolute activation $\mathbb{E}[\lvert x\_i \rvert]$, and build the diagonal weighting matrix
->    $$S\_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x\_1 \rvert]^{\alpha},\ \dots,\ \mathbb{E}[\lvert x\_n \rvert]^{\alpha}\big)$$
+> 1. **Measure activations**: run the teacher over $D$, compute $s\_1, \dots, s\_n$ per layer with the formula above, and build the diagonal weighting matrix
+>    $$S\_\ell = \mathrm{diag}\big(s\_1^{\alpha},\ s\_2^{\alpha},\ \dots,\ s\_n^{\alpha}\big)$$
 > 2. **Allocate ranks**: treat $\lVert W\_\ell S\_\ell \rVert\_F$ as layer $\ell$'s importance and assign $r\_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)
 > 3. **Weighted truncation**: per layer, take the top-$r\_\ell$ SVD of $W\_\ell S\_\ell$ as $U\_r \Sigma\_r V\_r^T$ and set $A\_\ell = U\_r \Sigma\_r$, $B\_\ell = V\_r^T S\_\ell^{-1}$ (multiplying $S\_\ell^{-1}$ back undoes the weighting so that $A\_\ell B\_\ell \approx W\_\ell$)
 > 4. Replace each layer with $x \mapsto A\_\ell B\_\ell x$
 >
 > **Output**: the student model (val loss = **8.50** at $\alpha = 1.0$)
 
-Step 3 solves the weighted objective — the same error counts for more when it lands on a high-activation channel:
+Step 3 solves the weighted objective — an error of the same size counts for more when it lands on a component with large $s\_i$:
 
 $$\min\_{A,B}\ \lVert (W - AB) S \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
@@ -326,12 +338,12 @@ The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal c
 
 **Why does ASVD cause collapse while plain SVD does not?**
 
-Recall the weighting matrix $S$ from Section 1 (diagonal entries = each input channel's average activation magnitude). The key observation: **adjacent layers have highly similar $S$** (residual connections keep activation distributions changing slowly from layer to layer). This means:
+Recall the weighting matrix $S$ from Section 1 (diagonal entries are each input component's mean absolute value $s\_i$ raised to $\alpha$). The key observation: **adjacent layers have highly similar $S$** (residual connections keep activation distributions changing slowly from layer to layer). This means:
 
-- Every layer's SVD truncation preferentially retains directions where $S$ is large
-- Every layer discards directions where $S$ is small
-- Over 36 layers, small-$S$ directions are **suppressed 36 times over**
-- The hidden state ultimately retains only the few large-$S$ directions → **all tokens' representations collapse to the same direction**
+- Every layer's SVD truncation preferentially retains the directions where $s\_i$ is large
+- Every layer discards the directions where $s\_i$ is small
+- Over 36 layers, small-$s\_i$ directions are **suppressed 36 times over**
+- The hidden state ultimately retains only the few large-$s\_i$ directions → **all tokens' representations collapse to the same direction**
 
 Plain SVD uses no weighting; the retained directions are determined by each layer's own singular structure — different layers have different principal directions, so there is no systematic suppression of the same set of directions.
 
@@ -404,7 +416,7 @@ The key is not the MLP output magnitude, but **whether the MLP output differs ac
 
 In the residual addition $h\_{new} = h\_{old} + \text{MLP}(h\_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.
 
-**Root cause**: When down\_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the **shared components** across tokens (high-activation channels) while discarding the **token-specific differences**.
+**Root cause**: When down\_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the **shared components** across tokens (the components with large $s\_i$) while discarding the **token-specific differences**.
 
 ### 4. Connection to Literature
 
