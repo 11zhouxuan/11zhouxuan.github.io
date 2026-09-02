@@ -119,8 +119,6 @@ Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 
 $$8.50\_{\text{坍缩假象}} \to 5.59\_{\text{轨迹矫正}} \to 5.09\_{\text{免税矫正器}} \to \mathbf{5.02}\_{\text{+分配+back-load}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
 
-**【后续更新】** 这个"终点"随后又被推到 **4.71/4.53**：稀疏残差与度量修正的超线性组合 + 校准数据工程。详见[第五篇《会移动的天花板》](/2026/08/30/closed-form-moving-ceiling/)。
-
 | 锁 | 架构根源 | 钥匙 |
 |---|---|---|
 | 截断税 ~2.0（集中在后半段） | 内容通路的超位置重尾谱 | 改变 rank 的放置几何（联合分解、MLA、稀疏残差）——范式外 |
@@ -134,6 +132,8 @@ $$8.50\_{\text{坍缩假象}} \to 5.59\_{\text{轨迹矫正}} \to 5.09\_{\text{�
 3. **小红利不叠加。** 当各手段（分配、直通、非线性 lift）都在收割同一块残余误差时，0.02 级的收益合并后互相侵蚀。判断两个改进是否正交，看它们的机制是否攻击不同的账——同账的红利做加法之前先做减法。
 
 闭式赛道就此真正收官：等预算 ~5.0-5.07 是"逐层回归 + 线性/轻非线性矫正 + rank 分配"这套工具箱的终点。通往 2.5 的路在训练上（本文发稿时训练臂已到 2.87 且在下降），通往 4.15 以下的闭式路在范式外。
+
+第三篇宣布过一次收官，被本篇推翻；本篇的收官宣言又能站多久？[第五篇](/2026/08/30/closed-form-moving-ceiling/)见分晓。
 
 
 
@@ -248,8 +248,6 @@ The last experiment stacked the two verified dividends (back-load + rms-lift-256
 
 $$8.50\_{\text{collapse illusion}} \to 5.59\_{\text{traj. correction}} \to 5.09\_{\text{tax-free correctors}} \to \mathbf{5.02}\_{\text{+alloc+backload}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
-**[Later update]** This "endpoint" was subsequently pushed to **4.71/4.53** by the super-additive combination of sparse residuals and the metric fix, plus calibration-data engineering. See [part 5: The Ceiling That Kept Moving](/2026/08/30/closed-form-moving-ceiling/).
-
 | Lock | Architectural root | Key |
 |---|---|---|
 | Truncation tax ~2.0 (concentrated late) | superposition heavy tails of the content pathway | change WHERE rank lives (joint decompositions, MLA, sparse residual) — outside the paradigm |
@@ -263,6 +261,8 @@ Three transferable laws distilled from these campaigns:
 3. **Small dividends don't stack.** When separate levers (allocation, passthrough, nonlinear lift) harvest the same residue, 0.02-level gains erode each other on combination. Before adding two improvements, check whether their mechanisms attack different ledgers — same-ledger dividends subtract before they add.
 
 The closed-form track is now genuinely closed: equal-budget ~5.0-5.07 is the terminus of the "layerwise regression + linear/light-nonlinear correctors + rank allocation" toolbox. The road to 2.5 runs through training (the training arm was at 2.87 and descending as this was published); the road below 4.15 for closed-form runs outside the paradigm.
+
+Part 3 declared closure once and this post overturned it — how long will this post's own declaration stand? [Part 5](/2026/08/30/closed-form-moving-ceiling/) has the answer.
 
 
 

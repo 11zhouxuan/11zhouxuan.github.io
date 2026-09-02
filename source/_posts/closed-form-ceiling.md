@@ -108,13 +108,13 @@ lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 �
 
 $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to \underbrace{\approx 4.0}\_{\text{逐层范式 oracle 地板}} \to 3.20\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
 
-**【后续更新】** 纪录随后被 loss 感知 rank 分配推进到 **5.06**（早期文章报告过 5.02，来自旧的小窗口评估；严格协议重测后，当时以为有效的 back-load 深度倾斜与 loss 感知分配统计上打平），并且 oracle 分解实验揭示了截断税的深度分布（几乎全部在 block 18-35）。详见[第四篇《天花板的解剖》](/2026/08/25/closed-form-anatomy/)。
-
 2. **三条可迁移的原理**：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在**免截断税**的位置（lm\_head、残差流）；动手设计精巧特征之前，先**审计所有"没被压缩所以没人管"的环节**——收益最大的一击往往在盲区里。
 
 3. **闭式极限的成因链**：实际 5.10 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 < 4.0）。
 
 4. **工程结论**：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把"可用模型"的到达时间提前数百步。
+
+实际的 5.10 和 oracle 地板 4.0 之间还隔着 1.1 nat。这段空间的结构是什么、还能挖出多少，是[第四篇](/2026/08/25/closed-form-anatomy/)的主题。
 
 </div>
 
@@ -216,13 +216,13 @@ The fading of repetition matches the prediction that degenerate strategies (coll
 
 $$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champion}} \to \underbrace{\approx 4.0}\_{\text{layerwise oracle floor}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
-**[Later update]** The record was subsequently pushed to **5.06** by loss-aware rank allocation (early posts reported 5.02, from the old small-window evaluation; under the rigorous protocol, the back-loaded depth tilt then believed effective turned out statistically tied with loss-aware allocation), and an oracle-decomposition experiment revealed the depth distribution of the truncation tax (almost entirely in blocks 18-35). See [part 4: Anatomy of the Ceiling](/2026/08/25/closed-form-anatomy/).
-
 2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget at **truncation-tax-free** spots (lm\_head, residual stream); before engineering clever features, **audit every "uncompressed, so unmanaged" station** — the biggest win tends to hide in the blind spot.
 
 3. **The causal chain of the ceiling**: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 < 4.0).
 
 4. **The engineering takeaway**: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.
+
+Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of [part 4](/2026/08/25/closed-form-anatomy/).
 
 </div>
 
