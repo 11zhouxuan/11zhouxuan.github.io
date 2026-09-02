@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T08:14:56.551Z">
+<meta property="article:modified_time" content="2026-09-02T08:32:36.363Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:14:56" itemprop="dateModified" datetime="2026-09-02T08:14:56+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
     </span>
 
   
@@ -305,30 +305,31 @@
 <ol>
 <li>奇异值分解 $W_\ell = U \Sigma V^T$，奇异值按降序排列</li>
 <li>只保留最大的 $r$ 个：$A_\ell = U_{:,1:r} \Sigma_{1:r,1:r}$、$B_\ell = V_{:,1:r}^T$</li>
-<li>把该层替换为 $x \mapsto A_\ell B_\ell x$</li>
+<li>把该层替换为 $x^{(\ell)} \mapsto A_\ell B_\ell x^{(\ell)}$，其中 $x^{(\ell)}$ 是第 $\ell$ 层收到的输入向量</li>
 </ol>
 <p><strong>输出</strong>：学生模型（val loss = 18.65）</p>
 </blockquote>
 <p>由 Eckart–Young 定理（见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>），这一步是下面这个目标的最优解：</p>
-<p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
+<p>$$\min_{A,B}\ \lVert W_\ell - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
 <p><strong>方法二：ASVD（激活加权 SVD）</strong>，直觉是&quot;$W_\ell x$ 里那些实际取值更大的输入分量，要逼近得更准&quot;。这需要少量数据来测量各分量实际有多大，这批数据称为<strong>校准数据</strong> $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来做统计，不做任何梯度更新——这也是&quot;闭式方法&quot;（解方程直接得答案）的共同特征。</p>
-<p>记第 $\ell$ 层为 $W_\ell \in \mathbb{R}^{m \times n}$，输入向量 $x \in \mathbb{R}^{n}$（例如 q_proj 的 $n = 4096$）。</p>
+<p>记第 $\ell$ 层为 $W_\ell \in \mathbb{R}^{m_\ell \times n_\ell}$，它收到的输入向量为 $x^{(\ell)} \in \mathbb{R}^{n_\ell}$（层号写在上标，下标位留给向量的分量：$x^{(\ell)}_i$ 是第 $\ell$ 层输入的第 $i$ 个分量；例如 q_proj 的 $n_\ell = 4096$）。</p>
 <blockquote>
 <p><strong>算法 B：ASVD 截断 + 逐层 rank 分配</strong></p>
 <p><strong>输入</strong>：$W_1, \dots, W_{252}$，校准数据 $D$，指数 $\alpha$，参数预算</p>
+<p><strong>对每层 $\ell$：</strong></p>
 <ol>
-<li>教师在 $D$ 上前向，在第 $\ell$ 层入口收集所有 token 位置的输入向量，逐分量取绝对值后求平均：
-$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert \quad (i = 1, \dots, n), \qquad S_\ell = \mathrm{diag}\big(s_1^{\alpha}, \dots, s_n^{\alpha}\big)$$</li>
+<li>教师在 $D$ 上前向，收集第 $\ell$ 层在所有 token 位置收到的输入向量 $x^{(\ell)}$，逐分量取绝对值后求平均：
+$$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(\ell)}_i \big\rvert \quad (i = 1, \dots, n_\ell), \qquad S_\ell = \mathrm{diag}\Big( \big(s^{(\ell)}_1\big)^{\alpha}, \dots, \big(s^{(\ell)}_{n_\ell}\big)^{\alpha} \Big)$$</li>
 <li>令层 $\ell$ 的重要性为 $\lVert W_\ell S_\ell \rVert_F$，按重要性正比分配 $r_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）</li>
 <li>对 $W_\ell S_\ell$ 做 SVD 保留前 $r_\ell$ 项得 $U_r \Sigma_r V_r^T$，令 $A_\ell = U_r \Sigma_r$、$B_\ell = V_r^T S_\ell^{-1}$（乘回 $S_\ell^{-1}$ 把加权撤销，使 $A_\ell B_\ell \approx W_\ell$）</li>
-<li>把各层替换为 $x \mapsto A_\ell B_\ell x$</li>
+<li>把该层替换为 $x^{(\ell)} \mapsto A_\ell B_\ell x^{(\ell)}$</li>
 </ol>
 <p><strong>输出</strong>：学生模型（$\alpha = 1.0$ 时 val loss = <strong>8.50</strong>）</p>
 </blockquote>
-<p>第 3 步求解的是加权目标——同样大小的误差，落在 $s_i$ 大的分量上算得更重：</p>
-<p>$$\min_{A,B}\ \lVert (W - AB) S \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p>在看结果之前，把<strong>真正的目标</strong>也写下来，它是全系列的参照系。压缩的本意是：把每个 $W_\ell$ 换成 $A_\ell B_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低：</p>
-<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{预算}$$</p>
+<p>第 3 步求解的是加权目标——同样大小的误差，落在 $s^{(\ell)}_i$ 大的分量上算得更重（下文在不引起混淆时省略层上标）：</p>
+<p>$$\min_{A,B}\ \lVert (W_\ell - AB) S_\ell \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r_\ell$$</p>
+<p>在看结果之前，把<strong>真正的目标</strong>也写下来，它是全系列的参照系。压缩的本意是：把每个 $W_\ell$ 换成 $A_\ell B_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低（$u$ 表示一段输入文本）：</p>
+<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_u\Big[\mathrm{CE}\big(\hat f(u)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{预算}$$</p>
 <p>这个真目标关于因子是高度非凸的，没有闭式解。所以 plain SVD 和 ASVD 实际求解的都是上面那两个<strong>逐层代理目标</strong>——用&quot;每层各自把 $W_\ell$ 逼近好&quot;代替&quot;整个网络的输出好&quot;。本篇接下来的全部现象，都来自代理目标与真目标之间的裂缝。</p>
 <p>8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：</p>
 <table>
@@ -767,30 +768,31 @@ $$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert \quad (i = 1, \
 <ol>
 <li>Singular value decomposition $W_\ell = U \Sigma V^T$, singular values in descending order</li>
 <li>Keep the largest $r$: $A_\ell = U_{:,1:r} \Sigma_{1:r,1:r}$, $B_\ell = V_{:,1:r}^T$</li>
-<li>Replace the layer with $x \mapsto A_\ell B_\ell x$</li>
+<li>Replace the layer with $x^{(\ell)} \mapsto A_\ell B_\ell x^{(\ell)}$, where $x^{(\ell)}$ is the input vector layer $\ell$ receives</li>
 </ol>
 <p><strong>Output</strong>: the student model (val loss = 18.65)</p>
 </blockquote>
 <p>By the Eckart–Young theorem (see <a href="/2026/08/30/lord-compression-primer/">the primer</a>), this step is the optimum of</p>
-<p>$$\min_{A,B}\ \lVert W - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
+<p>$$\min_{A,B}\ \lVert W_\ell - AB \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
 <p><strong>Method 2: ASVD (activation-weighted SVD)</strong> — the intuition is &quot;in $W_\ell x$, the input components that actually take larger values deserve a more accurate approximation.&quot; That requires a little data to measure how large each component gets; this data is called <strong>calibration data</strong> $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only for statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).</p>
-<p>Write layer $\ell$ as $W_\ell \in \mathbb{R}^{m \times n}$ acting on input vectors $x \in \mathbb{R}^{n}$ (e.g. $n = 4096$ for q_proj).</p>
+<p>Write layer $\ell$ as $W_\ell \in \mathbb{R}^{m_\ell \times n_\ell}$ receiving input vectors $x^{(\ell)} \in \mathbb{R}^{n_\ell}$ (the layer index goes in the superscript, leaving the subscript for components: $x^{(\ell)}_i$ is component $i$ of layer $\ell$'s input; e.g. $n_\ell = 4096$ for q_proj).</p>
 <blockquote>
 <p><strong>Algorithm B: ASVD truncation + per-layer rank allocation</strong></p>
 <p><strong>Input</strong>: $W_1, \dots, W_{252}$, calibration data $D$, exponent $\alpha$, parameter budget</p>
+<p><strong>For each layer $\ell$:</strong></p>
 <ol>
-<li>Run the teacher over $D$; at layer $\ell$'s entrance collect the input vectors at all token positions and average their componentwise absolute values:
-$$s_i = \frac{1}{\lvert D\rvert}\sum_{x \in D} \lvert x_i \rvert \quad (i = 1, \dots, n), \qquad S_\ell = \mathrm{diag}\big(s_1^{\alpha}, \dots, s_n^{\alpha}\big)$$</li>
+<li>Run the teacher over $D$ and collect the input vectors $x^{(\ell)}$ that layer $\ell$ receives at all token positions, then average their componentwise absolute values:
+$$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(\ell)}_i \big\rvert \quad (i = 1, \dots, n_\ell), \qquad S_\ell = \mathrm{diag}\Big( \big(s^{(\ell)}_1\big)^{\alpha}, \dots, \big(s^{(\ell)}_{n_\ell}\big)^{\alpha} \Big)$$</li>
 <li>Let layer $\ell$'s importance be $\lVert W_\ell S_\ell \rVert_F$ and assign $r_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)</li>
 <li>Take the top-$r_\ell$ SVD of $W_\ell S_\ell$ as $U_r \Sigma_r V_r^T$ and set $A_\ell = U_r \Sigma_r$, $B_\ell = V_r^T S_\ell^{-1}$ (multiplying $S_\ell^{-1}$ back undoes the weighting so that $A_\ell B_\ell \approx W_\ell$)</li>
-<li>Replace each layer with $x \mapsto A_\ell B_\ell x$</li>
+<li>Replace the layer with $x^{(\ell)} \mapsto A_\ell B_\ell x^{(\ell)}$</li>
 </ol>
 <p><strong>Output</strong>: the student model (val loss = <strong>8.50</strong> at $\alpha = 1.0$)</p>
 </blockquote>
-<p>Step 3 solves the weighted objective — an error of the same size counts for more when it lands on a component with large $s_i$:</p>
-<p>$$\min_{A,B}\ \lVert (W - AB) S \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$</p>
-<p>Before looking at the results, let us also write down the <strong>true objective</strong> — the reference point for the whole series. What compression actually wants: replace each $W_\ell$ with $A_\ell B_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget:</p>
-<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{budget}$$</p>
+<p>Step 3 solves the weighted objective — an error of the same size counts for more when it lands on a component with large $s^{(\ell)}_i$ (the layer superscript is dropped below wherever it is unambiguous):</p>
+<p>$$\min_{A,B}\ \lVert (W_\ell - AB) S_\ell \rVert_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r_\ell$$</p>
+<p>Before looking at the results, let us also write down the <strong>true objective</strong> — the reference point for the whole series. What compression actually wants: replace each $W_\ell$ with $A_\ell B_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget ($u$ denotes a passage of input text):</p>
+<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_u\Big[\mathrm{CE}\big(\hat f(u)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{budget}$$</p>
 <p>This true objective is highly non-convex in the factors and has no closed-form solution. So what plain SVD and ASVD actually solve are the two <strong>layerwise proxy objectives</strong> above — substituting &quot;each layer approximates its own $W_\ell$ well&quot; for &quot;the whole network's output is good.&quot; Everything that follows in this post comes from the crack between the proxy and the true objective.</p>
 <p>8.50 versus 18.65 — ASVD appears more than twice as good. But when we inspect the model's actual token predictions:</p>
 <table>

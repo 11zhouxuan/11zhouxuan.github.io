@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-19T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T08:14:56.551Z">
+<meta property="article:modified_time" content="2026-09-02T08:32:36.363Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:14:56" itemprop="dateModified" datetime="2026-09-02T08:14:56+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:32:36" itemprop="dateModified" datetime="2026-09-02T08:32:36+00:00">2026-09-02</time>
     </span>
 
   
@@ -368,7 +368,7 @@
 <blockquote>
 <p><strong>算法 1：轨迹矫正线性蒸馏</strong></p>
 <p><strong>输入</strong>：教师模型（线性层 $W_1, \dots, W_{252}$，按前向顺序编号）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$</p>
-<p><strong>对 $\ell = 1, 2, \dots, 252$ 依次执行：</strong></p>
+<p><strong>对 $\ell = 1, 2, \dots, 252$ 依次执行</strong>（循环体内的 $x_t, x_s, \Sigma, M^*, A, B, b$ 都属于当前的第 $\ell$ 层，为简洁省略层标）：</p>
 <ol>
 <li>教师与当前学生（前 $\ell-1$ 层已替换）在 $D$ 上配对前向，在第 $\ell$ 层入口采集教师输入 $x_t$ 与学生输入 $x_s$，累积均值 $\bar{x}_t, \bar{x}_s$ 和中心化协方差 $\Sigma_{ts} = \sum x_t x_s^T$、$\Sigma_{ss} = \sum x_s x_s^T$</li>
 <li>岭回归：$M^* = W_\ell \Sigma_{ts} (\Sigma_{ss} + \lambda I)^{-1}$</li>
@@ -536,7 +536,7 @@
 <blockquote>
 <p><strong>Algorithm 1: Trajectory-Correcting Linear Distillation</strong></p>
 <p><strong>Input</strong>: teacher model (linear layers $W_1, \dots, W_{252}$ in forward order), calibration data $D$, target rank $r$, regularization strength $\lambda$</p>
-<p><strong>For $\ell = 1, 2, \dots, 252$:</strong></p>
+<p><strong>For $\ell = 1, 2, \dots, 252$</strong> (inside the loop, $x_t, x_s, \Sigma, M^*, A, B, b$ all belong to the current layer $\ell$; the layer index is dropped for brevity):</p>
 <ol>
 <li>Run teacher and the current student (layers $1..\ell-1$ already replaced) on $D$ in paired forwards; at layer $\ell$'s entrance collect the teacher input $x_t$ and student input $x_s$; accumulate the means $\bar{x}_t, \bar{x}_s$ and centered covariances $\Sigma_{ts} = \sum x_t x_s^T$, $\Sigma_{ss} = \sum x_s x_s^T$</li>
 <li>Ridge regression: $M^* = W_\ell \Sigma_{ts} (\Sigma_{ss} + \lambda I)^{-1}$</li>
