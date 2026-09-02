@@ -29,7 +29,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 
 $$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{改动②：loss 敏感度度量}} \big(M^\* - AB - \underbrace{S}\_{\text{改动①：稀疏残差}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$
 
-其中 $w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$ 是输出通道 $j$ 的 loss 梯度二阶矩；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。**改动③**不在式子里而在式子的原料里：所有统计量（$\Sigma\_{ss}, \Sigma\_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有**改动④**（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。
+其中 $y\_j$ 是该层输出向量的第 $j$ 个分量，$w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。**改动③**不在式子里而在式子的原料里：所有统计量（$\Sigma\_{ss}, \Sigma\_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有**改动④**（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。
 
 下面按发生顺序逐个讲这四处改动。
 
@@ -57,7 +57,7 @@ AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-n
 
 第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下"几乎无损"（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：**我们的截断在错误的目标函数下最优**。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。
 
-修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w\_j^2 = \mathbb{E}[(\partial L/\partial y\_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为
+修法仍是闭式的。设 $y\_j$ 为该层输出向量的第 $j$ 个分量，测 $w\_j^2 = \mathbb{E}[(\partial L/\partial y\_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为
 
 $$\min\_{AB}\ \lVert \mathrm{diag}(w) (M^\*-AB) L \rVert\_F^2$$
 
@@ -160,7 +160,7 @@ Part 2 established the layerwise objective: solve for $M^\*$, then truncate in t
 
 $$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{change ②: loss-sensitivity metric}} \big(M^\* - AB - \underbrace{S}\_{\text{change ①: sparse residual}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$
 
-where $w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$ is output channel $j$'s loss-gradient second moment; solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. **Change ③** is not in the formula but in its raw material: all statistics ($\Sigma\_{ss}, \Sigma\_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is **change ④** (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).
+where $y\_j$ is the $j$-th component of the layer's output vector and $w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. **Change ③** is not in the formula but in its raw material: all statistics ($\Sigma\_{ss}, \Sigma\_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is **change ④** (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).
 
 The sections below introduce these four changes in the order they happened.
 
@@ -188,7 +188,7 @@ The AB step is the existing whitened truncation; the S step scores the residual 
 
 Part 4's loss-distribution map left one anomaly unexplained: qkv@late looks "nearly lossless" in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: **our truncation was optimal under the wrong objective**. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.
 
-The fix stays closed-form. Measure each output channel's loss-gradient second moment $w\_j^2 = \mathbb{E}[(\partial L/\partial y\_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under
+The fix stays closed-form. Let $y\_j$ be the $j$-th component of the layer's output vector and measure $w\_j^2 = \mathbb{E}[(\partial L/\partial y\_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under
 
 $$\min\_{AB}\ \lVert \mathrm{diag}(w) (M^\*-AB) L \rVert\_F^2$$
 

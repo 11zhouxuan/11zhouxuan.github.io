@@ -39,22 +39,18 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 $$\min\_{A,B}\ \lVert W - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
-**方法二：ASVD（激活加权 SVD）**，直觉是"经常取到大值的那些输入分量要逼近得更准"，因此需要少量数据来测量各分量实际有多大。这批数据称为**校准数据** $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活，不做任何梯度更新——这也是"闭式方法"（解方程直接得答案）的共同特征。
+**方法二：ASVD（激活加权 SVD）**，直觉是"$W\_\ell x$ 里那些实际取值更大的输入分量，要逼近得更准"。这需要少量数据来测量各分量实际有多大，这批数据称为**校准数据** $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来做统计，不做任何梯度更新——这也是"闭式方法"（解方程直接得答案）的共同特征。
 
-先把要测的量写清楚。第 $\ell$ 层的权重 $W\_\ell \in \mathbb{R}^{m \times n}$ 作用在输入向量 $x \in \mathbb{R}^{n}$ 上，$x$ 的第 $i$ 个分量 $x\_i$ 就是所谓的第 $i$ 个**输入通道**（$n$ 是该层的输入维度，例如 q_proj 的 $n = 4096$）。所谓某个通道的**激活幅度**，就是它在校准数据全部 token 位置上取绝对值后的平均：
-
-$$s\_i = \frac{1}{\lvert D\rvert}\sum\_{x \in D} \lvert x\_i \rvert, \qquad i = 1, \dots, n$$
-
-（$\lvert D \rvert$ 是校准数据里的 token 位置总数，$x$ 遍历每个位置在该层入口处的输入向量。）
+记第 $\ell$ 层为 $W\_\ell \in \mathbb{R}^{m \times n}$，输入向量 $x \in \mathbb{R}^{n}$（例如 q_proj 的 $n = 4096$）。
 
 > **算法 B：ASVD 截断 + 逐层 rank 分配**
 >
-> **输入**：$W\_1, \dots, W\_{252}$，校准数据 $D$，加权指数 $\alpha$，参数预算
+> **输入**：$W\_1, \dots, W\_{252}$，校准数据 $D$，指数 $\alpha$，参数预算
 >
-> 1. **测量激活**：教师在 $D$ 上前向，对每层按上式算出 $s\_1, \dots, s\_n$，构造对角加权矩阵
->    $$S\_\ell = \mathrm{diag}\big(s\_1^{\alpha},\ s\_2^{\alpha},\ \dots,\ s\_n^{\alpha}\big)$$
-> 2. **分配秩**：以 $\lVert W\_\ell S\_\ell \rVert\_F$ 作为层 $\ell$ 的重要性，按重要性正比分配 $r\_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）
-> 3. **加权截断**：对每层，对 $W\_\ell S\_\ell$ 做 SVD 保留前 $r\_\ell$ 项得 $U\_r \Sigma\_r V\_r^T$，令 $A\_\ell = U\_r \Sigma\_r$、$B\_\ell = V\_r^T S\_\ell^{-1}$（乘回 $S\_\ell^{-1}$ 把加权撤销，使 $A\_\ell B\_\ell \approx W\_\ell$）
+> 1. 教师在 $D$ 上前向，在第 $\ell$ 层入口收集所有 token 位置的输入向量，逐分量取绝对值后求平均：
+>    $$s\_i = \frac{1}{\lvert D\rvert}\sum\_{x \in D} \lvert x\_i \rvert \quad (i = 1, \dots, n), \qquad S\_\ell = \mathrm{diag}\big(s\_1^{\alpha}, \dots, s\_n^{\alpha}\big)$$
+> 2. 令层 $\ell$ 的重要性为 $\lVert W\_\ell S\_\ell \rVert\_F$，按重要性正比分配 $r\_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）
+> 3. 对 $W\_\ell S\_\ell$ 做 SVD 保留前 $r\_\ell$ 项得 $U\_r \Sigma\_r V\_r^T$，令 $A\_\ell = U\_r \Sigma\_r$、$B\_\ell = V\_r^T S\_\ell^{-1}$（乘回 $S\_\ell^{-1}$ 把加权撤销，使 $A\_\ell B\_\ell \approx W\_\ell$）
 > 4. 把各层替换为 $x \mapsto A\_\ell B\_\ell x$
 >
 > **输出**：学生模型（$\alpha = 1.0$ 时 val loss = **8.50**）
@@ -275,22 +271,18 @@ By the Eckart–Young theorem (see [the primer](/2026/08/30/lord-compression-pri
 
 $$\min\_{A,B}\ \lVert W - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
-**Method 2: ASVD (activation-weighted SVD)** — the intuition is "input components that often take large values deserve a more accurate approximation," which requires a little data to measure how large each component actually gets. That data is called **calibration data** $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).
+**Method 2: ASVD (activation-weighted SVD)** — the intuition is "in $W\_\ell x$, the input components that actually take larger values deserve a more accurate approximation." That requires a little data to measure how large each component gets; this data is called **calibration data** $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only for statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).
 
-Let us write down precisely what gets measured. Layer $\ell$'s weight $W\_\ell \in \mathbb{R}^{m \times n}$ acts on an input vector $x \in \mathbb{R}^{n}$; the $i$-th component $x\_i$ of $x$ is what we call the $i$-th **input channel** ($n$ is the layer's input dimension, e.g. $n = 4096$ for q_proj). A channel's **activation magnitude** is its absolute value averaged over every token position in the calibration data:
-
-$$s\_i = \frac{1}{\lvert D\rvert}\sum\_{x \in D} \lvert x\_i \rvert, \qquad i = 1, \dots, n$$
-
-($\lvert D \rvert$ is the total number of token positions in the calibration data, and $x$ ranges over each position's input vector at that layer's entrance.)
+Write layer $\ell$ as $W\_\ell \in \mathbb{R}^{m \times n}$ acting on input vectors $x \in \mathbb{R}^{n}$ (e.g. $n = 4096$ for q_proj).
 
 > **Algorithm B: ASVD truncation + per-layer rank allocation**
 >
-> **Input**: $W\_1, \dots, W\_{252}$, calibration data $D$, weighting exponent $\alpha$, parameter budget
+> **Input**: $W\_1, \dots, W\_{252}$, calibration data $D$, exponent $\alpha$, parameter budget
 >
-> 1. **Measure activations**: run the teacher over $D$, compute $s\_1, \dots, s\_n$ per layer with the formula above, and build the diagonal weighting matrix
->    $$S\_\ell = \mathrm{diag}\big(s\_1^{\alpha},\ s\_2^{\alpha},\ \dots,\ s\_n^{\alpha}\big)$$
-> 2. **Allocate ranks**: treat $\lVert W\_\ell S\_\ell \rVert\_F$ as layer $\ell$'s importance and assign $r\_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)
-> 3. **Weighted truncation**: per layer, take the top-$r\_\ell$ SVD of $W\_\ell S\_\ell$ as $U\_r \Sigma\_r V\_r^T$ and set $A\_\ell = U\_r \Sigma\_r$, $B\_\ell = V\_r^T S\_\ell^{-1}$ (multiplying $S\_\ell^{-1}$ back undoes the weighting so that $A\_\ell B\_\ell \approx W\_\ell$)
+> 1. Run the teacher over $D$; at layer $\ell$'s entrance collect the input vectors at all token positions and average their componentwise absolute values:
+>    $$s\_i = \frac{1}{\lvert D\rvert}\sum\_{x \in D} \lvert x\_i \rvert \quad (i = 1, \dots, n), \qquad S\_\ell = \mathrm{diag}\big(s\_1^{\alpha}, \dots, s\_n^{\alpha}\big)$$
+> 2. Let layer $\ell$'s importance be $\lVert W\_\ell S\_\ell \rVert\_F$ and assign $r\_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)
+> 3. Take the top-$r\_\ell$ SVD of $W\_\ell S\_\ell$ as $U\_r \Sigma\_r V\_r^T$ and set $A\_\ell = U\_r \Sigma\_r$, $B\_\ell = V\_r^T S\_\ell^{-1}$ (multiplying $S\_\ell^{-1}$ back undoes the weighting so that $A\_\ell B\_\ell \approx W\_\ell$)
 > 4. Replace each layer with $x \mapsto A\_\ell B\_\ell x$
 >
 > **Output**: the student model (val loss = **8.50** at $\alpha = 1.0$)
