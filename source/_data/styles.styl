@@ -217,6 +217,15 @@ code, pre {
   margin-bottom: 0.3em;
 }
 
+// ---- Post body links - blue color ----
+.post-body a {
+  color: #2563eb;
+}
+
+.post-body a:hover {
+  color: #1d4ed8;
+}
+
 // ---- Footnote references - no underline ----
 .post-body a[href^="#note-"] {
   text-decoration: none !important;
@@ -286,4 +295,44 @@ code, pre {
   border-color: #1e6e78;
   color: #fff;
   font-weight: 600;
+}
+
+// ---- Math color and equation numbers ----
+// All math (display and inline) uses the theme's blue.
+.post-body mjx-container,
+.post-body mjx-container[display="true"] {
+  color: #1565C0;
+}
+
+// Number every display equation. The counter lives on .lang-content so the
+// Chinese and English versions of a bilingual post each start at (1).
+.post-body .lang-content {
+  counter-reset: eqnum;
+}
+
+.post-body .lang-content mjx-container[display="true"] {
+  position: relative;
+  counter-increment: eqnum;
+  padding-right: 3.2em;
+}
+
+.post-body .lang-content mjx-container[display="true"]::after {
+  content: "(" counter(eqnum) ")";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1565C0;
+  font-size: 0.95em;
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
+}
+
+@media (max-width: 991px) {
+  .post-body .lang-content mjx-container[display="true"] {
+    padding-right: 2.4em;
+  }
+
+  .post-body .lang-content mjx-container[display="true"]::after {
+    font-size: 0.8em;
+  }
 }
