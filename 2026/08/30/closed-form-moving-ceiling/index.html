@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（五）：会移动的天花板——稀疏残差、更好的度量与校准数据  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  第四篇用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 4.59——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T08:39:45.122Z">
+<meta property="article:modified_time" content="2026-09-02T08:44:28.983Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="calibration">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 08:39:45" itemprop="dateModified" datetime="2026-09-02T08:39:45+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 08:44:28" itemprop="dateModified" datetime="2026-09-02T08:44:28+00:00">2026-09-02</time>
     </span>
 
   
@@ -749,56 +749,119 @@ switchLang('zh');
   <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
 </noscript>
 <script>
-// Color standalone numbers in post prose the same blue as the math, so a
-// sentence like "CE = ln 151936 ≈ 11.93" is not half black, half blue.
+// Post-body typography touch-ups, applied after MathJax finishes:
+//   1. technical terms are highlighted on their FIRST appearance per language
+//   2. standalone numbers get the same blue as the math
 //
-// Two safeguards keep this from corrupting formulas: it only runs after
-// MathJax has finished typesetting (so formula source is already replaced by
-// <mjx-container> elements), and it never touches a text node that still
-// contains '$' or '\' — i.e. unrendered LaTeX source is always left alone.
+// Two safeguards keep this from corrupting formulas: it runs only after
+// MathJax resolves (formula source is by then replaced by <mjx-container>),
+// and it never touches a text node that still contains '$' or a backslash,
+// so unrendered LaTeX source is always left alone.
 (function () {
   var SKIP = { PRE: 1, CODE: 1, A: 1, H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1,
                SCRIPT: 1, STYLE: 1, BUTTON: 1, SVG: 1 };
-  var NUM = /(\d+(?:[.,]\d+)?%?)/g;
 
-  function paint(root) {
-    if (!root) return;
+  var TERMS = [
+    // theorems, linear algebra, statistics
+    'Eckart–Young 定理', 'Eckart–Young theorem', 'Eckart–Young',
+    'singular value decomposition', '奇异值分解',
+    'ridge regression', '岭回归', 'least squares', '最小二乘',
+    'Cholesky', 'Frobenius', 'Fisher',
+    'cross-entropy', '交叉熵', 'KL divergence', 'KL 散度',
+    'unigram', 'softmax', 'whitened', 'whitening', '白化',
+    // architecture
+    'Transformer', 'SwiGLU', 'RMSNorm', 'residual stream', '残差流',
+    'lm_head', 'embedding',
+    // methods and literature
+    'plain SVD', 'ASVD', 'SVD-LLM', 'Dobi-SVD', 'LACE-SVD', 'UniRank', 'D-Rank',
+    'HASSLE-free', 'LoSparse', 'OATS', 'BA-LoRA', 'LoRA', 'GPTQ', 'AWQ',
+    // phenomena
+    'representation collapse', '表示坍缩',
+    'massive activation', '巨幅激活',
+    'superposition', '超位置',
+    'effective rank', '有效秩',
+    // models and data
+    'Qwen3-8B', 'FineWeb-Edu', 'LLaMA-7B'
+  ];
+
+  function escapeRe(s) { return s.replace(/[.*+?^=!:$(){}|[\]\/\\-]/g, '\\$&'); }
+
+  var TERM_RE = new RegExp('(' + TERMS.slice()
+    .sort(function (a, b) { return b.length - a.length; })
+    .map(escapeRe).join('|') + ')', 'g');
+  var NUM_RE = /(\d+(?:[.,]\d+)?%?)/g;
+
+  function textNodes(root, insideOk) {
     var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode: function (node) {
         var v = node.nodeValue;
-        if (!/\d/.test(v)) return NodeFilter.FILTER_REJECT;
         if (v.indexOf('$') !== -1 || v.indexOf('\\') !== -1) return NodeFilter.FILTER_REJECT;
         for (var el = node.parentNode; el && el !== root; el = el.parentNode) {
           var tag = el.nodeName.toUpperCase();
           if (SKIP[tag] || tag.indexOf('MJX') === 0) return NodeFilter.FILTER_REJECT;
-          if (el.classList && el.classList.contains('num-blue')) return NodeFilter.FILTER_REJECT;
+          if (el.classList && !insideOk(el.classList)) return NodeFilter.FILTER_REJECT;
         }
         return NodeFilter.FILTER_ACCEPT;
       }
     });
-    var targets = [], n;
-    while ((n = walker.nextNode())) targets.push(n);
-    targets.forEach(function (node) {
-      var frag = document.createDocumentFragment();
-      node.nodeValue.split(NUM).forEach(function (part, i) {
-        if (!part) return;
-        if (i % 2 === 1) {
-          var span = document.createElement('span');
-          span.className = 'num-blue';
-          span.textContent = part;
-          frag.appendChild(span);
-        } else {
-          frag.appendChild(document.createTextNode(part));
-        }
+    var out = [], n;
+    while ((n = walker.nextNode())) out.push(n);
+    return out;
+  }
+
+  // Split a text node on `re`, wrapping matches in <span class=cls>.
+  // `keep` decides per match whether to wrap it at all.
+  function wrap(node, re, cls, keep) {
+    var parts = node.nodeValue.split(re);
+    if (parts.length < 2) return;
+    var frag = document.createDocumentFragment(), touched = false;
+    parts.forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2 === 1 && (!keep || keep(part))) {
+        var span = document.createElement('span');
+        span.className = cls;
+        span.textContent = part;
+        frag.appendChild(span);
+        touched = true;
+      } else {
+        frag.appendChild(document.createTextNode(part));
+      }
+    });
+    if (touched) node.parentNode.replaceChild(frag, node);
+  }
+
+  function decorate(scope) {
+    // Terms already marked (e.g. this ran once before) count as seen, so
+    // re-running never promotes a second occurrence.
+    var seen = {};
+    Array.prototype.forEach.call(scope.querySelectorAll('.term'), function (el) {
+      seen[el.textContent] = true;
+    });
+    textNodes(scope, function (cl) { return !cl.contains('term'); }).forEach(function (node) {
+      wrap(node, TERM_RE, 'term', function (m) {
+        if (seen[m]) return false;
+        seen[m] = true;
+        return true;
       });
-      node.parentNode.replaceChild(frag, node);
+    });
+    textNodes(scope, function (cl) {
+      return !cl.contains('num-blue') && !cl.contains('term');
+    }).forEach(function (node) {
+      if (/\d/.test(node.nodeValue)) wrap(node, NUM_RE, 'num-blue', null);
     });
   }
 
-  function run() { paint(document.querySelector('.post-body')); }
+  function run() {
+    var body = document.querySelector('.post-body');
+    if (!body) return;
+    var langs = body.querySelectorAll('.lang-content');
+    if (langs.length) {
+      Array.prototype.forEach.call(langs, decorate);
+    } else {
+      decorate(body);
+    }
+  }
 
-  // Wait for MathJax to finish; if it never shows up (page without math),
-  // give up after ~20s and paint anyway.
   function runAfterMath() {
     var tries = 0;
     (function poll() {

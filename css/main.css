@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #ff5306;
+  background: #263bff;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3064,4 +3064,8 @@ pre {
 }
 .post-body blockquote {
   font-family: inherit;
+}
+.post-body .term {
+  color: #1e6e78;
+  font-weight: 600;
 }
