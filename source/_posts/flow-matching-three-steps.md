@@ -172,6 +172,10 @@ $$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0
 这就是 Flow Matching "simulation-free"（训练中无需积分 ODE）的根本原因。
 {% endnote %}
 
+{% note warning %}
+**关于 $X_0$ 与 $X_1$ 独立采样的说明**：公式 $\eqref{eq:cfm-zh}$ 中写成 $X_0 \sim p_0, X_1 \sim p_1$ 独立采样，这是蒙特卡洛估计时最简单的实现方式。但回顾上面的推导，勾股定理只要求 $(X_0, X_1)$ 的联合分布边际为 $p_0$ 和 $p_1$——**并不要求两者独立**。换句话说，独立性不是本推导用到的**假设**，而是构造联合分布时取的**默认值**——因此上面的结论没有任何近似或漏洞，$Z_1 \sim p_1$ 严格成立。但它确实是一个可以改变的自由度：换成别的联合分布（如最优传输 plan），得到的 $v_t$ 仍然正确，而轨迹会更直、训练目标的方差更小。后续 blog 会讨论这个话题。
+{% endnote %}
+
 <a href="#note-5" style="text-decoration:none"><sup>[5]</sup></a>
 
 ## 5. 总结：三步逻辑链
@@ -350,6 +354,10 @@ $$\boxed{\mathcal{L}\_{\mathrm{CFM}}(\theta) = \mathbb{E}\_{t \sim \mathcal{U}[0
 - Monte Carlo estimation only requires: sample $t$ uniformly, sample noise $X_0 \sim p_0$, sample data $X_1 \sim p_1$.
 
 This is the fundamental reason Flow Matching is "simulation-free" (no ODE integration needed during training).
+{% endnote %}
+
+{% note warning %}
+**A note on independent sampling of $X_0$ and $X_1$**: Formula $\eqref{eq:cfm-en}$ is written with $X_0 \sim p_0, X_1 \sim p_1$ sampled independently — the simplest implementation for Monte Carlo estimation. But reviewing the derivation above, the Pythagorean theorem only requires the joint distribution of $(X_0, X_1)$ to have marginals $p_0$ and $p_1$ — **independence is not required**. In other words, independence is not an **assumption** this derivation relies on, but a **default** taken when constructing the joint distribution — so nothing above is approximate or flawed, and $Z_1 \sim p_1$ holds exactly. It is, however, a degree of freedom one can change: with a different joint distribution (e.g., the optimal transport plan) the learned $v_t$ is still correct, while trajectories become straighter and the training target has lower variance. A later post discusses this.
 {% endnote %}
 
 <a href="#note-5" style="text-decoration:none"><sup>[5]</sup></a>

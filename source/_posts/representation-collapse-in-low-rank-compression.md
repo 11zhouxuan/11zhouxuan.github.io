@@ -33,6 +33,12 @@ $$\min\_{A,B}\ \lVert (W - AB)\ S \rVert\_F^2$$
 
 解法与 plain SVD 同构：对 $WS$ 做 SVD 截断得 $U\_r\Sigma\_r V\_r^T$，再取 $A = U\_r\Sigma\_r$、$B = V\_r^T S^{-1}$，权重就在"高激活通道误差放大、低激活通道误差缩小"的度量下最优。再配合**逐层 rank 分配**：重要性（$\lVert WS\rVert\_F$）高的层多给 rank、低的少给，平均 rank 357，分得最少的 Block 0 只有 32。得到 val loss = **8.50**。
 
+在看结果之前，把**真正的目标**也写下来，它是全系列的参照系。压缩的本意是：把每个 $W\_\ell$ 换成 $A\_\ell B\_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低：
+
+$$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{252}}\ \mathbb{E}\_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) \le \text{预算}$$
+
+这个真目标关于因子是高度非凸的，没有闭式解。所以 plain SVD 和 ASVD 实际求解的都是上面那两个**逐层代理目标**——用"每层各自把 $W\_\ell$ 逼近好"代替"整个网络的输出好"。本篇接下来的全部现象，都来自代理目标与真目标之间的裂缝。
+
 8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：
 
 | 方法 | val loss | 预测的 unique token 数 | top-1 预测占比 | top-1 是什么 |
@@ -232,6 +238,12 @@ With a uniform rank 384 in every layer: val loss = 18.65.
 $$\min\_{A,B}\ \lVert (W - AB)\ S \rVert\_F^2$$
 
 The solution mirrors plain SVD: SVD-truncate $WS$ to get $U\_r\Sigma\_r V\_r^T$, then set $A = U\_r\Sigma\_r$, $B = V\_r^T S^{-1}$ — optimal in a metric that amplifies errors on high-activation channels and shrinks them elsewhere. Combined with **per-layer rank allocation**: layers with higher importance ($\lVert WS\rVert\_F$) get more rank, others less — mean rank 357, with Block 0 starved at rank 32. Val loss = **8.50**.
+
+Before looking at the results, let us also write down the **true objective** — the reference point for the whole series. What compression actually wants: replace each $W\_\ell$ with $A\_\ell B\_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget:
+
+$$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{252}}\ \mathbb{E}\_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) \le \text{budget}$$
+
+This true objective is highly non-convex in the factors and has no closed-form solution. So what plain SVD and ASVD actually solve are the two **layerwise proxy objectives** above — substituting "each layer approximates its own $W\_\ell$ well" for "the whole network's output is good." Everything that follows in this post comes from the crack between the proxy and the true objective.
 
 8.50 versus 18.65 — ASVD appears more than twice as good. But when we inspect the model's actual token predictions:
 

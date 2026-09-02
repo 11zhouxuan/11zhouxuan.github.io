@@ -66,6 +66,14 @@ $$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarr
 
 **第 4 步**：替换该层，处理下一层。下一层采集到的 $x\_s$ 自动包含新换上的层的误差，于是被下一层矫正。
 
+**方案一屏总结**（本篇的全部改进浓缩在第一个式子的期望符号里）。对每个线性层 $\ell$，按前向顺序：
+
+$$(M\_\ell^\*, b\_\ell^\*) = \arg\min\_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W\_\ell x\_t}\_{\text{目标：教师轨迹的干净输出}} - M \underbrace{x\_s}\_{\text{输入：学生的漂移输入}} - b \Big\rVert^2$$
+
+$$A\_\ell B\_\ell = \mathrm{SVD}\_r\big(M\_\ell^\* L\_\ell\big) L\_\ell^{-1}, \qquad L\_\ell = \mathrm{chol}\big(\Sigma\_{ss}^{(\ell)} + \lambda I\big)$$
+
+对比第一篇的代理目标 $\min \lVert (W - AB) S \rVert\_F^2$：那里输入分布和逼近目标都活在教师的世界里；这里**输入来自学生的真实运行分布、目标来自教师轨迹**——每一层同时在做压缩和对上游误差的纠错。这一处换目标就是本篇的全部改动，8.50 → 5.60 的差距全部由它贡献。
+
 ### 4. 结果
 
 | 配置 | val loss | 预测多样性 |
@@ -166,6 +174,14 @@ Intuition: $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ is the optimal linear operator recove
 **Step 3**: Whitened rank-$r$ truncation. Truncating the SVD of $M^\*$ directly would implicitly assume all input directions matter equally, which the real input distribution violates; instead take $L = \mathrm{chol}(\Sigma\_{ss}+\lambda I)$ to transform the input into "whitened" coordinates where the covariance is the identity, then SVD-truncate $M^\*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates; derivation in [the primer](/2026/08/30/lord-compression-primer/)). Recompute $b = W\bar{x}\_t - AB\bar{x}\_s$ afterwards so the bias also absorbs the truncation error at the mean.
 
 **Step 4**: Replace the layer, move on. The next layer's $x\_s$ automatically includes the newly introduced error, which the next regression corrects.
+
+**The whole method on one screen** (this post's entire improvement is concentrated in the expectation of the first equation). For each linear layer $\ell$, in forward order:
+
+$$(M\_\ell^\*, b\_\ell^\*) = \arg\min\_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W\_\ell x\_t}\_{\text{target: clean teacher-trajectory output}} - M \underbrace{x\_s}\_{\text{input: the student's drifted input}} - b \Big\rVert^2$$
+
+$$A\_\ell B\_\ell = \mathrm{SVD}\_r\big(M\_\ell^\* L\_\ell\big) L\_\ell^{-1}, \qquad L\_\ell = \mathrm{chol}\big(\Sigma\_{ss}^{(\ell)} + \lambda I\big)$$
+
+Contrast with part 1's proxy $\min \lVert (W - AB) S \rVert\_F^2$: there, both the input distribution and the target live in the teacher's world; here **the input comes from the student's real running distribution and the target from the teacher's trajectory** — every layer simultaneously compresses and corrects upstream error. This single change of objective is the post's entire delta, and it accounts for all of 8.50 → 5.60.
 
 ### 4. Results
 

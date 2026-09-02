@@ -70,6 +70,12 @@ Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 
 **照单全收 → 5.27（失败）**；把偏离限制在均匀值的 0.6~1.6 倍（即"阻尼"）→ **5.06（当时的新纪录）**。教训：这种敏感度是局部量——它只回答"在当前解附近动一动会怎样"，砍 4 倍已经远超它的适用范围；三点剂量曲线（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。
 
+**形式化本篇的改动**。前三篇里每层的 rank 是固定常数 $r$；本篇把 $\{r\_\ell\}$ 变成优化变量：
+
+$$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{层 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{预算}, \qquad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{阻尼约束（不可省略）}}$$
+
+其中 $f\_{\ell,i}$ 是第 $\ell$ 层第 $i$ 个方向的 loss 敏感度（前文的梯度平方和）。没有阻尼约束时这个问题的解就是"照单全收"的 5.27；加上它才得到 5.06——**约束本身是改进的一半**。
+
 ### 4. 实验方向二：巨激活通道——双负结果与真正的放大机制
 
 测量教师的输出侧异常，发现巨幅激活（massive activations，[第三篇](/2026/08/22/closed-form-ceiling/)第 4 节提过的现象）在这个模型里是**两条贯穿全网的全局通道**：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。
@@ -199,7 +205,13 @@ Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/cont
 | down_proj | 476 | ↑ 1.5× |
 | q_proj / k_proj / gate_proj | 77 / 92 / 128 | ↓ 3-4× |
 
-**Taken at face value → 5.27 (fail)**; deviation clipped to 0.6-1.6× of uniform ("damping") → **5.06 (record at the time)**. Lesson: this sensitivity is a local quantity — it only answers "what happens if you wiggle around the current solution"; a 4× cut is far outside its domain. The three-point dose-response (untilted 5.10 / damped 5.06 / extreme 5.27) puts the optimum near the damped point. The direction has a clean mechanism: q/k only shape attention weights, normalized by softmax and thus naturally drift-robust; v/o/down carry the content written into the residual stream.
+**Taken at face value → 5.27 (fail)**; deviation clipped to 0.6-1.6× of uniform ("damping") → **5.06 (record at the time)**. Lesson: this sensitivity is a local quantity — it only answers "what happens if you wiggle around the current solution"; a 4× cut is far outside its domain. The three-point dose-response (untilted 5.10 / damped 5.06 / extreme 5.27) puts the optimum near the damped point.
+
+**This post's change, formalized.** In the first three posts every layer's rank is a fixed constant $r$; this post turns $\{r\_\ell\}$ into optimization variables:
+
+$$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{expected damage of layer }\ell\text{'s cut directions}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{budget}, \qquad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{damping constraint (not optional)}}$$
+
+where $f\_{\ell,i}$ is direction $i$'s loss sensitivity in layer $\ell$ (the squared-gradient sums above). Without the damping constraint the solution is the face-value 5.27; with it, 5.06 — **the constraint is half the improvement**. The direction has a clean mechanism: q/k only shape attention weights, normalized by softmax and thus naturally drift-robust; v/o/down carry the content written into the residual stream.
 
 ### 4. Direction 2: Massive-Activation Channels — a Double Negative and the True Amplifier
 

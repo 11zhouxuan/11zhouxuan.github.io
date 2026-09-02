@@ -23,6 +23,16 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 
 （本文 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 6 节的 oracle 诊断保持当时的测量口径。）
 
+### 0. 终点方案一览：四处改动写进同一个式子
+
+第二篇确立的逐层目标是：解出 $M^\*$ 后在白化度量下截断，$\min\_{A,B} \lVert (M^\* - AB) L \rVert\_F^2$。本篇终点的逐层目标：
+
+$$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{改动②：loss 敏感度度量}} \big(M^\* - AB - \underbrace{S}\_{\text{改动①：稀疏残差}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$
+
+其中 $w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$ 是输出通道 $j$ 的 loss 梯度二阶矩；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。**改动③**不在式子里而在式子的原料里：所有统计量（$\Sigma\_{ss}, \Sigma\_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有**改动④**（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。
+
+下面按发生顺序逐个讲这四处改动。
+
 ### 1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税
 
 截断税（~2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但**稀疏项可以**——它天生就是"少数任意位置的大元素"。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。
@@ -143,6 +153,16 @@ $$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}\_{\text{稀疏×度量}}
 Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + tax-free correctors + loss-aware allocation; part 4 endpoint 5.05.
 
 (All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle diagnostics in Section 6 keep their original measurement window.)
+
+### 0. The Endpoint Recipe at a Glance: Four Changes in One Objective
+
+Part 2 established the layerwise objective: solve for $M^\*$, then truncate in the whitened metric, $\min\_{A,B} \lVert (M^\* - AB) L \rVert\_F^2$. This post's endpoint objective per layer:
+
+$$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{change ②: loss-sensitivity metric}} \big(M^\* - AB - \underbrace{S}\_{\text{change ①: sparse residual}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$
+
+where $w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$ is output channel $j$'s loss-gradient second moment; solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. **Change ③** is not in the formula but in its raw material: all statistics ($\Sigma\_{ss}, \Sigma\_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is **change ④** (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).
+
+The sections below introduce these four changes in the order they happened.
 
 ### 1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax
 
