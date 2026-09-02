@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
 
   
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
 
   
@@ -981,10 +981,11 @@ switchLang('zh');
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<p><a href="/2026/08/25/closed-form-anatomy/">第四篇</a>以&quot;三把锁&quot;的解剖宣布闭式赛道收官于 5.02。然后它在一周内被推到了 <strong>4.71 / 4.53</strong>（双验证窗口）——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）只剩 0.74。这篇讲天花板是怎么两次移动的。诚实地说，两次都源于同一件事：<strong>合作者对&quot;已经到头了&quot;这个结论的不服气</strong>。第一次的不服（&quot;低秩逼近还有很大空间&quot;）指向了度量修正，第二次（对统计地基的持续加码）打开了校准数据工程。&quot;工具箱已榨干&quot;的结论永远带着一个隐藏脚注：<em>在当前的度量、当前的表达形式、当前的统计地基下</em>。</p>
-<p>背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 免税矫正器 + loss 感知分配，第四篇终点 5.114/5.023。</p>
-<h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿账-1">1. 稀疏残差：W ≈ AB + S，第一次凿穿账 1</h3>
-<p>账 1（截断税，~2 nat）的架构根源是内容通路的超位置重尾谱——低秩在数学上表达不了 incoherent 的重尾结构。但<strong>稀疏项可以</strong>。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
+<p><a href="/2026/08/25/closed-form-anatomy/">第四篇</a>用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 <strong>4.59</strong>——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）只剩 0.80。这篇讲天花板是怎么两次移动的。诚实地说，两次都源于同一件事：<strong>合作者对&quot;已经到头了&quot;这个结论的不服气</strong>。第一次的不服（&quot;低秩逼近还有很大空间&quot;）指向了度量修正，第二次（对统计地基的持续加码）打开了校准数据工程。&quot;工具箱已榨干&quot;的结论永远带着一个隐藏脚注：<em>在当前的度量、当前的表达形式、当前的统计地基下</em>。</p>
+<p>背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 免税矫正器 + loss 感知分配，第四篇终点 5.05。</p>
+<p>（本文 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 6 节的 oracle 诊断保持当时的测量口径。）</p>
+<h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿截断税">1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税</h3>
+<p>截断税（~2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
 <p>做法：在每层的截断步里做交替求解（3 轮）——</p>
 <p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-nnz。预算严格配平：S 的每个非零值按 1.5 个参数计（含 index 开销；严格 CSR-int16 应为 2.0，勘误后纪录依然成立），从 rank 里扣。</p>
@@ -993,107 +994,107 @@ switchLang('zh');
 <thead>
 <tr>
 <th>S 份额</th>
-<th>held-out（双窗口）</th>
+<th>val loss</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>0%（纯低秩）</td>
-<td>5.114 / 5.023</td>
+<td>5.05</td>
 </tr>
 <tr>
 <td><strong>21%</strong></td>
-<td><strong>5.073 / 4.978</strong></td>
+<td><strong>5.01</strong></td>
 </tr>
 <tr>
 <td>41%</td>
-<td>5.126 / 4.997</td>
+<td>5.04</td>
 </tr>
 </tbody>
 </table>
 <p>21% 即最优——<strong>文献的&quot;sparse 为主（70/30）&quot;结论不迁移</strong>，因为我们的低秩部分是轨迹矫正回归（远强于他们的朴素 SVD），S 只需要补真正的重尾。这也是一个方法论提醒：移植文献结论时，配比参数依附于基线强度。</p>
-<h3 id="2-换一把尺子：输出敏感度加权截断">2. 换一把尺子：输出敏感度加权截断</h3>
+<h3 id="2-换度量：输出敏感度加权截断">2. 换度量：输出敏感度加权截断</h3>
 <p>第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下&quot;几乎无损&quot;（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：<strong>我们的截断在错误的目标函数下最优</strong>。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。</p>
 <p>修法仍是闭式的。给每层测输出通道的 loss 梯度二阶矩 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
-<p>SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。<strong>单独 −0.06（5.055/4.959），零参数成本</strong>——headfix 以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个&quot;邻近&quot;的 artifact 上测一次即可（见第 5 节的迭代失败）。</p>
-<h3 id="3-超线性叠加：修正-红利不叠加定律">3. 超线性叠加：修正&quot;红利不叠加定律&quot;</h3>
-<p>第四篇提出过&quot;小红利不叠加定律&quot;（0.02 级的改进合并时互相侵蚀）。这次的组合实验修正了它：</p>
+<p>SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。<strong>单独 −0.07（4.98），零参数成本</strong>——lm_head 矫正以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个&quot;邻近&quot;的 artifact 上测一次即可（见第 5 节的迭代失败）。</p>
+<h3 id="3-超线性叠加：修正-小改进不叠加">3. 超线性叠加：修正&quot;小改进不叠加&quot;</h3>
+<p>第四篇提出过&quot;小改进不叠加&quot;的规律（0.02 级的改进合并时互相侵蚀）。这次的组合实验修正了它：</p>
 <table>
 <thead>
 <tr>
 <th>配置（等预算）</th>
-<th>held-out</th>
+<th>val loss</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>基线</td>
-<td>5.114 / 5.023</td>
+<td>5.05</td>
 </tr>
 <tr>
 <td>只加稀疏残差</td>
-<td>5.073 / 4.978（−0.04）</td>
+<td>5.01（−0.04）</td>
 </tr>
 <tr>
 <td>只换度量</td>
-<td>5.055 / 4.959（−0.06）</td>
+<td>4.98（−0.07）</td>
 </tr>
 <tr>
 <td><strong>两者组合</strong></td>
-<td><strong>4.944 / 4.834（−0.17 / −0.19）</strong></td>
+<td><strong>4.88（−0.17）</strong></td>
 </tr>
 </tbody>
 </table>
-<p>−0.04 和 −0.06 叠出了 −0.19——<strong>超线性</strong>。机制：梯度度量同时升级了 S 的选择（打分从&quot;能量残差&quot;变成&quot;loss 关键残差&quot;，$|R|\cdot\sigma_{col}\cdot w_{row}$），而度量加权的 SVD 留下的残差恰好更适合 S 捡走。修正后的定律：<strong>同一把尺子下的红利不叠加；换尺子的红利会放大其他所有杠杆</strong>——因为尺子作用于每一个有 rank 约束的决策点。</p>
-<p>（一个理论上干净的推论顺带得证：对角输出加权对<strong>全秩</strong>回归无影响——逐行独立求解时权重不改变解。所以残差矫正器和 lm_head fix 都不吃这个红利，度量红利只存在于 rank 约束处。这也回头解释了为什么当年 lm_head fix 不需要任何加权就很强。）</p>
+<p>−0.04 和 −0.07 叠出了 −0.17，比线性相加的 −0.11 还多赚 0.06——<strong>超线性</strong>。机制：梯度度量同时升级了 S 的选择（打分从&quot;能量残差&quot;变成&quot;loss 关键残差&quot;，$|R|\cdot\sigma_{col}\cdot w_{row}$），而度量加权的 SVD 留下的残差恰好更适合 S 捡走。修正后的规律：<strong>同一度量下的小改进不叠加；换度量的改进会放大其他所有杠杆</strong>——因为度量作用于每一个有 rank 约束的决策点。</p>
+<p>（一个理论上干净的推论顺带得证：对角输出加权对<strong>全秩</strong>回归无影响——逐行独立求解时权重不改变解。所以残差矫正器和 lm_head 矫正都吃不到这份收益，度量的收益只存在于 rank 约束处。这也回头解释了为什么当年 lm_head 矫正不需要任何加权就很强。）</p>
 <h3 id="4-校准数据工程：被文献整体忽略的维度">4. 校准数据工程：被文献整体忽略的维度</h3>
 <p>闭式方法的一切统计量（$\Sigma_{ss}, \Sigma_{ts}$、梯度二阶矩）都来自校准数据。文献的标配是 128-256 条短样本（SVD-LLM 用 256×C4）；没有人把校准数据当成一个需要工程的对象。我们把它当成剂量-响应实验做了一遍：</p>
 <table>
 <thead>
 <tr>
 <th>统计配置</th>
-<th>held-out</th>
+<th>val loss</th>
 <th>备注</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>32 批 × 1 shard</td>
-<td>4.944 / 4.834</td>
+<td>4.88</td>
 <td>组合配方基线</td>
 </tr>
 <tr>
 <td>128 × 1</td>
-<td>4.825 / 4.768</td>
-<td>数量 ×4</td>
+<td>4.73</td>
+<td>数量 ×4：−0.15</td>
 </tr>
 <tr>
 <td>128 × 4 shards</td>
-<td>4.774 / 4.619</td>
-<td><strong>同数量、多样性 ×4</strong></td>
+<td>4.68</td>
+<td><strong>同数量、多样性 ×4</strong>：再 −0.05</td>
 </tr>
 <tr>
 <td>256 × 8</td>
-<td>4.738 / 4.555</td>
-<td>双倍</td>
+<td>4.64</td>
+<td>数量与多样性再翻倍</td>
 </tr>
 <tr>
 <td>256 × 16</td>
-<td>4.742 / 4.558</td>
-<td>多样性饱和于 8 shards</td>
+<td>4.63</td>
+<td>多样性饱和于 8 shards（与 ×8 打平）</td>
 </tr>
 <tr>
 <td><strong>512 × 16</strong></td>
-<td><strong>4.711 / 4.530</strong></td>
-<td>数量增大到 512 仍有小幅收益</td>
+<td><strong>4.61</strong></td>
+<td>数量到 512 仍有小幅收益</td>
 </tr>
 </tbody>
 </table>
-<p>从 4.944 到 4.711——<strong>校准数据工程独立贡献了 ~0.23 nat</strong>，与任何算法改进同量级。两个可迁移的定量结论：</p>
+<p>从 4.88 到 4.61——<strong>校准数据工程独立贡献了 ~0.27 nat</strong>，比任何单个算法改进都大。两个可迁移的定量结论：</p>
 <ol>
-<li><strong>多样性 ≠ 数量</strong>。128 批不变、从 1 shard 换 4 shards：−0.05/−0.15。这是偏差-方差分解里的<strong>偏差项</strong>——同 shard 加数据只压采样方差，分布偏色一分不动。窗口间改善的不对称（−0.05 vs −0.15）直接暴露了单 shard 校准与某个验证窗口&quot;口味相近&quot;的偏差本质。</li>
-<li>两轴各自饱和：多样性 8 shards、数量 ~512 批（26 万→105 万 token 位置）。饱和点大约在&quot;统计噪声降到单个算法改进量级（±0.01）&quot;处，符合直觉。</li>
+<li><strong>数量与多样性是两个独立的轴。</strong> 数量的第一档收益最大（32→128 批：−0.15），它压的是采样方差；数量吃饱之后，批数不变、把 1 个 shard 换成 4 个仍有 −0.05——这是偏差-方差分解里的<strong>偏差项</strong>：同一个 shard 里加再多数据，分布的偏色一分不动，只有换数据源才能压掉。</li>
+<li>两轴各自饱和：多样性 8 shards（256×8 与 256×16 打平）、数量 ~512 批（26 万→105 万 token 位置）仍有小幅收益。饱和点大约在&quot;统计噪声降到单个算法改进量级（±0.01）&quot;处，符合直觉。</li>
 </ol>
 <h3 id="5-失败清单：简单鲁棒版永远赢">5. 失败清单：简单鲁棒版永远赢</h3>
 <p>与四个胜利并排的是四个干净的失败，它们共享一个模式——<strong>每当我们把一个有效的简单机制&quot;做精&quot;，结果都更差</strong>：</p>
@@ -1108,41 +1109,44 @@ switchLang('zh');
 <tbody>
 <tr>
 <td>迭代 G（在新模型上重测梯度再重建）</td>
-<td>4.952/4.860，结果变差</td>
-<td>一次测量 4.944/4.834</td>
+<td>4.89</td>
+<td>一次测量 4.88</td>
 </tr>
 <tr>
 <td>完整 G（k=64 特征子空间 + 对角）</td>
-<td>4.841/4.796，结果变差</td>
-<td>对角 G 4.825/4.768</td>
+<td>4.74</td>
+<td>对角 G 4.73</td>
 </tr>
 <tr>
 <td>S 份额加大到 32%（度量加持下&quot;S 更聪明了&quot;）</td>
-<td>4.969/4.882，结果变差</td>
-<td>21% 仍最优</td>
+<td>4.90</td>
+<td>21% 的 4.88 仍最优</td>
 </tr>
 <tr>
 <td>按损失分布图定向的矩阵类型×深度分配</td>
-<td>5.141/5.050，结果变差</td>
-<td>Fisher 阻尼图</td>
+<td>5.08</td>
+<td>Fisher 阻尼图 5.05</td>
 </tr>
 </tbody>
 </table>
-<p>机制各不相同（迭代破坏自洽链、特征子空间对 24 batch 过拟合、oracle 收益不等于真实边际价值），但工程结论一致：<strong>在校准数据有限的闭式世界里，参数量少的估计器赢</strong>——对角赢完整、单遍赢迭代、阻尼赢全量。每个&quot;更准的模型&quot;都要用同样的 24-512 个 batch 去喂，多出来的自由度全变成噪声。</p>
+<p>诚实标注幅度：严格协议下这些&quot;变差&quot;多在 0.01~0.03，部分已在折间波动之内。所以稳健的结论不是&quot;精巧化有害&quot;，而是<strong>四个更贵、更复杂的版本没有一个带来收益</strong>。机制各不相同（迭代破坏自洽链、特征子空间对少量校准 batch 过拟合、oracle 收益不等于真实边际价值），但工程结论一致：<strong>在校准数据有限的闭式世界里，参数量少的估计器赢</strong>——对角赢完整、单遍赢迭代、阻尼赢全量。每个&quot;更准的模型&quot;都要用同样的几十到几百个 batch 去喂，多出来的自由度全变成噪声。</p>
+<h3 id="5-5-换度量的最后一笔收益：rms-lift-的平反">5.5 换度量的最后一笔收益：rms-lift 的平反</h3>
+<p>第四篇里，rms-lift 非线性矫正器在等预算下与直接加 rank 打平，被判&quot;机制证实、收益归零&quot;。换上新度量和加固后的统计地基重试，它贡献了最后的 −0.02：<strong>4.61 → 4.59，当前的闭式最终纪录</strong>。方向再次支持&quot;换度量会重新激活此前打平的杠杆&quot;，但幅度必须诚实标注——这 0.02 只有约一倍折间波动，是锦上添花而不是新机制。</p>
 <h3 id="6-新范式的-oracle：地板低于一个训练过的模型">6. 新范式的 oracle：地板低于一个训练过的模型</h3>
 <p>给新配方重测 oracle 分解（换掉全部子层输入为教师干净值）：</p>
 <p>$$\text{oracle}_{\text{新范式}} = 3.75 \quad (&lt;\ 3.79_{\text{端到端蒸馏训练}})$$</p>
-<p><strong>闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。</strong> 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，<strong>当前 4.53 与训练之间的差距大头已经从&quot;税&quot;换成了&quot;漂移&quot;</strong>。而漂移矫正器是全秩的、对度量红利免疫（第 3 节），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。</p>
+<p><strong>闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。</strong> 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，<strong>当前纪录与训练之间的差距大头已经从&quot;税&quot;换成了&quot;漂移&quot;</strong>。而漂移矫正器是全秩的、吃不到度量收益（第 3 节的推论），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。</p>
 <h3 id="7-结论">7. 结论</h3>
 <p><strong>最终版图</strong>（85% 线性层压缩、等预算 2.29B、零训练，双窗口）：</p>
-<p>$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}_{\text{稀疏×度量}} \to \underbrace{4.71/4.53}_{\text{+校准工程}} \to \underbrace{3.75}_{\text{新 oracle}} \to \underbrace{3.79}_{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{稀疏×度量}} \to \underbrace{4.61}_{\text{+校准工程}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{新 oracle}} \to \underbrace{3.79}_{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$</p>
 <p>本篇新增的三条可迁移定律：</p>
 <ol>
-<li><strong>度量是一等公民。</strong> 逼近算法的&quot;最优性&quot;永远是相对某个度量的；换成 loss 感知的度量后，此前&quot;榨干&quot;的每个杠杆都重新有了油。检查任何压缩管线时，先问它的截断在什么度量下最优。</li>
-<li><strong>校准数据是一个被忽略的工程对象。</strong> 多样性和数量各自独立贡献，多样性优先（同预算下先加 shard 再加量），两轴的饱和点都可以用剂量实验便宜地测出。~0.23 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
-<li><strong>参数少的估计器赢</strong>（闭式版奥卡姆）：对角 &gt; 完整协方差，单遍 &gt; 迭代，阻尼 &gt; 全量执行。校准数据的信息量是硬约束，精巧化只是把它重新分配给噪声。</li>
+<li><strong>度量是一等公民。</strong> 逼近算法的&quot;最优性&quot;永远是相对某个度量的；换成 loss 感知的度量后，此前&quot;榨干&quot;的每个杠杆都重新有了改进空间。检查任何压缩管线时，先问它的截断在什么度量下最优。</li>
+<li><strong>校准数据是一个被忽略的工程对象。</strong> 数量和多样性各自独立贡献、各自饱和，两个轴都值得用剂量实验便宜地测一遍。~0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
+<li><strong>参数少的估计器赢</strong>（闭式版奥卡姆剃刀）：对角 &gt; 完整协方差，单遍 &gt; 迭代，阻尼 &gt; 全量执行。校准数据的信息量是硬约束，精巧化只是把它重新分配给噪声。</li>
 </ol>
 <p>天花板还会不会动？诚实的答案：本篇之后，配方内的所有维度（表达形式、度量、分配、矫正器、统计）都各自测到了饱和点，剩余的结构性候选只剩逐 head 的 (V,O) 联合分解一项。但第四篇也曾这样宣布过收官——这大概是这个系列最诚实的一课：<strong>&quot;到头了&quot;是一个关于当前假设集的陈述，不是关于问题本身的</strong>。</p>
+<p>这个系列的下一步也不在&quot;把 2.29B 的 loss 再降 0.02&quot;上了。回到<a href="/2026/08/30/lord-compression-primer/">预备篇</a>第 0 节的初心：低秩 init 的真正用途是给<strong>任意大小</strong>的小模型预训练造起点。rank 384/192/96/48/24 的秩扫描和&quot;低秩 init vs 随机 init&quot;的 scaling law 对照实验正在跑，那将是下一篇的主题。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -1150,10 +1154,11 @@ switchLang('zh');
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<p><a href="/2026/08/25/closed-form-anatomy/">Part 4</a> closed the closed-form track at 5.02 with a three-lock anatomy. It was then pushed to <strong>4.71 / 4.53</strong> (two validation windows) within a week — nearly another 0.5 nat, leaving just 0.74 to an end-to-end-distilled, actually-trained model (3.79). This post is about how the ceiling moved twice. Honestly, both moves came from the same source: <strong>a collaborator refusing to accept &quot;it's over&quot;</strong>. The first refusal (&quot;low-rank approximation still has plenty of room&quot;) led to the metric fix; the second (insisting on the statistical foundations) opened up calibration-data engineering. &quot;The toolbox is exhausted&quot; always carries a hidden footnote: <em>under the current metric, the current representation, and the current statistics</em>.</p>
-<p>Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + tax-free correctors + loss-aware allocation; part 4 endpoint 5.114/5.023.</p>
-<h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-Ledger-1">1. Sparse Residuals: W ≈ AB + S, First Breach of Ledger 1</h3>
-<p>Ledger 1 (the ~2-nat truncation tax) is rooted in superposition heavy tails on the content pathway — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>. It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
+<p><a href="/2026/08/25/closed-form-anatomy/">Part 4</a> closed the closed-form track at 5.05 with a three-component anatomy of the gap. It was then pushed to <strong>4.59</strong> within a week — nearly another 0.5 nat, leaving just 0.80 to an end-to-end-distilled, actually-trained model (3.79). This post is about how the ceiling moved twice. Honestly, both moves came from the same source: <strong>a collaborator refusing to accept &quot;it's over&quot;</strong>. The first refusal (&quot;low-rank approximation still has plenty of room&quot;) led to the metric fix; the second (insisting on the statistical foundations) opened up calibration-data engineering. &quot;The toolbox is exhausted&quot; always carries a hidden footnote: <em>under the current metric, the current representation, and the current statistics</em>.</p>
+<p>Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + tax-free correctors + loss-aware allocation; part 4 endpoint 5.05.</p>
+<p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle diagnostics in Section 6 keep their original measurement window.)</p>
+<h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-the-Truncation-Tax">1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax</h3>
+<p>The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage on the content pathway: the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>: it is by nature &quot;a few large entries at arbitrary positions.&quot; It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
 <p>Method: alternate inside each layer's truncation step (3 rounds) —</p>
 <p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>The AB step is the existing whitened truncation; the S step scores the residual in the whitened metric and keeps the top-nnz. Strictly budgeted: each nonzero of S is charged 1.5 parameters (index overhead; strict CSR-int16 would be 2.0 — the record survives the erratum), paid out of rank.</p>
@@ -1162,109 +1167,109 @@ switchLang('zh');
 <thead>
 <tr>
 <th>S share</th>
-<th>held-out (both windows)</th>
+<th>val loss</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>0% (pure low-rank)</td>
-<td>5.114 / 5.023</td>
+<td>5.05</td>
 </tr>
 <tr>
 <td><strong>21%</strong></td>
-<td><strong>5.073 / 4.978</strong></td>
+<td><strong>5.01</strong></td>
 </tr>
 <tr>
 <td>41%</td>
-<td>5.126 / 4.997</td>
+<td>5.04</td>
 </tr>
 </tbody>
 </table>
 <p>21% is the optimum — <strong>the literature's sparse-heavy (70/30) recipe does not transfer</strong>, because our low-rank part is trajectory-correcting regression (far stronger than their plain SVD), so S only needs to catch the genuine heavy tails. A methodological reminder: ratio hyperparameters are attached to baseline strength.</p>
-<h3 id="2-Changing-the-Ruler-Output-Sensitivity-Weighted-Truncation">2. Changing the Ruler: Output-Sensitivity-Weighted Truncation</h3>
-<p>Part 4's tax map left one anomaly unexplained: qkv@late looks &quot;nearly lossless&quot; in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: <strong>our truncation was optimal under the wrong objective</strong>. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.</p>
+<h3 id="2-Changing-the-Metric-Output-Sensitivity-Weighted-Truncation">2. Changing the Metric: Output-Sensitivity-Weighted Truncation</h3>
+<p>Part 4's loss-distribution map left one anomaly unexplained: qkv@late looks &quot;nearly lossless&quot; in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: <strong>our truncation was optimal under the wrong objective</strong>. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.</p>
 <p>The fix stays closed-form. Measure each output channel's loss-gradient second moment $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
-<p>— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. <strong>−0.06 on its own (5.055/4.959) at zero parameter cost</strong>, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a &quot;nearby&quot; artifact suffices (see Section 5's iteration failure).</p>
-<h3 id="3-Super-Additive-Stacking-Amending-the-Dividends-Law">3. Super-Additive Stacking: Amending the Dividends Law</h3>
-<p>Part 4 proposed a &quot;small dividends don't stack&quot; law (0.02-level improvements erode each other on combination). The combination experiment this time amended it:</p>
+<p>— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. <strong>−0.07 on its own (4.98) at zero parameter cost</strong>, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a &quot;nearby&quot; artifact suffices (see Section 5's iteration failure).</p>
+<h3 id="3-Super-Additive-Stacking-Amending-the-No-Stacking-Rule">3. Super-Additive Stacking: Amending the No-Stacking Rule</h3>
+<p>Part 4 proposed a rule that small improvements don't stack (0.02-level gains erode each other on combination). The combination experiment this time amended it:</p>
 <table>
 <thead>
 <tr>
 <th>Configuration (equal budget)</th>
-<th>held-out</th>
+<th>val loss</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>baseline</td>
-<td>5.114 / 5.023</td>
+<td>5.05</td>
 </tr>
 <tr>
 <td>sparse residual only</td>
-<td>5.073 / 4.978 (−0.04)</td>
+<td>5.01 (−0.04)</td>
 </tr>
 <tr>
 <td>metric change only</td>
-<td>5.055 / 4.959 (−0.06)</td>
+<td>4.98 (−0.07)</td>
 </tr>
 <tr>
 <td><strong>both combined</strong></td>
-<td><strong>4.944 / 4.834 (−0.17 / −0.19)</strong></td>
+<td><strong>4.88 (−0.17)</strong></td>
 </tr>
 </tbody>
 </table>
-<p>−0.04 and −0.06 stacked into −0.19 — <strong>super-additive</strong>. Mechanism: the gradient metric upgrades S's selection (its score becomes $|R|\cdot\sigma_{col}\cdot w_{row}$, targeting loss-critical rather than energy-heavy residuals), while the metric-weighted SVD leaves behind exactly the residue S is best at catching. The amended law: <strong>dividends under the same ruler don't stack; changing the ruler amplifies every other lever</strong> — because the ruler acts at every rank-constrained decision point.</p>
-<p>(A theoretically clean corollary came for free: diagonal output weighting cannot affect a <strong>full-rank</strong> regression — rows solve independently, so weights don't change the solution. Hence residual correctors and the lm_head fix are immune to this dividend; the metric dividend exists only where a rank constraint does. This retroactively explains why the lm_head fix was strong without any weighting.)</p>
+<p>−0.04 and −0.07 stacked into −0.17, beating the plain sum of −0.11 by another 0.06 — <strong>super-additive</strong>. Mechanism: the gradient metric upgrades S's selection (its score becomes $|R|\cdot\sigma_{col}\cdot w_{row}$, targeting loss-critical rather than energy-heavy residuals), while the metric-weighted SVD leaves behind exactly the residue S is best at catching. The amended rule: <strong>improvements under the same metric don't stack; changing the metric amplifies every other lever</strong> — because the metric acts at every rank-constrained decision point.</p>
+<p>(A theoretically clean corollary came for free: diagonal output weighting cannot affect a <strong>full-rank</strong> regression — rows solve independently, so weights don't change the solution. Hence residual correctors and the lm_head fix cannot collect this gain; the metric's gain exists only where a rank constraint does. This retroactively explains why the lm_head fix was strong without any weighting.)</p>
 <h3 id="4-Calibration-Data-Engineering-the-Dimension-the-Literature-Skips">4. Calibration-Data Engineering: the Dimension the Literature Skips</h3>
 <p>Everything a closed-form method knows comes from calibration data ($\Sigma_{ss}, \Sigma_{ts}$, gradient moments). The literature's standard is 128-256 short samples (SVD-LLM: 256×C4); nobody treats calibration data as an object of engineering. We ran it as a dose-response study:</p>
 <table>
 <thead>
 <tr>
 <th>Statistics</th>
-<th>held-out</th>
+<th>val loss</th>
 <th>Note</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>32 batches × 1 shard</td>
-<td>4.944 / 4.834</td>
+<td>4.88</td>
 <td>combo-recipe baseline</td>
 </tr>
 <tr>
 <td>128 × 1</td>
-<td>4.825 / 4.768</td>
-<td>quantity ×4</td>
+<td>4.73</td>
+<td>quantity ×4: −0.15</td>
 </tr>
 <tr>
 <td>128 × 4 shards</td>
-<td>4.774 / 4.619</td>
-<td><strong>same quantity, diversity ×4</strong></td>
+<td>4.68</td>
+<td><strong>same quantity, diversity ×4</strong>: another −0.05</td>
 </tr>
 <tr>
 <td>256 × 8</td>
-<td>4.738 / 4.555</td>
-<td>double both</td>
+<td>4.64</td>
+<td>double both again</td>
 </tr>
 <tr>
 <td>256 × 16</td>
-<td>4.742 / 4.558</td>
-<td>diversity saturates at 8 shards</td>
+<td>4.63</td>
+<td>diversity saturates at 8 shards (tie with ×8)</td>
 </tr>
 <tr>
 <td><strong>512 × 16</strong></td>
-<td><strong>4.711 / 4.530</strong></td>
+<td><strong>4.61</strong></td>
 <td>quantity still pays mildly at 512</td>
 </tr>
 </tbody>
 </table>
-<p>From 4.944 to 4.711 — <strong>calibration-data engineering alone contributed ~0.23 nat</strong>, on par with any single algorithmic idea. Two transferable quantitative findings:</p>
+<p>From 4.88 to 4.61 — <strong>calibration-data engineering alone contributed ~0.27 nat</strong>, more than any single algorithmic idea. Two transferable quantitative findings:</p>
 <ol>
-<li><strong>Diversity ≠ quantity.</strong> Holding 128 batches fixed and going 1 shard → 4 shards: −0.05/−0.15. In bias-variance terms this is the <strong>bias</strong> term — more data from the same shard only shrinks sampling variance, leaving the distributional tint untouched. The asymmetry across validation windows (−0.05 vs −0.15) directly exposed that the single-shard calibration &quot;tasted like&quot; one window.</li>
-<li>Each axis saturates on its own: diversity at 8 shards, quantity at ~512 batches (0.26M → 1.05M token positions). Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.</li>
+<li><strong>Quantity and diversity are two independent axes.</strong> Quantity's first installment is the largest (32 → 128 batches: −0.15) — it shrinks sampling variance. Once quantity is fed, holding 128 batches fixed and going 1 shard → 4 shards still buys −0.05 — the <strong>bias</strong> term of the bias-variance split: more data from the same shard leaves the distributional tint untouched; only changing the data source removes it.</li>
+<li>Each axis saturates on its own: diversity at 8 shards (256×8 ties 256×16), quantity still pays mildly at ~512 batches (0.26M → 1.05M token positions). Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.</li>
 </ol>
-<h3 id="5-The-Failure-Ledger-Simple-Robust-Always-Wins">5. The Failure Ledger: Simple-Robust Always Wins</h3>
+<h3 id="5-The-Failure-List-Simple-Robust-Always-Wins">5. The Failure List: Simple-Robust Always Wins</h3>
 <p>Alongside four wins sit four clean failures, sharing one pattern — <strong>every time we refined a working simple mechanism, the result got worse</strong>:</p>
 <table>
 <thead>
@@ -1277,41 +1282,44 @@ switchLang('zh');
 <tbody>
 <tr>
 <td>Iterated G (remeasure gradients on the new model, rebuild)</td>
-<td>4.952/4.860, regression</td>
-<td>one measurement: 4.944/4.834</td>
+<td>4.89</td>
+<td>one measurement: 4.88</td>
 </tr>
 <tr>
 <td>Full G (k=64 eigen-subspace + diagonal)</td>
-<td>4.841/4.796, regression</td>
-<td>diagonal G: 4.825/4.768</td>
+<td>4.74</td>
+<td>diagonal G: 4.73</td>
 </tr>
 <tr>
 <td>S share raised to 32% (&quot;S is smarter now&quot;)</td>
-<td>4.969/4.882, regression</td>
-<td>21% remains optimal</td>
+<td>4.90</td>
+<td>21% at 4.88 remains optimal</td>
 </tr>
 <tr>
-<td>Tax-map-guided family×depth allocation</td>
-<td>5.141/5.050, regression</td>
-<td>damped Fisher map</td>
+<td>Loss-map-guided family×depth allocation</td>
+<td>5.08</td>
+<td>damped Fisher map: 5.05</td>
 </tr>
 </tbody>
 </table>
-<p>The mechanisms differ (iteration breaks the self-consistent chain; the eigen-subspace overfits 24 calibration batches; oracle gains ≠ real marginal value), but the engineering conclusion is uniform: <strong>in the calibration-limited closed-form world, the estimator with fewer parameters wins</strong> — diagonal over full, single-pass over iterated, damped over full-strength. Every &quot;more accurate model&quot; must be fed by the same 24-512 batches; the extra degrees of freedom all turn into noise.</p>
+<p>Honesty about the sizes: under the rigorous protocol these &quot;regressions&quot; are mostly 0.01-0.03, some within fold noise. The robust conclusion is therefore not &quot;refinement hurts&quot; but that <strong>none of the four more expensive, more complex versions delivered any gain</strong>. The mechanisms differ (iteration breaks the self-consistent chain; the eigen-subspace overfits the small calibration set; oracle gains ≠ real marginal value), but the engineering conclusion is uniform: <strong>in the calibration-limited closed-form world, the estimator with fewer parameters wins</strong> — diagonal over full, single-pass over iterated, damped over full-strength. Every &quot;more accurate model&quot; must be fed by the same few-dozen-to-few-hundred batches; the extra degrees of freedom all turn into noise.</p>
+<h3 id="5-5-The-Metric-s-Last-Installment-rms-Lift-Redeemed">5.5 The Metric's Last Installment: rms-Lift Redeemed</h3>
+<p>In part 4 the rms-lift nonlinear corrector tied with simply buying rank at equal budget and was shelved (&quot;mechanism confirmed, gain zero&quot;). Retried under the new metric and the reinforced statistics, it contributed the final −0.02: <strong>4.61 → 4.59, the closed-form track's final record</strong>. The direction again supports &quot;changing the metric re-energizes levers that had washed out&quot; — but honesty about the size: this 0.02 is about one fold-to-fold spread, a finishing touch rather than a new mechanism.</p>
 <h3 id="6-The-New-Paradigm-s-Oracle-a-Floor-Below-a-Trained-Model">6. The New Paradigm's Oracle: a Floor Below a Trained Model</h3>
 <p>Re-running the oracle decomposition (swap all sublayer inputs with the teacher's clean values) on the new recipe:</p>
 <p>$$\text{oracle}_{\text{new}} = 3.75 \quad (&lt;\ 3.79_{\text{end-to-end distilled}})$$</p>
-<p><strong>The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.</strong> Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. <strong>The gap between today's 4.53 and training is now mostly drift, not tax.</strong> And drift correctors are full-rank, hence immune to the metric dividend (Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.</p>
+<p><strong>The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.</strong> Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. <strong>The gap between the current record and training is now mostly drift, not tax.</strong> And drift correctors are full-rank, hence unable to collect the metric's gain (the corollary in Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.</p>
 <h3 id="7-Conclusions">7. Conclusions</h3>
 <p><strong>The final landscape</strong> (85% linear-layer compression, equal 2.29B budget, zero training, both windows):</p>
-<p>$$8.50 \to 5.59 \to 5.09 \to 5.02 \to \underbrace{4.83}_{\text{sparse×metric}} \to \underbrace{4.71/4.53}_{\text{+calibration eng.}} \to \underbrace{3.75}_{\text{new oracle}} \to \underbrace{3.79}_{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$</p>
-<p>Three new transferable laws from this campaign:</p>
+<p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{sparse×metric}} \to \underbrace{4.61}_{\text{+calibration eng.}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{new oracle}} \to \underbrace{3.79}_{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$</p>
+<p>Three new transferable lessons from this round:</p>
 <ol>
-<li><strong>The metric is a first-class citizen.</strong> An approximation algorithm's &quot;optimality&quot; is always relative to a metric; switching to a loss-aware one refilled every previously &quot;exhausted&quot; lever. When auditing any compression pipeline, first ask under which metric its truncation is optimal.</li>
-<li><strong>Calibration data is a neglected engineering object.</strong> Diversity and quantity contribute independently; diversity first (add shards before adding volume); both saturation points are cheap to measure with dose-response runs. ~0.23 nat of free gains lie untouched in the literature's standard setup.</li>
-<li><strong>Fewer-parameter estimators win</strong> (the closed-form Occam): diagonal &gt; full covariance, single-pass &gt; iterated, damped &gt; full-strength. The information in the calibration set is the hard constraint; sophistication merely reallocates it to noise.</li>
+<li><strong>The metric is a first-class citizen.</strong> An approximation algorithm's &quot;optimality&quot; is always relative to a metric; switching to a loss-aware one reopened every previously &quot;exhausted&quot; lever. When auditing any compression pipeline, first ask under which metric its truncation is optimal.</li>
+<li><strong>Calibration data is a neglected engineering object.</strong> Quantity and diversity contribute independently and saturate independently; both axes are cheap to measure with dose-response runs. ~0.27 nat of free gains lie untouched in the literature's standard setup.</li>
+<li><strong>Fewer-parameter estimators win</strong> (the closed-form Occam's razor): diagonal &gt; full covariance, single-pass &gt; iterated, damped &gt; full-strength. The information in the calibration set is the hard constraint; sophistication merely reallocates it to noise.</li>
 </ol>
 <p>Will the ceiling move again? The honest answer: after this post, every dimension of the recipe (representation, metric, allocation, correctors, statistics) has been measured to its own saturation point, and the one remaining structural candidate is a per-head joint (V,O) decomposition. But part 4 declared closure once, too — which is perhaps this series' most honest lesson: <strong>&quot;it's over&quot; is a statement about the current hypothesis set, not about the problem.</strong></p>
+<p>The series' next step is also no longer about shaving another 0.02 off a 2.29B model. Back to Section 0 of <a href="/2026/08/30/lord-compression-primer/">the primer</a>: the real use of low-rank initialization is manufacturing pretraining starting points for small models of <strong>any size</strong>. The rank sweep (384/192/96/48/24) and the &quot;low-rank init vs random init&quot; scaling-law comparison are running now — that will be the next post.</p>
 </div>
 <script>
 function switchLang(lang) {
@@ -1391,7 +1399,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
 
   
@@ -1924,7 +1932,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
 
   
@@ -2339,7 +2347,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
 
   
@@ -2736,7 +2744,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
 
   
@@ -3701,7 +3709,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
 
   
@@ -4366,7 +4374,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4463,7 +4471,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4561,7 +4569,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:49:06" itemprop="dateModified" datetime="2026-09-02T05:49:06+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
