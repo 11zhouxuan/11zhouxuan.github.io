@@ -27,7 +27,7 @@
 <meta property="og:description" content="English   中文    Flow Matching——连续生成模型中&quot;无需模拟&quot;训练目标的极简推导，三步到位。">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2025-06-12T10:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T05:56:11.604Z">
+<meta property="article:modified_time" content="2026-09-02T06:45:08.052Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="flow matching">
 <meta property="article:tag" content="generative models">
@@ -184,7 +184,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -195,7 +195,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -263,7 +263,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -388,6 +388,8 @@
 </ul>
 <p>这就是 Flow Matching &quot;simulation-free&quot;（训练中无需积分 ODE）的根本原因。</p>
 </div>
+<div class="note warning"><p><strong>关于 $X_0$ 与 $X_1$ 独立采样的说明</strong>：公式 $\eqref{eq:cfm-zh}$ 中写成 $X_0 \sim p_0, X_1 \sim p_1$ 独立采样，这是蒙特卡洛估计时最简单的实现方式。但回顾上面的推导，勾股定理只要求 $(X_0, X_1)$ 的联合分布边际为 $p_0$ 和 $p_1$——<strong>并不要求两者独立</strong>。换句话说，独立性不是本推导用到的<strong>假设</strong>，而是构造联合分布时取的<strong>默认值</strong>——因此上面的结论没有任何近似或漏洞，$Z_1 \sim p_1$ 严格成立。但它确实是一个可以改变的自由度：换成别的联合分布（如最优传输 plan），得到的 $v_t$ 仍然正确，而轨迹会更直、训练目标的方差更小。后续 blog 会讨论这个话题。</p>
+</div>
 <p><a href="#note-5" style="text-decoration:none"><sup>[5]</sup></a></p>
 <h2 id="5-总结：三步逻辑链">5. 总结：三步逻辑链</h2>
 <ol>
@@ -500,6 +502,8 @@
 <li>Monte Carlo estimation only requires: sample $t$ uniformly, sample noise $X_0 \sim p_0$, sample data $X_1 \sim p_1$.</li>
 </ul>
 <p>This is the fundamental reason Flow Matching is &quot;simulation-free&quot; (no ODE integration needed during training).</p>
+</div>
+<div class="note warning"><p><strong>A note on independent sampling of $X_0$ and $X_1$</strong>: Formula $\eqref{eq:cfm-en}$ is written with $X_0 \sim p_0, X_1 \sim p_1$ sampled independently — the simplest implementation for Monte Carlo estimation. But reviewing the derivation above, the Pythagorean theorem only requires the joint distribution of $(X_0, X_1)$ to have marginals $p_0$ and $p_1$ — <strong>independence is not required</strong>. In other words, independence is not an <strong>assumption</strong> this derivation relies on, but a <strong>default</strong> taken when constructing the joint distribution — so nothing above is approximate or flawed, and $Z_1 \sim p_1$ holds exactly. It is, however, a degree of freedom one can change: with a different joint distribution (e.g., the optimal transport plan) the learned $v_t$ is still correct, while trajectories become straighter and the training target has lower variance. A later post discusses this.</p>
 </div>
 <p><a href="#note-5" style="text-decoration:none"><sup>[5]</sup></a></p>
 <h2 id="5-Summary-Three-Step-Logic-Chain">5. Summary: Three-Step Logic Chain</h2>

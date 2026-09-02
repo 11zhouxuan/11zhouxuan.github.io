@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T05:56:11.605Z">
+<meta property="article:modified_time" content="2026-09-02T06:45:08.053Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -187,7 +187,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -198,7 +198,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -303,6 +303,9 @@
 <p><strong>ASVD（激活加权 SVD）</strong>：直觉是&quot;常被用到的输入通道要逼近得更准&quot;。取对角加权矩阵 $S = \mathrm{diag}(\mathbb{E}[\lvert x_i\rvert]^{\alpha})$——第 $i$ 个对角元是该输入通道平均激活幅度的 $\alpha$ 次方，指数 $\alpha$ 控制加权强度（$\alpha=1.0$ 即按幅度原样加权）——把目标换成加权误差：</p>
 <p>$$\min_{A,B}\ \lVert (W - AB)\ S \rVert_F^2$$</p>
 <p>解法与 plain SVD 同构：对 $WS$ 做 SVD 截断得 $U_r\Sigma_r V_r^T$，再取 $A = U_r\Sigma_r$、$B = V_r^T S^{-1}$，权重就在&quot;高激活通道误差放大、低激活通道误差缩小&quot;的度量下最优。再配合<strong>逐层 rank 分配</strong>：重要性（$\lVert WS\rVert_F$）高的层多给 rank、低的少给，平均 rank 357，分得最少的 Block 0 只有 32。得到 val loss = <strong>8.50</strong>。</p>
+<p>在看结果之前，把<strong>真正的目标</strong>也写下来，它是全系列的参照系。压缩的本意是：把每个 $W_\ell$ 换成 $A_\ell B_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低：</p>
+<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{预算}$$</p>
+<p>这个真目标关于因子是高度非凸的，没有闭式解。所以 plain SVD 和 ASVD 实际求解的都是上面那两个<strong>逐层代理目标</strong>——用&quot;每层各自把 $W_\ell$ 逼近好&quot;代替&quot;整个网络的输出好&quot;。本篇接下来的全部现象，都来自代理目标与真目标之间的裂缝。</p>
 <p>8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：</p>
 <table>
 <thead>
@@ -738,6 +741,9 @@
 <p><strong>ASVD (activation-weighted SVD)</strong>: the intuition is &quot;channels that get used a lot deserve a more accurate approximation.&quot; Take the diagonal weighting matrix $S = \mathrm{diag}(\mathbb{E}[\lvert x_i\rvert]^{\alpha})$ — the $i$-th entry is input channel $i$'s average activation magnitude raised to the power $\alpha$, which controls the weighting strength ($\alpha=1.0$ means weighting by the raw magnitudes) — and switch the objective to the weighted error:</p>
 <p>$$\min_{A,B}\ \lVert (W - AB)\ S \rVert_F^2$$</p>
 <p>The solution mirrors plain SVD: SVD-truncate $WS$ to get $U_r\Sigma_r V_r^T$, then set $A = U_r\Sigma_r$, $B = V_r^T S^{-1}$ — optimal in a metric that amplifies errors on high-activation channels and shrinks them elsewhere. Combined with <strong>per-layer rank allocation</strong>: layers with higher importance ($\lVert WS\rVert_F$) get more rank, others less — mean rank 357, with Block 0 starved at rank 32. Val loss = <strong>8.50</strong>.</p>
+<p>Before looking at the results, let us also write down the <strong>true objective</strong> — the reference point for the whole series. What compression actually wants: replace each $W_\ell$ with $A_\ell B_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget:</p>
+<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{budget}$$</p>
+<p>This true objective is highly non-convex in the factors and has no closed-form solution. So what plain SVD and ASVD actually solve are the two <strong>layerwise proxy objectives</strong> above — substituting &quot;each layer approximates its own $W_\ell$ well&quot; for &quot;the whole network's output is good.&quot; Everything that follows in this post comes from the crack between the proxy and the true objective.</p>
 <p>8.50 versus 18.65 — ASVD appears more than twice as good. But when we inspect the model's actual token predictions:</p>
 <table>
 <thead>
@@ -1184,9 +1190,9 @@ switchLang('zh');
 
     <footer class="post-footer">
           <div class="post-tags">
+              <a href="/tags/LLM/" rel="tag"><i class="fa fa-tag"></i> LLM</a>
               <a href="/tags/math/" rel="tag"><i class="fa fa-tag"></i> math</a>
               <a href="/tags/linear-algebra/" rel="tag"><i class="fa fa-tag"></i> linear-algebra</a>
-              <a href="/tags/LLM/" rel="tag"><i class="fa fa-tag"></i> LLM</a>
               <a href="/tags/compression/" rel="tag"><i class="fa fa-tag"></i> compression</a>
               <a href="/tags/representation-collapse/" rel="tag"><i class="fa fa-tag"></i> representation-collapse</a>
               <a href="/tags/SwiGLU/" rel="tag"><i class="fa fa-tag"></i> SwiGLU</a>

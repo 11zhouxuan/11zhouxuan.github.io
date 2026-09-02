@@ -178,7 +178,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-count">12</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -189,7 +189,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">27</span>
+        <span class="site-state-item-count">31</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -984,6 +984,11 @@ switchLang('zh');
 <p><a href="/2026/08/25/closed-form-anatomy/">第四篇</a>用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 <strong>4.59</strong>——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）只剩 0.80。这篇讲天花板是怎么两次移动的。诚实地说，两次都源于同一件事：<strong>合作者对&quot;已经到头了&quot;这个结论的不服气</strong>。第一次的不服（&quot;低秩逼近还有很大空间&quot;）指向了度量修正，第二次（对统计地基的持续加码）打开了校准数据工程。&quot;工具箱已榨干&quot;的结论永远带着一个隐藏脚注：<em>在当前的度量、当前的表达形式、当前的统计地基下</em>。</p>
 <p>背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 免税矫正器 + loss 感知分配，第四篇终点 5.05。</p>
 <p>（本文 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 6 节的 oracle 诊断保持当时的测量口径。）</p>
+<h3 id="0-终点方案一览：四处改动写进同一个式子">0. 终点方案一览：四处改动写进同一个式子</h3>
+<p>第二篇确立的逐层目标是：解出 $M^*$ 后在白化度量下截断，$\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$。本篇终点的逐层目标：</p>
+<p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{改动②：loss 敏感度度量}} \big(M^* - AB - \underbrace{S}_{\text{改动①：稀疏残差}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
+<p>其中 $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ 是输出通道 $j$ 的 loss 梯度二阶矩；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。</p>
+<p>下面按发生顺序逐个讲这四处改动。</p>
 <h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿截断税">1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税</h3>
 <p>截断税（~2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
 <p>做法：在每层的截断步里做交替求解（3 轮）——</p>
@@ -1157,6 +1162,11 @@ switchLang('zh');
 <p><a href="/2026/08/25/closed-form-anatomy/">Part 4</a> closed the closed-form track at 5.05 with a three-component anatomy of the gap. It was then pushed to <strong>4.59</strong> within a week — nearly another 0.5 nat, leaving just 0.80 to an end-to-end-distilled, actually-trained model (3.79). This post is about how the ceiling moved twice. Honestly, both moves came from the same source: <strong>a collaborator refusing to accept &quot;it's over&quot;</strong>. The first refusal (&quot;low-rank approximation still has plenty of room&quot;) led to the metric fix; the second (insisting on the statistical foundations) opened up calibration-data engineering. &quot;The toolbox is exhausted&quot; always carries a hidden footnote: <em>under the current metric, the current representation, and the current statistics</em>.</p>
 <p>Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + tax-free correctors + loss-aware allocation; part 4 endpoint 5.05.</p>
 <p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle diagnostics in Section 6 keep their original measurement window.)</p>
+<h3 id="0-The-Endpoint-Recipe-at-a-Glance-Four-Changes-in-One-Objective">0. The Endpoint Recipe at a Glance: Four Changes in One Objective</h3>
+<p>Part 2 established the layerwise objective: solve for $M^*$, then truncate in the whitened metric, $\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$. This post's endpoint objective per layer:</p>
+<p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{change ②: loss-sensitivity metric}} \big(M^* - AB - \underbrace{S}_{\text{change ①: sparse residual}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
+<p>where $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ is output channel $j$'s loss-gradient second moment; solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).</p>
+<p>The sections below introduce these four changes in the order they happened.</p>
 <h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-the-Truncation-Tax">1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax</h3>
 <p>The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage on the content pathway: the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>: it is by nature &quot;a few large entries at arbitrary positions.&quot; It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
 <p>Method: alternate inside each layer's truncation step (3 rounds) —</p>
@@ -1399,7 +1409,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -1515,6 +1525,9 @@ switchLang('zh');
 </tbody>
 </table>
 <p><strong>照单全收 → 5.27（失败）</strong>；把偏离限制在均匀值的 0.6~1.6 倍（即&quot;阻尼&quot;）→ <strong>5.06（当时的新纪录）</strong>。教训：这种敏感度是局部量——它只回答&quot;在当前解附近动一动会怎样&quot;，砍 4 倍已经远超它的适用范围；三点剂量曲线（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。</p>
+<p><strong>形式化本篇的改动</strong>。前三篇里每层的 rank 是固定常数 $r$；本篇把 ${r_\ell}$ 变成优化变量：</p>
+<p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{层 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{预算}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{阻尼约束（不可省略）}}$$</p>
+<p>其中 $f_{\ell,i}$ 是第 $\ell$ 层第 $i$ 个方向的 loss 敏感度（前文的梯度平方和）。没有阻尼约束时这个问题的解就是&quot;照单全收&quot;的 5.27；加上它才得到 5.06——<strong>约束本身是改进的一半</strong>。</p>
 <h3 id="4-实验方向二：巨激活通道——双负结果与真正的放大机制">4. 实验方向二：巨激活通道——双负结果与真正的放大机制</h3>
 <p>测量教师的输出侧异常，发现巨幅激活（massive activations，<a href="/2026/08/22/closed-form-ceiling/">第三篇</a>第 4 节提过的现象）在这个模型里是<strong>两条贯穿全网的全局通道</strong>：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。</p>
 <p>顺着第三篇&quot;免税矫正器&quot;的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。<strong>双双打平。</strong> 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向<strong>天然优先服务它们</strong>——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。</p>
@@ -1733,7 +1746,10 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p><strong>Taken at face value → 5.27 (fail)</strong>; deviation clipped to 0.6-1.6× of uniform (&quot;damping&quot;) → <strong>5.06 (record at the time)</strong>. Lesson: this sensitivity is a local quantity — it only answers &quot;what happens if you wiggle around the current solution&quot;; a 4× cut is far outside its domain. The three-point dose-response (untilted 5.10 / damped 5.06 / extreme 5.27) puts the optimum near the damped point. The direction has a clean mechanism: q/k only shape attention weights, normalized by softmax and thus naturally drift-robust; v/o/down carry the content written into the residual stream.</p>
+<p><strong>Taken at face value → 5.27 (fail)</strong>; deviation clipped to 0.6-1.6× of uniform (&quot;damping&quot;) → <strong>5.06 (record at the time)</strong>. Lesson: this sensitivity is a local quantity — it only answers &quot;what happens if you wiggle around the current solution&quot;; a 4× cut is far outside its domain. The three-point dose-response (untilted 5.10 / damped 5.06 / extreme 5.27) puts the optimum near the damped point.</p>
+<p><strong>This post's change, formalized.</strong> In the first three posts every layer's rank is a fixed constant $r$; this post turns ${r_\ell}$ into optimization variables:</p>
+<p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{expected damage of layer }\ell\text{'s cut directions}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{budget}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{damping constraint (not optional)}}$$</p>
+<p>where $f_{\ell,i}$ is direction $i$'s loss sensitivity in layer $\ell$ (the squared-gradient sums above). Without the damping constraint the solution is the face-value 5.27; with it, 5.06 — <strong>the constraint is half the improvement</strong>. The direction has a clean mechanism: q/k only shape attention weights, normalized by softmax and thus naturally drift-robust; v/o/down carry the content written into the residual stream.</p>
 <h3 id="4-Direction-2-Massive-Activation-Channels-—-a-Double-Negative-and-the-True-Amplifier">4. Direction 2: Massive-Activation Channels — a Double Negative and the True Amplifier</h3>
 <p>Measuring the teacher's output-side outliers revealed that massive activations (the phenomenon noted in <a href="/2026/08/22/closed-form-ceiling/">part 3</a>, Section 4) are in this model <strong>two global channels running the full depth</strong>: dims 1838 and 2276, 60-110× the median channel, growing monotonically from block 0 to 33 (mean|x| 4.9 → 607); nearly every o_proj/down_proj's largest output row targets them.</p>
 <p>Following part 3's tax-free-corrector principle we ran two equal-budget passthrough experiments: exempt the massive input COLUMNS from SVD truncation (top-24 per layer, kept exact), and exempt the massive output ROWS (top-8 of o/down). <strong>Both washed out.</strong> The conclusion is worth more than a win: the whitened SVD's objective is dominated by those very rows/columns, so the top singular directions <strong>serve them first</strong> — massive channels pay no truncation tax to begin with. A clean contrast with the lm_head/residual-corrector successes: those fixed whole matrices nobody was correcting; these are channels inside matrices that were already well served.</p>
@@ -1932,7 +1948,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -2019,6 +2035,10 @@ switchLang('zh');
 </tbody>
 </table>
 <p>同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。<strong>闭式同预算纪录：5.10。</strong></p>
+<p><strong>本篇方案的数学表述</strong>。在第二篇的逐层回归（每层解 $\min \mathbb{E}\lVert W x_t - M x_s - b\rVert^2$ 后截断到 rank $r$）之外，本篇新增两类回归，它们的共同点是<strong>没有 rank 约束</strong>——这正是&quot;免税&quot;的形式化含义，最优解不需要截断、不损失精度：</p>
+<p>$$\underbrace{h \leftarrow P_k h + b_k}_{\text{每 }K\text{ 个 block 一个残差流矫正器}}, \qquad (P_k, b_k) = \arg\min_{P, b}\ \mathbb{E}\lVert h_t - P h_s - b \rVert^2, \qquad P_k \in \mathbb{R}^{4096 \times 4096}\ \text{满秩}$$</p>
+<p>$$\underbrace{W_{lm}' = W_{lm} P, \quad b = W_{lm}(\bar{x}_t - P \bar{x}_s)}_{\text{lm_head 矫正：}P\text{ 吸收进头部权重，零新增参数}}$$</p>
+<p>预算配平：矫正器的参数由全网 rank 从 384 降到 316 来支付。与逐层回归的关键区别一目了然：那里的 $M^*$ 必须截断（付截断税），这里的 $P$ 保持满秩（免税）。</p>
 <h3 id="3-oracle-上界：逐层范式的地板在-4-0">3. oracle 上界：逐层范式的地板在 ~4.0</h3>
 <p>5.10 距离训练可达的 3.3 还有多远的闭式空间？我们直接测量&quot;矫正器的理论极限&quot;。做法是一个 <strong>oracle 实验</strong>——允许作弊、专门用来测理论上限的实验：运行时把每个子层的输入张量替换成教师的干净值（配对前向，替换 q/k/v 和 gate/up 的输入），于是每层只贡献自己的局部截断误差，误差在残差流中只加性累积、不再穿过非线性复合。</p>
 <p>这个作弊模型的 loss 是&quot;rank-r 线性层 + 任意输入侧矫正器&quot;整个家族的<strong>地板</strong>：无论矫正器是线性、分段还是任意非线性，它最多做到把输入还原干净——也就是最多做到 oracle 的水平，不可能更低。实测：</p>
@@ -2179,6 +2199,10 @@ switchLang('zh');
 </tbody>
 </table>
 <p>Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. <strong>Closed-form equal-budget record: 5.10.</strong></p>
+<p><strong>This post's method, stated precisely.</strong> On top of part 2's layerwise regression (solve $\min \mathbb{E}\lVert W x_t - M x_s - b\rVert^2$ per layer, then truncate to rank $r$), this post adds two families of regressions whose common trait is having <strong>no rank constraint</strong> — the formal meaning of &quot;tax-free&quot;: their optima need no truncation and lose no accuracy:</p>
+<p>$$\underbrace{h \leftarrow P_k h + b_k}_{\text{one residual-stream corrector every }K\text{ blocks}}, \qquad (P_k, b_k) = \arg\min_{P, b}\ \mathbb{E}\lVert h_t - P h_s - b \rVert^2, \qquad P_k \in \mathbb{R}^{4096 \times 4096}\ \text{full rank}$$</p>
+<p>$$\underbrace{W_{lm}' = W_{lm} P, \quad b = W_{lm}(\bar{x}_t - P \bar{x}_s)}_{\text{lm_head fix: }P\text{ absorbed into the head, zero new parameters}}$$</p>
+<p>Budget balance: the correctors' parameters are paid for by lowering all ranks from 384 to 316. The contrast with the layerwise regression is immediate: there, $M^*$ must be truncated (pays the tax); here, $P$ stays full-rank (tax-free).</p>
 <h3 id="3-The-Oracle-Bound-the-Layerwise-Paradigm-s-Floor-Is-4-0">3. The Oracle Bound: the Layerwise Paradigm's Floor Is ~4.0</h3>
 <p>How much closed-form room remains between 5.10 and the 3.3 that training reaches? We measured the theoretical limit of correctors directly, with an <strong>oracle experiment</strong> — an experiment that is allowed to cheat, used purely to establish a theoretical bound: at runtime, swap every sublayer's input tensor for the teacher's clean value (paired forwards, swapping at the q/k/v and gate/up entrances), so each layer contributes only its own local truncation error, and errors accumulate additively in the residual stream without compounding through nonlinearities.</p>
 <p>This cheating model's loss is the <strong>floor</strong> for the entire family &quot;rank-r linear layers + arbitrary input-side correctors&quot;: no corrector, however nonlinear, can do better than restoring the inputs to clean — that is, no better than the oracle. Measured:</p>
@@ -2347,7 +2371,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -2445,6 +2469,10 @@ switchLang('zh');
 <p>直觉：$\Sigma_{ts}\Sigma_{ss}^{-1}$ 是&quot;从脏输入线性还原干净输入&quot;的最优算子，再与 $W$ 复合——还原与变换合成在一个矩阵里。</p>
 <p><strong>第 3 步</strong>：白化截断到 rank $r$。直接对 $M^*$ 做 SVD 截断隐含&quot;输入各方向同等重要&quot;的假设，而真实输入分布并非如此；先取 $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$ 把输入坐标变换到协方差为单位阵的&quot;白化&quot;坐标，再对 $M^*L$ 做 SVD 截断，就是在 $x_s$ 的真实分布下可证最优的截断（白化坐标里的 Eckart–Young 定理，推导见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>）。截断后重算 $b = W\bar{x}_t - AB\bar{x}_s$，让 bias 顺带吸收截断在均值处的误差。</p>
 <p><strong>第 4 步</strong>：替换该层，处理下一层。下一层采集到的 $x_s$ 自动包含新换上的层的误差，于是被下一层矫正。</p>
+<p><strong>方案一屏总结</strong>（本篇的全部改进浓缩在第一个式子的期望符号里）。对每个线性层 $\ell$，按前向顺序：</p>
+<p>$$(M_\ell^*, b_\ell^*) = \arg\min_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W_\ell x_t}_{\text{目标：教师轨迹的干净输出}} - M \underbrace{x_s}_{\text{输入：学生的漂移输入}} - b \Big\rVert^2$$</p>
+<p>$$A_\ell B_\ell = \mathrm{SVD}_r\big(M_\ell^* L_\ell\big) L_\ell^{-1}, \qquad L_\ell = \mathrm{chol}\big(\Sigma_{ss}^{(\ell)} + \lambda I\big)$$</p>
+<p>对比第一篇的代理目标 $\min \lVert (W - AB) S \rVert_F^2$：那里输入分布和逼近目标都活在教师的世界里；这里<strong>输入来自学生的真实运行分布、目标来自教师轨迹</strong>——每一层同时在做压缩和对上游误差的纠错。这一处换目标就是本篇的全部改动，8.50 → 5.60 的差距全部由它贡献。</p>
 <h3 id="4-结果">4. 结果</h3>
 <table>
 <thead>
@@ -2596,6 +2624,10 @@ switchLang('zh');
 <p>Intuition: $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, composed with $W$ — restoration and transformation fused into one matrix.</p>
 <p><strong>Step 3</strong>: Whitened rank-$r$ truncation. Truncating the SVD of $M^*$ directly would implicitly assume all input directions matter equally, which the real input distribution violates; instead take $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$ to transform the input into &quot;whitened&quot; coordinates where the covariance is the identity, then SVD-truncate $M^*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates; derivation in <a href="/2026/08/30/lord-compression-primer/">the primer</a>). Recompute $b = W\bar{x}_t - AB\bar{x}_s$ afterwards so the bias also absorbs the truncation error at the mean.</p>
 <p><strong>Step 4</strong>: Replace the layer, move on. The next layer's $x_s$ automatically includes the newly introduced error, which the next regression corrects.</p>
+<p><strong>The whole method on one screen</strong> (this post's entire improvement is concentrated in the expectation of the first equation). For each linear layer $\ell$, in forward order:</p>
+<p>$$(M_\ell^*, b_\ell^*) = \arg\min_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W_\ell x_t}_{\text{target: clean teacher-trajectory output}} - M \underbrace{x_s}_{\text{input: the student's drifted input}} - b \Big\rVert^2$$</p>
+<p>$$A_\ell B_\ell = \mathrm{SVD}_r\big(M_\ell^* L_\ell\big) L_\ell^{-1}, \qquad L_\ell = \mathrm{chol}\big(\Sigma_{ss}^{(\ell)} + \lambda I\big)$$</p>
+<p>Contrast with part 1's proxy $\min \lVert (W - AB) S \rVert_F^2$: there, both the input distribution and the target live in the teacher's world; here <strong>the input comes from the student's real running distribution and the target from the teacher's trajectory</strong> — every layer simultaneously compresses and corrects upstream error. This single change of objective is the post's entire delta, and it accounts for all of 8.50 → 5.60.</p>
 <h3 id="4-Results">4. Results</h3>
 <table>
 <thead>
@@ -2744,7 +2776,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -2775,6 +2807,9 @@ switchLang('zh');
 <p><strong>ASVD（激活加权 SVD）</strong>：直觉是&quot;常被用到的输入通道要逼近得更准&quot;。取对角加权矩阵 $S = \mathrm{diag}(\mathbb{E}[\lvert x_i\rvert]^{\alpha})$——第 $i$ 个对角元是该输入通道平均激活幅度的 $\alpha$ 次方，指数 $\alpha$ 控制加权强度（$\alpha=1.0$ 即按幅度原样加权）——把目标换成加权误差：</p>
 <p>$$\min_{A,B}\ \lVert (W - AB)\ S \rVert_F^2$$</p>
 <p>解法与 plain SVD 同构：对 $WS$ 做 SVD 截断得 $U_r\Sigma_r V_r^T$，再取 $A = U_r\Sigma_r$、$B = V_r^T S^{-1}$，权重就在&quot;高激活通道误差放大、低激活通道误差缩小&quot;的度量下最优。再配合<strong>逐层 rank 分配</strong>：重要性（$\lVert WS\rVert_F$）高的层多给 rank、低的少给，平均 rank 357，分得最少的 Block 0 只有 32。得到 val loss = <strong>8.50</strong>。</p>
+<p>在看结果之前，把<strong>真正的目标</strong>也写下来，它是全系列的参照系。压缩的本意是：把每个 $W_\ell$ 换成 $A_\ell B_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低：</p>
+<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{预算}$$</p>
+<p>这个真目标关于因子是高度非凸的，没有闭式解。所以 plain SVD 和 ASVD 实际求解的都是上面那两个<strong>逐层代理目标</strong>——用&quot;每层各自把 $W_\ell$ 逼近好&quot;代替&quot;整个网络的输出好&quot;。本篇接下来的全部现象，都来自代理目标与真目标之间的裂缝。</p>
 <p>8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：</p>
 <table>
 <thead>
@@ -3210,6 +3245,9 @@ switchLang('zh');
 <p><strong>ASVD (activation-weighted SVD)</strong>: the intuition is &quot;channels that get used a lot deserve a more accurate approximation.&quot; Take the diagonal weighting matrix $S = \mathrm{diag}(\mathbb{E}[\lvert x_i\rvert]^{\alpha})$ — the $i$-th entry is input channel $i$'s average activation magnitude raised to the power $\alpha$, which controls the weighting strength ($\alpha=1.0$ means weighting by the raw magnitudes) — and switch the objective to the weighted error:</p>
 <p>$$\min_{A,B}\ \lVert (W - AB)\ S \rVert_F^2$$</p>
 <p>The solution mirrors plain SVD: SVD-truncate $WS$ to get $U_r\Sigma_r V_r^T$, then set $A = U_r\Sigma_r$, $B = V_r^T S^{-1}$ — optimal in a metric that amplifies errors on high-activation channels and shrinks them elsewhere. Combined with <strong>per-layer rank allocation</strong>: layers with higher importance ($\lVert WS\rVert_F$) get more rank, others less — mean rank 357, with Block 0 starved at rank 32. Val loss = <strong>8.50</strong>.</p>
+<p>Before looking at the results, let us also write down the <strong>true objective</strong> — the reference point for the whole series. What compression actually wants: replace each $W_\ell$ with $A_\ell B_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget:</p>
+<p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{252}}\ \mathbb{E}_x\Big[\mathrm{CE}\big(\hat f(x)\big)\Big] \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) \le \text{budget}$$</p>
+<p>This true objective is highly non-convex in the factors and has no closed-form solution. So what plain SVD and ASVD actually solve are the two <strong>layerwise proxy objectives</strong> above — substituting &quot;each layer approximates its own $W_\ell$ well&quot; for &quot;the whole network's output is good.&quot; Everything that follows in this post comes from the crack between the proxy and the true objective.</p>
 <p>8.50 versus 18.65 — ASVD appears more than twice as good. But when we inspect the model's actual token predictions:</p>
 <table>
 <thead>
@@ -3709,7 +3747,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
 
   
@@ -4374,7 +4412,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4435,7 +4473,7 @@ function switchLang(lang) {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2025/06/18/meanflow-one-step-generation/">
+    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2026/07/09/acl2026-scaling-laws/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -4453,7 +4491,7 @@ function switchLang(lang) {
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/06/18/meanflow-one-step-generation/" class="post-title-link" itemprop="url">From Flow Matching to MeanFlow: One-Step Generation</a>
+          <a href="/2026/07/09/acl2026-scaling-laws/" class="post-title-link" itemprop="url">ACL 2026 Scaling Laws: A Deep Dive into 10 Papers</a>
         </h2>
 
         <div class="post-meta-container">
@@ -4464,14 +4502,14 @@ function switchLang(lang) {
       </span>
       <span class="post-meta-item-text">Posted on</span>
 
-      <time title="Created: 2025-06-18 10:00:00" itemprop="dateCreated datePublished" datetime="2025-06-18T10:00:00+00:00">2025-06-18</time>
+      <time title="Created: 2026-07-09 10:00:00" itemprop="dateCreated datePublished" datetime="2026-07-09T10:00:00+00:00">2026-07-09</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4479,7 +4517,7 @@ function switchLang(lang) {
       </span>
       <span class="post-meta-item-text">In</span>
         <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-          <a href="/categories/machine-learning/" itemprop="url" rel="index"><span itemprop="name">machine learning</span></a>
+          <a href="/categories/research/" itemprop="url" rel="index"><span itemprop="name">research</span></a>
         </span>
     </span>
 
@@ -4499,10 +4537,9 @@ function switchLang(lang) {
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh" style="display:none;">
-<p>从 Flow Matching 到 MeanFlow——用同一分析框架推导一步生成的训练目标。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2025/06/18/meanflow-one-step-generation/#more" rel="contents">
+              <a class="btn" href="/2026/07/09/acl2026-scaling-laws/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -4533,7 +4570,7 @@ function switchLang(lang) {
   
 
   <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
-    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2025/06/12/flow-matching-three-steps/">
+    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2025/06/25/flow-matching-optimal-transport/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.gif">
@@ -4551,7 +4588,7 @@ function switchLang(lang) {
     </span>
       <header class="post-header">
         <h2 class="post-title" itemprop="name headline">
-          <a href="/2025/06/12/flow-matching-three-steps/" class="post-title-link" itemprop="url">The Mathematics of Flow Matching</a>
+          <a href="/2025/06/25/flow-matching-optimal-transport/" class="post-title-link" itemprop="url">Flow Matching and Optimal Transport</a>
         </h2>
 
         <div class="post-meta-container">
@@ -4562,14 +4599,14 @@ function switchLang(lang) {
       </span>
       <span class="post-meta-item-text">Posted on</span>
 
-      <time title="Created: 2025-06-12 10:00:00" itemprop="dateCreated datePublished" datetime="2025-06-12T10:00:00+00:00">2025-06-12</time>
+      <time title="Created: 2025-06-25 10:00:00" itemprop="dateCreated datePublished" datetime="2025-06-25T10:00:00+00:00">2025-06-25</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 05:56:11" itemprop="dateModified" datetime="2026-09-02T05:56:11+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4597,10 +4634,9 @@ function switchLang(lang) {
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh" style="display:none;">
-<p>Flow Matching——连续生成模型中&quot;无需模拟&quot;训练目标的极简推导，三步到位。</p>
           <!--noindex-->
             <div class="post-button">
-              <a class="btn" href="/2025/06/12/flow-matching-three-steps/#more" rel="contents">
+              <a class="btn" href="/2025/06/25/flow-matching-optimal-transport/#more" rel="contents">
                 Read more &raquo;
               </a>
             </div>
@@ -4623,6 +4659,9 @@ function switchLang(lang) {
 
 
 
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" title="Next page" aria-label="Next page" href="/page/2/"><i class="fa fa-angle-right"></i></a>
+  </nav>
 
 </div>
   </main>

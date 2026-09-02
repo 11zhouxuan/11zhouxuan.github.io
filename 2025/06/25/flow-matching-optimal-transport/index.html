@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222"><meta name="generator" content="Hexo 8.1.2">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" integrity="sha256-VHqXKFhhMxcpubYf9xiWdCiojEbY9NexQ4jh8AxbvcM=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
+
+    <meta name="description" content="English   中文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flow Matching and Optimal Transport">
+<meta property="og:url" content="https://11zhouxuan.github.io/2025/06/25/flow-matching-optimal-transport/index.html">
+<meta property="og:site_name" content="Xuan&#39;s Blog">
+<meta property="og:description" content="English   中文">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-06-25T10:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-02T06:45:08.052Z">
+<meta property="article:author" content="Xuan Zhou">
+<meta property="article:tag" content="flow matching">
+<meta property="article:tag" content="generative models">
+<meta property="article:tag" content="machine learning">
+<meta property="article:tag" content="optimal transport">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="https://11zhouxuan.github.io/2025/06/25/flow-matching-optimal-transport/">
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2025/06/25/flow-matching-optimal-transport/","path":"2025/06/25/flow-matching-optimal-transport/","title":"Flow Matching and Optimal Transport"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Flow Matching and Optimal Transport | Xuan's Blog</title>
+  
+
+
+
+
+
+
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous" defer></script>
+<script src="/js/utils.js" defer></script><script src="/js/motion.js" defer></script><script src="/js/sidebar.js" defer></script><script src="/js/next-boot.js" defer></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hexo-generator-searchdb/1.5.0/search.js" integrity="sha256-xFC6PJ82SL9b3WkGjFavNiA9gm5z6UBxWPiu4CYjptg=" crossorigin="anonymous" defer></script>
+<script src="/js/third-party/search/local-search.js" defer></script>
+
+
+
+
+
+
+
+  
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+  
+
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"ams","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+<script src="/js/third-party/math/mathjax.js" defer></script>
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@400;600;700&family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">Xuan's Blog</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Applied Mathematics & Machine Learning</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-home"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a></li><li class="menu-item menu-item-archives"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives</a></li><li class="menu-item menu-item-tags"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags</a></li><li class="menu-item menu-item-categories"><a href="/categories/" rel="section"><i class="fa fa-folder-open fa-fw"></i>Categories</a></li><li class="menu-item menu-item-about"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a></li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+      <div class="search-header">
+        <span class="search-icon">
+          <i class="fa fa-search"></i>
+        </span>
+        <div class="search-input-container">
+          <input autocomplete="off" autocapitalize="off" maxlength="80"
+                placeholder="Searching..." spellcheck="false"
+                type="search" class="search-input">
+        </div>
+        <span class="popup-btn-close" role="button">
+          <i class="fa fa-times-circle"></i>
+        </span>
+      </div>
+      <div class="search-result-container">
+        <div class="search-result-icon">
+          <i class="fa fa-spinner fa-pulse fa-5x"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%B8%A4%E4%B8%AA%E6%9C%80%E4%BC%98%E4%BC%A0%E8%BE%93%E9%97%AE%E9%A2%98%EF%BC%9A%E9%9D%99%E6%80%81%E4%B8%8E%E5%8A%A8%E6%80%81"><span class="nav-text">1. 两个最优传输问题：静态与动态</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9D%99%E6%80%81-OT%EF%BC%9A%E5%8F%AA%E9%97%AE-%E8%B0%81%E9%85%8D%E8%B0%81"><span class="nav-text">静态 OT：只问&quot;谁配谁&quot;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E6%80%81-OT%EF%BC%9A%E9%97%AE-%E6%80%8E%E4%B9%88%E8%B5%B0"><span class="nav-text">动态 OT：问&quot;怎么走&quot;</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Flow-Matching-%E9%87%8C%E7%9A%84-OT-%E6%98%AF%E5%93%AA%E4%B8%80%E4%B8%AA%EF%BC%9F"><span class="nav-text">2. Flow Matching 里的&quot;OT&quot;是哪一个？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E7%AC%AC%E4%B8%80%E6%AD%A5%EF%BC%9A%E5%B9%BF%E4%B9%89-CFM%E2%80%94%E2%80%94%E6%8A%8A%E8%80%A6%E5%90%88%E5%8F%98%E6%88%90%E4%B8%80%E4%B8%AA%E5%8F%AF%E9%80%89%E9%A1%B9"><span class="nav-text">3. 第一步：广义 CFM——把耦合变成一个可选项</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B7%B7%E5%90%88%E8%A7%86%E8%A7%92"><span class="nav-text">混合视角</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B3%E9%94%AE%EF%BC%9A-q-z-%E6%98%AF%E8%87%AA%E7%94%B1%E7%9A%84"><span class="nav-text">关键：$q(z)$ 是自由的</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E7%AC%AC%E4%BA%8C%E6%AD%A5%EF%BC%9A%E6%8A%8A%E9%9D%99%E6%80%81-OT-plan-%E8%A3%85%E8%BF%9B-q-z"><span class="nav-text">4. 第二步：把静态 OT plan 装进 $q(z)$</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#OT-CFM"><span class="nav-text">OT-CFM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A3%85%E8%BF%9B%E5%8E%BB%E5%B0%B1%E6%88%90%E7%AB%8B"><span class="nav-text">为什么装进去就成立</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E9%99%85%E6%96%B9%E6%A1%88%EF%BC%9AMinibatch-OT"><span class="nav-text">实际方案：Minibatch OT</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E5%89%AF%E4%BA%A7%E5%93%81%EF%BC%9A%E8%AE%AD%E7%BB%83%E4%B8%8E%E6%8E%A8%E7%90%86%E9%83%BD%E6%9B%B4%E5%BF%AB"><span class="nav-text">5. 副产品：训练与推理都更快</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%AD%E7%BB%83%E6%9B%B4%E5%BF%AB%EF%BC%9A%E5%9B%9E%E5%BD%92%E7%9B%AE%E6%A0%87%E7%9A%84%E6%96%B9%E5%B7%AE%E9%99%8D%E4%BD%8E"><span class="nav-text">训练更快：回归目标的方差降低</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%8E%A8%E7%90%86%E6%9B%B4%E5%BF%AB%EF%BC%9ANFE-%E6%9B%B4%E5%B0%91"><span class="nav-text">推理更快：NFE 更少</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E5%AE%9E%E9%AA%8C%E7%BB%93%E8%AE%BA"><span class="nav-text">其他实验结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E4%B8%80%E4%B8%AA%E5%8F%82%E6%95%B0%E7%BB%9F%E4%B8%80%E4%B8%89%E7%A7%8D%E6%96%B9%E6%B3%95%EF%BC%9ASB-CFM"><span class="nav-text">6. 一个参数统一三种方法：SB-CFM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-%E4%B8%8E%E5%89%8D%E4%B8%A4%E7%AF%87%E7%9A%84%E8%81%94%E7%B3%BB"><span class="nav-text">7. 与前两篇的联系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-%E6%80%BB%E7%BB%93"><span class="nav-text">8. 总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-Two-Optimal-Transport-Problems-Static-and-Dynamic"><span class="nav-text">1. Two Optimal Transport Problems: Static and Dynamic</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Static-OT-only-asks-who-pairs-with-whom"><span class="nav-text">Static OT: only asks &quot;who pairs with whom&quot;</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Dynamic-OT-asks-how-to-travel"><span class="nav-text">Dynamic OT: asks &quot;how to travel&quot;</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-Which-OT-Is-the-One-in-Flow-Matching"><span class="nav-text">2. Which &quot;OT&quot; Is the One in Flow Matching?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-Step-One-Generalized-CFM-%E2%80%94-Making-the-Coupling-a-Free-Parameter"><span class="nav-text">3. Step One: Generalized CFM — Making the Coupling a Free Parameter</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#The-mixture-view"><span class="nav-text">The mixture view</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-key-point-q-z-is-free"><span class="nav-text">The key point: $q(z)$ is free</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-Step-Two-Plugging-the-Static-OT-Plan-into-q-z"><span class="nav-text">4. Step Two: Plugging the Static OT Plan into $q(z)$</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#OT-CFM-2"><span class="nav-text">OT-CFM</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Why-plugging-it-in-works"><span class="nav-text">Why plugging it in works</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Practical-recipe-minibatch-OT"><span class="nav-text">Practical recipe: minibatch OT</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-By-products-Both-Training-and-Inference-Get-Faster"><span class="nav-text">5. By-products: Both Training and Inference Get Faster</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Faster-training-lower-variance-in-the-regression-target"><span class="nav-text">Faster training: lower variance in the regression target</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Faster-inference-fewer-NFE"><span class="nav-text">Faster inference: fewer NFE</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Other-experimental-findings"><span class="nav-text">Other experimental findings</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-One-Parameter-Unifies-Three-Methods-SB-CFM"><span class="nav-text">6. One Parameter Unifies Three Methods: SB-CFM</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-Connection-to-the-Previous-Two-Posts"><span class="nav-text">7. Connection to the Previous Two Posts</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#8-Summary"><span class="nav-text">8. Summary</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Xuan Zhou</p>
+  <div class="site-description" itemprop="description">Personal academic blog on applied mathematics and machine learning.</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">12</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">31</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/11zhouxuan" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;11zhouxuan" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2025/06/25/flow-matching-optimal-transport/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Xuan Zhou">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Xuan's Blog">
+      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Flow Matching and Optimal Transport | Xuan's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Flow Matching and Optimal Transport
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-06-25 10:00:00" itemprop="dateCreated datePublished" datetime="2025-06-25T10:00:00+00:00">2025-06-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-02 06:45:08" itemprop="dateModified" datetime="2026-09-02T06:45:08+00:00">2026-09-02</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/machine-learning/" itemprop="url" rel="index"><span itemprop="name">machine learning</span></a>
+        </span>
+    </span>
+
+  
+    <span class="post-meta-item" title="Views" id="busuanzi_container_page_pv">
+      <span class="post-meta-item-icon">
+        <i class="far fa-eye"></i>
+      </span>
+      <span class="post-meta-item-text">Views: </span>
+      <span id="busuanzi_value_page_pv"></span>
+    </span>
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><div class="lang-switch">
+  <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
+  <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中文</button>
+</div>
+<!-- Chinese Version -->
+<div class="lang-content lang-zh" style="display:none;">
+<span id="more"></span>
+<div class="note info"><p><strong>前情提要</strong>：在 <a href="/2025/06/12/flow-matching-three-steps/">The Mathematics of Flow Matching</a> 中我们推导了 CFM loss，在 <a href="/2025/06/18/meanflow-one-step-generation/">From Flow Matching to MeanFlow</a> 中把学习对象从瞬时速度换成了平均速度。两篇都反复出现&quot;最优传输&quot;这个词，但都没说清：<strong>Flow Matching 到底在什么意义上是最优传输？</strong></p>
+<p><strong>本文回答这个问题</strong>，并解读 OT-CFM（Tong et al., TMLR 2024）。一句话版本：</p>
+<ul>
+<li>Flow Matching 的<strong>条件路径</strong>是最优传输路径，但<strong>边际路径</strong>一般<strong>不是</strong>。</li>
+<li>动态最优传输（Benamou-Brenier）此前只能靠模拟 ODE 去逼近，代价是训练时要穿过上百次网络求值。</li>
+<li>OT-CFM 的做法：把便宜的<strong>静态</strong> OT 解装进 CFM 的采样分布，从而<strong>免模拟地</strong>得到<strong>动态</strong> OT 的解。</li>
+</ul>
+<p><strong>符号约定</strong>：$q_0, q_1$ 为源/目标分布，$x_0 \sim q_0$，$x_1 \sim q_1$；$z$ 为条件变量；$u_t$ 为真实速度场，$v_t^\theta$ 为神经网络。</p>
+</div>
+<h2 id="1-两个最优传输问题：静态与动态">1. 两个最优传输问题：静态与动态</h2>
+<p>最优传输有两副面孔，而 Flow Matching 只与其中一副天然相容。</p>
+<h3 id="静态-OT：只问-谁配谁">静态 OT：只问&quot;谁配谁&quot;</h3>
+<p>Kantorovich 形式的 $2$-Wasserstein 问题在所有<strong>耦合</strong>（joint distribution）上求最小代价：</p>
+<p>$$W_2^2(q_0, q_1) = \inf_{\pi \in \Pi(q_0, q_1)} \int \lVert x_0 - x_1 \rVert^2 \mathrm{d}\pi(x_0, x_1) \tag{1} \label{eq:static-ot-zh}$$</p>
+<p>其中 $\Pi(q_0, q_1)$ 是边际分别为 $q_0$、$q_1$ 的所有联合分布。解 $\pi^{\ast}$ 称为 <strong>OT plan</strong>——它只回答&quot;哪个 $x_0$ 应该配哪个 $x_1$&quot;，<strong>不涉及时间</strong>，也不涉及任何 ODE。</p>
+<p>它的好处是<strong>可解</strong>：离散情形是标准线性规划（或 Sinkhorn），成熟求解器现成可用。</p>
+<h3 id="动态-OT：问-怎么走">动态 OT：问&quot;怎么走&quot;</h3>
+<p>Benamou-Brenier (2000) 的等价形式改为在<strong>速度场</strong>上求最小动能：</p>
+<p>$$W_2^2(q_0, q_1) = \inf_{p_t, u_t} \int_0^1 \int p_t(x) \lVert u_t(x) \rVert^2 \mathrm{d}x \mathrm{d}t \tag{2} \label{eq:dynamic-ot-zh}$$</p>
+<p>约束是连续性方程 $\partial_t p_t = -\nabla \cdot (p_t u_t)$ 以及边界条件 $p_0 = q_0$、$p_1 = q_1$。</p>
+<p>这才是生成模型想要的东西——它直接给出一个可以积分的速度场 $u_t$。但它是一个<strong>关于整条路径的变分问题</strong>，比 $\eqref{eq:static-ot-zh}$ 难得多。</p>
+<div class="note danger"><p><strong>此前的困境</strong>。要让神经 ODE 逼近动态 OT，之前的做法（TrajectoryNet、Finlay et al. 的正则化 CNF）是给 CNF 加 $L^2$ 动能正则。论文 §2.2 原文点出代价：</p>
+<blockquote>
+<p>&quot;these models required <strong>integrating over and backpropagating through tens to hundreds of function evaluations</strong>, resulting in both numerical and efficiency issues. We aim to avoid these issues by directly regressing to the vector field in a <strong>simulation-free</strong> way.&quot;</p>
+</blockquote>
+<p>也就是说：<strong>动态 OT 难，是因为它需要模拟（simulation）</strong>——训练每一步都要真的把 ODE 积出来再反传。</p>
+<p><strong>本文的核心问题</strong>：$\eqref{eq:static-ot-zh}$ 便宜、$\eqref{eq:dynamic-ot-zh}$ 有用，而 Benamou-Brenier 说两者等价。能否把静态解**提升（lift）**为动态解，且训练完全免模拟？</p>
+</div>
+<h2 id="2-Flow-Matching-里的-OT-是哪一个？">2. Flow Matching 里的&quot;OT&quot;是哪一个？</h2>
+<p>在回答上面的问题之前，先澄清一个长期的混淆——这也是读 Lipman et al. 原文时最容易误解的地方。</p>
+<p><a href="/2025/06/12/flow-matching-three-steps/">前文</a>的构造是：取一对样本，用<strong>直线</strong>连起来</p>
+<p>$$x_t = (1-t)x_0 + t x_1$$</p>
+<p>一条直线正是从 $x_0$ 到 $x_1$ 的动态 OT 路径（两点之间动能最小的走法就是匀速直线）。所以说 FM 用了&quot;OT 路径&quot;，<strong>在给定一对 $(x_0, x_1)$ 的条件下是对的</strong>。</p>
+<p>但 OT-CFM 论文 §3.2.1 特意强调了下一句：</p>
+<blockquote>
+<p>&quot;We emphasize that although the <strong>conditional</strong> probability path $p_t(x \mid z)$ <strong>is</strong> an optimal transport path from $p_0(x \mid z)$ to $p_1(x \mid z)$, the <strong>marginal</strong> path $p_t(x)$ <strong>is not in general an OT path</strong> from the standard normal $p_0(x)$ to the data distribution $p_1(x)$.&quot;</p>
+</blockquote>
+<div class="note success"><p><strong>关系澄清</strong>（两个层次，别混淆）：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>条件层面 $p_t(x \mid z)$</th>
+<th>边际层面 $p_t(x)$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>是什么</td>
+<td>单条样本连线</td>
+<td>所有连线叠加后的真实概率流</td>
+</tr>
+<tr>
+<td>是 OT 吗</td>
+<td><strong>是</strong>（直线 = 两点间动态 OT）</td>
+<td><strong>一般不是</strong></td>
+</tr>
+<tr>
+<td>谁在乎</td>
+<td>推导的中间构造</td>
+<td>采样时真正积分的那个场</td>
+</tr>
+</tbody>
+</table>
+<p>一句话：<strong>每条连线各自最优，叠加起来的流不最优</strong>。因为无数条直线互相交叉，网络在交叉点处只能给出一个速度值——那是各方向的加权平均，不再是任何一条直线的速度。</p>
+</div>
+<p>论文 Table 1 把这件事做成了两列 checkbox，一目了然：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>$q(z)$</th>
+<th>Cond. OT</th>
+<th>Marginal OT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flow Matching (Lipman et al.)</td>
+<td>$q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Rectified Flow (Liu)</td>
+<td>$q(x_0)q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Stochastic Interpolant</td>
+<td>$q(x_0)q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>I-CFM（独立耦合）</td>
+<td>$q(x_0)q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td><strong>OT-CFM（本文）</strong></td>
+<td>$\pi(x_0, x_1)$</td>
+<td>✓</td>
+<td><strong>✓</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>所以 OT-CFM 要补的正是右下那一格</strong>：让边际流也成为 OT 流。注意前四行不是&quot;错&quot;——它们都是正确的生成模型，只是边际层面不解动态 OT。</p>
+<h2 id="3-第一步：广义-CFM——把耦合变成一个可选项">3. 第一步：广义 CFM——把耦合变成一个可选项</h2>
+<p>论文的第一个贡献是一个框架，它的作用是<strong>腾出自由度</strong>。</p>
+<h3 id="混合视角">混合视角</h3>
+<p>设边际概率路径是一族条件路径的混合：</p>
+<p>$$p_t(x) = \int p_t(x \mid z) q(z) \mathrm{d}z \tag{3} \label{eq:mixture-zh}$$</p>
+<p>其中 $z$ 是<strong>任意</strong>条件变量，$q(z)$ 是它的分布。若每条 $p_t(x \mid z)$ 由 $u_t(x \mid z)$ 生成，则生成混合路径 $p_t(x)$ 的边际速度场是加权平均：</p>
+<p>$$u_t(x) = \mathbb{E}_{q(z)} \left[ \frac{u_t(x \mid z)\enspace p_t(x \mid z)}{p_t(x)} \right] \tag{4} \label{eq:marginal-field-zh}$$</p>
+<p><strong>Theorem 3.1</strong>：$\eqref{eq:marginal-field-zh}$ 确实生成 $\eqref{eq:mixture-zh}$。</p>
+<p>问题是 $\eqref{eq:marginal-field-zh}$ 算不出来——分母 $p_t(x)$ 是个积分。于是定义 <strong>CFM loss</strong>，只回归<strong>条件</strong>速度场：</p>
+<p>$$\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t, q(z), p_t(x \mid z)} \lVert v_t^\theta(x) - u_t(x \mid z) \rVert^2 \tag{5} \label{eq:cfm-zh}$$</p>
+<p><strong>Theorem 3.2</strong>：$\mathcal{L}_{\mathrm{CFM}}$ 与 $\mathcal{L}_{\mathrm{FM}}$ 相差一个与 $\theta$ 无关的常数，因此</p>
+<p>$$\nabla_\theta \mathcal{L}_{\mathrm{FM}}(\theta) = \nabla_\theta \mathcal{L}_{\mathrm{CFM}}(\theta) \tag{6} \label{eq:grad-eq-zh}$$</p>
+<p>这就是<a href="/2025/06/12/flow-matching-three-steps/">前文</a>用勾股定理证过的那件事，这里推广到了任意 $z$。</p>
+<h3 id="关键：-q-z-是自由的">关键：$q(z)$ 是自由的</h3>
+<p>取 $z := (x_0, x_1)$，条件路径为两点间的高斯桥：</p>
+<p>$$p_t(x \mid z) = \mathcal{N}(x \mid t x_1 + (1-t) x_0, \enspace \sigma^2), \qquad u_t(x \mid z) = x_1 - x_0 \tag{7} \label{eq:icfm-zh}$$</p>
+<p>此时 $\eqref{eq:cfm-zh}$ 就是<a href="/2025/06/12/flow-matching-three-steps/">前文</a>推出的那个 loss。前文取 $q(z) = q(x_0) q(x_1)$——<strong>独立耦合</strong>，论文称之为 <strong>I-CFM</strong>。</p>
+<div class="note info"><p><strong>这是框架的价值所在</strong>：$\eqref{eq:grad-eq-zh}$ 的成立<strong>只要求 $q(z)$ 的边际是 $q_0$ 和 $q_1$</strong>，完全不要求 $x_0 \perp x_1$。</p>
+<p>所以独立性不是一个&quot;假设&quot;，而是构造 $q(z)$ 时的一个<strong>默认取法</strong>——前文的推导没有任何漏洞，$Z_1 \sim q_1$ 严格成立。但它意味着 $q(z)$ 是一个此前<strong>未被使用的自由度</strong>。</p>
+<p>论文的第一个贡献就是把这个自由度显式化（并顺带说明 FM 只需 $q(x_1)$、要求源为 Gaussian 的限制也随之解除，任意源分布都可以）。第二个贡献是把它用起来。</p>
+</div>
+<h2 id="4-第二步：把静态-OT-plan-装进-q-z">4. 第二步：把静态 OT plan 装进 $q(z)$</h2>
+<p>现在第 1 节的问题有了一个几乎显然的答案。</p>
+<h3 id="OT-CFM">OT-CFM</h3>
+<p>令条件变量的分布就是<strong>静态 OT plan</strong>：</p>
+<p>$$\boxed{q(z) := \pi^{\ast}(x_0, x_1)} \tag{8} \label{eq:otcfm-zh}$$</p>
+<p>即 $\eqref{eq:static-ot-zh}$ 的解。条件路径仍用 $\eqref{eq:icfm-zh}$，什么都不变——<strong>唯一的改动是 $(x_0, x_1)$ 不再各自独立采样，而是按 $\pi^{\ast}$ 联合采样</strong>。</p>
+<div class="note success"><p><strong>Proposition 3.4</strong>：在 $q_0$、$q_1$、$\pi^{\ast}$ 的正则性条件下，当 $\sigma^2 \to 0$ 时，$\eqref{eq:otcfm-zh}$ 诱导的边际路径 $p_t$ 与边际速度场 $u_t$ <strong>最小化 $\eqref{eq:dynamic-ot-zh}$</strong>，即 $u_t$ 解 $q_0$ 到 $q_1$ 的<strong>动态最优传输问题</strong>。</p>
+<p>这就完成了&quot;提升&quot;：输入是<strong>静态</strong> OT 的解（一个配对），输出是<strong>动态</strong> OT 的解（一个速度场），而训练只是 $\eqref{eq:cfm-zh}$ 这个回归——<strong>没有任何 ODE 模拟</strong>。</p>
+</div>
+<h3 id="为什么装进去就成立">为什么装进去就成立</h3>
+<p>关键在 Brenier 定理：OT plan 是确定性的且<strong>不交叉</strong>，$x_1 = \nabla \Psi^{\ast}(x_0)$（凸函数的梯度）。</p>
+<p>于是第 2 节那个&quot;条件是 OT、边际不是 OT&quot;的裂缝被弥合了：既然直线族互不交叉，每个点 $x$ 只被唯一一条连线穿过，$\eqref{eq:marginal-field-zh}$ 的加权平均<strong>退化成单点取值</strong>——</p>
+<p>$$u_t(x) = u_t(x \mid z) = \nabla \Psi^{\ast}(x_0) - x_0$$</p>
+<p>条件场与边际场重合。既然每条条件路径都是 OT 路径，边际路径也就是 OT 路径了。McCann 位移插值 $p_t = [(1-t)\mathrm{Id} + t \nabla\Psi^{\ast}]_{\sharp} q_0$ 正是动态 OT 的解。</p>
+<div class="note danger"><p><strong>对比第 2 节</strong>：独立耦合下连线大量交叉 → $\eqref{eq:marginal-field-zh}$ 是真的在平均 → 条件 OT 传不到边际。OT 耦合下不交叉 → 不平均 → 条件 OT 直接就是边际 OT。</p>
+<p><strong>这就是那张 checkbox 表里 <code>Marginal OT</code> 一列的全部机制。</strong></p>
+</div>
+<h3 id="实际方案：Minibatch-OT">实际方案：Minibatch OT</h3>
+<p>精确 OT plan 的时间复杂度是 $O(n^3)$、内存 $O(n^2)$，大数据集不可行。论文按数据规模分两种情形：</p>
+<ol>
+<li><strong>小数据集</strong>（如单细胞）：直接算精确 OT plan，网络的作用是把这个映射<strong>外推到未见数据</strong>。</li>
+<li><strong>大数据集</strong>（如图像）：<strong>在每个 batch 内解 OT</strong>。采样 ${x_0^i}_{i=1}^B$、${x_1^i}_{i=1}^B$，解 $B \times B$ 的分配问题，用得到的配对计算 $\eqref{eq:cfm-zh}$。</li>
+</ol>
+<div class="note warning"><p><strong>Minibatch OT 是有偏的</strong>——它不等于全局 OT。但论文指出：</p>
+<ul>
+<li>当 OT batch size 等于 $(q_0, q_1)$ 支撑集大小时，恢复精确 OT，由 Prop 3.4 学到精确动态 OT。</li>
+<li>实测 batch size 远小于数据集即可很好地逼近 OT 映射（Fig. D.2），作者推测这来自网络优化本身的泛化。</li>
+<li>训练开销 $&lt; 1%$。</li>
+</ul>
+</div>
+<h2 id="5-副产品：训练与推理都更快">5. 副产品：训练与推理都更快</h2>
+<p>论文结论段的句式是&quot;lifting static OT to dynamic ... <strong>while also</strong> allowing more efficient training and inference&quot;。以下两条是那个 &quot;while also&quot;——重要，但逻辑上是<strong>推论</strong>，不是出发点。</p>
+<h3 id="训练更快：回归目标的方差降低">训练更快：回归目标的方差降低</h3>
+<p>$\eqref{eq:cfm-zh}$ 是个<strong>随机</strong>回归：同一个 $x$ 可能来自不同的 $z$，目标 $u_t(x \mid z)$ 随之抖动。论文称这个抖动为 <strong>objective variance</strong>：</p>
+<p>$$\mathrm{OV} := \mathbb{E} \lVert u_t(x \mid z) - u_t(x) \rVert^2 \tag{9} \label{eq:ov-zh}$$</p>
+<p>它正是 $\eqref{eq:grad-eq-zh}$ 里那个&quot;与 $\theta$ 无关的常数&quot;，也是 $\mathcal{L}_{\mathrm{CFM}}$ 的下界——网络再强也降不到零以下。</p>
+<p><strong>Proposition B.2</strong>：若 $\pi$ 是 Monge 映射，则 $\sigma \to 0$ 时 OT-CFM 的 $\mathrm{OV} \to 0$。这是第 4 节&quot;条件场 = 边际场&quot;的直接推论。而独立耦合下 $\mathrm{OV}$ 不趋于零。</p>
+<p>实测：OT-CFM 与 SB-CFM 的 OV 比 I-CFM/FM <strong>低至少一个数量级</strong>，相应地验证误差下降更快（Fig. 2 左、Fig. D.8）。</p>
+<h3 id="推理更快：NFE-更少">推理更快：NFE 更少</h3>
+<p>推理是数值积分 $\mathrm{d}Z_t = v_t^\theta(Z_t)\mathrm{d}t$，每次求值 $v_t^\theta$ 是一次网络前向。总求值次数记作 <strong>NFE</strong>（Number of Function Evaluations）——它就是推理成本。</p>
+<p>$N$ 步 Euler 的截断误差由加速度控制：把精确解展开 $Z_{t+h} = Z_t + h\dot{Z}_t + \frac{h^2}{2}\ddot{Z}_t + O(h^3)$，Euler 丢掉的是 $O(h^2 \lVert \ddot{Z}_t \rVert)$ 那一项，累积后</p>
+<p>$$\mathrm{NFE} = N \gtrsim \frac{C}{\varepsilon} \sup_{t} \lVert \ddot{Z}_t \rVert \tag{10} \label{eq:nfe-zh}$$</p>
+<p>而在 OT 耦合下轨迹是<strong>直线</strong>，$\ddot{Z}_t \equiv 0$——截断误差为零，原则上一步即精确。</p>
+<p>实测（Fig. 2 右、Fig. 3 右）：固定 NFE 时 OT-CFM 的样本质量更好；达到同等质量所需 NFE 更少。CIFAR-10 上 OT-CFM 在 FID 与 NFE 两个维度都优于 I-CFM 和 FM。</p>
+<h3 id="其他实验结论">其他实验结论</h3>
+<ul>
+<li><strong>动态 OT 精度</strong>（NPE，normalized path energy）：OT-CFM 的路径动能非常接近 $W_2^2$，即真的解了动态 OT；$\text{moons} \leftrightarrow \text{8gaussians}$ 这类任务上 I-CFM 差距明显。</li>
+<li><strong>单细胞轨迹插值</strong>：CITE-seq / EB / Multiome 三个数据集上 OT-CFM 的 EMD 全面优于 DSB、I-CFM、TrajectoryNet、正则化 CNF。</li>
+</ul>
+<h2 id="6-一个参数统一三种方法：SB-CFM">6. 一个参数统一三种方法：SB-CFM</h2>
+<p>论文第三个贡献顺着同一条思路：把 $q(z)$ 换成<strong>熵正则</strong> OT plan $\pi^{2\sigma^2}$，条件路径换成布朗桥</p>
+<p>$$p_t(x \mid z) = \mathcal{N}\big(x \mid t x_1 + (1-t) x_0, \enspace t(1-t)\sigma^2\big) \tag{11} \label{eq:sb-zh}$$</p>
+<p><strong>Proposition 3.5</strong>：这样得到的边际速度场生成的概率路径，与 Schrödinger 桥问题 $\pi^{\ast} = \arg\min \mathrm{KL}(\pi \Vert p_{\mathrm{ref}})$ 的解相同。</p>
+<div class="note success"><p><strong>熵正则系数 $\varepsilon$ 把三者串成一条线</strong>：</p>
+<p>$$\underbrace{\varepsilon \to 0}_{\textbf{OT-CFM}} \quad \longleftarrow \quad \underbrace{\varepsilon = 2\sigma^2}_{\textbf{SB-CFM}} \quad \longrightarrow \quad \underbrace{\varepsilon \to \infty}_{\textbf{I-CFM（独立耦合）}}$$</p>
+<p>独立耦合原来是熵正则趋于无穷的极限——熵最大、结构最少的那个耦合。这给了它一个准确的定位：不是&quot;错的选择&quot;，而是<strong>这条谱线的一个端点</strong>。</p>
+</div>
+<h2 id="7-与前两篇的联系">7. 与前两篇的联系</h2>
+<div class="note info"><table>
+<thead>
+<tr>
+<th></th>
+<th><a href="/2025/06/12/flow-matching-three-steps/">Flow Matching</a></th>
+<th><a href="/2025/06/18/meanflow-one-step-generation/">MeanFlow</a></th>
+<th><strong>本文 (OT-CFM)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心问题</td>
+<td>如何免模拟地训速度场？</td>
+<td>如何一步生成？</td>
+<td>如何免模拟地解动态 OT？</td>
+</tr>
+<tr>
+<td>改哪一处</td>
+<td>—</td>
+<td>学习对象（$v \to u$）</td>
+<td>采样分布 $q(z)$</td>
+</tr>
+<tr>
+<td>数学工具</td>
+<td>$L^2$ 正交投影</td>
+<td>微积分基本定理</td>
+<td>静态/动态 OT 等价（Benamou-Brenier）</td>
+</tr>
+<tr>
+<td>推理 NFE</td>
+<td>100-250</td>
+<td>1</td>
+<td>显著减少</td>
+</tr>
+</tbody>
+</table>
+<p>三篇共享同一个起点 $x_t = (1-t)x_0 + tx_1$ 和同一个 CFM loss 结构，改的是不同的部件：MeanFlow 改学什么，OT-CFM 改从哪儿采样。两者正交，可以叠加。</p>
+</div>
+<h2 id="8-总结">8. 总结</h2>
+<ol>
+<li>
+<p><strong>两个 OT</strong>：静态 OT $\eqref{eq:static-ot-zh}$ 只问配对，可解；动态 OT $\eqref{eq:dynamic-ot-zh}$ 给速度场，有用但此前需要模拟 ODE 才能逼近。</p>
+</li>
+<li>
+<p><strong>FM 与 OT 的真实关系</strong>：条件路径是 OT，边际路径一般不是——因为无数直线交叉，边际场是平均值。这是 Table 1 中 <code>Cond. OT ✓ / Marginal OT ✗</code> 的含义。</p>
+</li>
+<li>
+<p><strong>广义 CFM</strong>（贡献一）：$\eqref{eq:grad-eq-zh}$ 只要求 $q(z)$ 边际正确，不要求独立。这把耦合变成一个自由度，也解除了源分布必须是 Gaussian 的限制。</p>
+</li>
+<li>
+<p><strong>OT-CFM</strong>（贡献二）：令 $q(z) := \pi^{\ast}$。OT plan 不交叉 $\Rightarrow$ 边际场 = 条件场 $\Rightarrow$ 条件 OT 传导为边际 OT。Prop 3.4：$\sigma \to 0$ 时解动态 OT。<strong>静态解被免模拟地提升为动态解。</strong></p>
+</li>
+<li>
+<p><strong>副产品</strong>：objective variance $\to 0$（训练更快）、轨迹变直（NFE 更少）。</p>
+</li>
+<li>
+<p><strong>SB-CFM</strong>（贡献三）：熵正则 OT + 布朗桥 $\Rightarrow$ Schrödinger 桥；$\varepsilon$ 从 $0$ 到 $\infty$ 把 OT-CFM 和 I-CFM 串在一条谱线的两端。</p>
+</li>
+</ol>
+<hr>
+<p><strong>参考文献：</strong></p>
+<p><a id="note-1-zh"></a><strong>[1]</strong> Tong, A., Fatras, K., Malkin, N., Huguet, G., Zhang, Y., Rector-Brooks, J., Wolf, G., Bengio, Y. <em>Improving and Generalizing Flow-Based Generative Models with Minibatch Optimal Transport</em>. TMLR, 2024. (arXiv:2302.00482)</p>
+<p><a id="note-2-zh"></a><strong>[2]</strong> Benamou, J.-D. and Brenier, Y. <em>A computational fluid mechanics solution to the Monge-Kantorovich mass transfer problem</em>. Numerische Mathematik, 2000.</p>
+<p><a id="note-3-zh"></a><strong>[3]</strong> Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M., Le, M. <em>Flow Matching for Generative Modeling</em>. ICLR, 2023.</p>
+</div>
+<!-- English Version -->
+<div class="lang-content lang-en">
+<div class="note info"><p><strong>Previously</strong>: <a href="/2025/06/12/flow-matching-three-steps/">The Mathematics of Flow Matching</a> derived the CFM loss, and <a href="/2025/06/18/meanflow-one-step-generation/">From Flow Matching to MeanFlow</a> swapped the learning target from instantaneous to average velocity. Both mention &quot;optimal transport&quot; repeatedly without pinning down: <strong>in what sense exactly is Flow Matching optimal transport?</strong></p>
+<p><strong>This post answers that</strong>, by way of OT-CFM (Tong et al., TMLR 2024). The one-paragraph version:</p>
+<ul>
+<li>Flow Matching's <strong>conditional</strong> path is an optimal transport path, but its <strong>marginal</strong> path generally <strong>is not</strong>.</li>
+<li>Dynamic optimal transport (Benamou-Brenier) could previously only be approximated by simulating the ODE — costing hundreds of network evaluations per training step.</li>
+<li>OT-CFM's move: plug the cheap <strong>static</strong> OT solution into CFM's sampling distribution, thereby obtaining the <strong>dynamic</strong> OT solution <strong>simulation-free</strong>.</li>
+</ul>
+<p><strong>Notation</strong>: $q_0, q_1$ are source/target distributions, $x_0 \sim q_0$, $x_1 \sim q_1$; $z$ is the conditioning variable; $u_t$ is the true velocity field, $v_t^\theta$ the network.</p>
+</div>
+<h2 id="1-Two-Optimal-Transport-Problems-Static-and-Dynamic">1. Two Optimal Transport Problems: Static and Dynamic</h2>
+<p>Optimal transport has two faces, and Flow Matching is naturally compatible with only one of them.</p>
+<h3 id="Static-OT-only-asks-who-pairs-with-whom">Static OT: only asks &quot;who pairs with whom&quot;</h3>
+<p>The Kantorovich form of the $2$-Wasserstein problem minimizes cost over all <strong>couplings</strong>:</p>
+<p>$$W_2^2(q_0, q_1) = \inf_{\pi \in \Pi(q_0, q_1)} \int \lVert x_0 - x_1 \rVert^2 \mathrm{d}\pi(x_0, x_1) \tag{1} \label{eq:static-ot-en}$$</p>
+<p>where $\Pi(q_0, q_1)$ is the set of joint distributions with marginals $q_0$ and $q_1$. The solution $\pi^{\ast}$ is the <strong>OT plan</strong> — it only answers &quot;which $x_0$ should pair with which $x_1$&quot;, involving <strong>no time</strong> and no ODE.</p>
+<p>Its virtue is <strong>solvability</strong>: in the discrete case it is a standard linear program (or Sinkhorn), with mature solvers off the shelf.</p>
+<h3 id="Dynamic-OT-asks-how-to-travel">Dynamic OT: asks &quot;how to travel&quot;</h3>
+<p>Benamou-Brenier's (2000) equivalent form instead minimizes kinetic energy over <strong>velocity fields</strong>:</p>
+<p>$$W_2^2(q_0, q_1) = \inf_{p_t, u_t} \int_0^1 \int p_t(x) \lVert u_t(x) \rVert^2 \mathrm{d}x \mathrm{d}t \tag{2} \label{eq:dynamic-ot-en}$$</p>
+<p>subject to the continuity equation $\partial_t p_t = -\nabla \cdot (p_t u_t)$ and boundary conditions $p_0 = q_0$, $p_1 = q_1$.</p>
+<p><em>This</em> is what generative modeling wants — it hands you a velocity field you can integrate. But it is a <strong>variational problem over entire paths</strong>, far harder than $\eqref{eq:static-ot-en}$.</p>
+<div class="note danger"><p><strong>The prior difficulty</strong>. To make a neural ODE approximate dynamic OT, earlier work (TrajectoryNet, Finlay et al.'s regularized CNFs) added $L^2$ kinetic regularization to a CNF. §2.2 of the paper names the cost:</p>
+<blockquote>
+<p>&quot;these models required <strong>integrating over and backpropagating through tens to hundreds of function evaluations</strong>, resulting in both numerical and efficiency issues. We aim to avoid these issues by directly regressing to the vector field in a <strong>simulation-free</strong> way.&quot;</p>
+</blockquote>
+<p>In other words: <strong>dynamic OT is hard because it requires simulation</strong> — every training step must actually integrate the ODE and backpropagate through it.</p>
+<p><strong>The paper's core question</strong>: $\eqref{eq:static-ot-en}$ is cheap, $\eqref{eq:dynamic-ot-en}$ is useful, and Benamou-Brenier says they are equivalent. Can we <strong>lift</strong> the static solution to the dynamic one, with fully simulation-free training?</p>
+</div>
+<h2 id="2-Which-OT-Is-the-One-in-Flow-Matching">2. Which &quot;OT&quot; Is the One in Flow Matching?</h2>
+<p>Before answering, let us clear up a long-standing confusion — the easiest thing to misread in Lipman et al.</p>
+<p>The <a href="/2025/06/12/flow-matching-three-steps/">previous post</a> took a sample pair and connected it with a <strong>straight line</strong>:</p>
+<p>$$x_t = (1-t)x_0 + t x_1$$</p>
+<p>A straight line <em>is</em> the dynamic OT path from $x_0$ to $x_1$ (constant-speed straight travel minimizes kinetic energy between two points). So saying FM uses &quot;OT paths&quot; <strong>is correct — conditionally on a given pair $(x_0, x_1)$</strong>.</p>
+<p>But §3.2.1 of the OT-CFM paper deliberately adds the next sentence:</p>
+<blockquote>
+<p>&quot;We emphasize that although the <strong>conditional</strong> probability path $p_t(x \mid z)$ <strong>is</strong> an optimal transport path from $p_0(x \mid z)$ to $p_1(x \mid z)$, the <strong>marginal</strong> path $p_t(x)$ <strong>is not in general an OT path</strong> from the standard normal $p_0(x)$ to the data distribution $p_1(x)$.&quot;</p>
+</blockquote>
+<div class="note success"><p><strong>The relationship, disambiguated</strong> (two levels, do not conflate):</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Conditional level $p_t(x \mid z)$</th>
+<th>Marginal level $p_t(x)$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>What it is</td>
+<td>A single sample's connecting line</td>
+<td>The actual probability flow after superposing all lines</td>
+</tr>
+<tr>
+<td>Is it OT?</td>
+<td><strong>Yes</strong> (a line = dynamic OT between two points)</td>
+<td><strong>Generally no</strong></td>
+</tr>
+<tr>
+<td>Who cares</td>
+<td>An intermediate construction in the derivation</td>
+<td>The field you actually integrate at sampling time</td>
+</tr>
+</tbody>
+</table>
+<p>In one sentence: <strong>each line is individually optimal; their superposition is not.</strong> Countless straight lines cross, and at a crossing point the network can only output one velocity — a weighted average of directions, no longer the velocity of any single line.</p>
+</div>
+<p>Table 1 of the paper turns this into two checkbox columns:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>$q(z)$</th>
+<th>Cond. OT</th>
+<th>Marginal OT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flow Matching (Lipman et al.)</td>
+<td>$q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Rectified Flow (Liu)</td>
+<td>$q(x_0)q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Stochastic Interpolant</td>
+<td>$q(x_0)q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>I-CFM (independent coupling)</td>
+<td>$q(x_0)q(x_1)$</td>
+<td>✓</td>
+<td>✗</td>
+</tr>
+<tr>
+<td><strong>OT-CFM (theirs)</strong></td>
+<td>$\pi(x_0, x_1)$</td>
+<td>✓</td>
+<td><strong>✓</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>OT-CFM exists to fill in that bottom-right cell</strong>: make the marginal flow an OT flow too. Note that the first four rows are not &quot;wrong&quot; — they are all correct generative models; they just do not solve dynamic OT at the marginal level.</p>
+<h2 id="3-Step-One-Generalized-CFM-—-Making-the-Coupling-a-Free-Parameter">3. Step One: Generalized CFM — Making the Coupling a Free Parameter</h2>
+<p>The paper's first contribution is a framework whose purpose is to <strong>open up a degree of freedom</strong>.</p>
+<h3 id="The-mixture-view">The mixture view</h3>
+<p>Let the marginal probability path be a mixture of conditional paths:</p>
+<p>$$p_t(x) = \int p_t(x \mid z) q(z) \mathrm{d}z \tag{3} \label{eq:mixture-en}$$</p>
+<p>where $z$ is an <strong>arbitrary</strong> conditioning variable with distribution $q(z)$. If each $p_t(x \mid z)$ is generated by $u_t(x \mid z)$, then the marginal velocity field generating the mixture $p_t(x)$ is a weighted average:</p>
+<p>$$u_t(x) = \mathbb{E}_{q(z)} \left[ \frac{u_t(x \mid z)\enspace p_t(x \mid z)}{p_t(x)} \right] \tag{4} \label{eq:marginal-field-en}$$</p>
+<p><strong>Theorem 3.1</strong>: $\eqref{eq:marginal-field-en}$ indeed generates $\eqref{eq:mixture-en}$.</p>
+<p>The trouble is that $\eqref{eq:marginal-field-en}$ is intractable — the denominator $p_t(x)$ is an integral. Hence the <strong>CFM loss</strong>, which regresses only against the <strong>conditional</strong> field:</p>
+<p>$$\mathcal{L}_{\mathrm{CFM}}(\theta) = \mathbb{E}_{t, q(z), p_t(x \mid z)} \lVert v_t^\theta(x) - u_t(x \mid z) \rVert^2 \tag{5} \label{eq:cfm-en}$$</p>
+<p><strong>Theorem 3.2</strong>: $\mathcal{L}_{\mathrm{CFM}}$ and $\mathcal{L}_{\mathrm{FM}}$ differ by a constant independent of $\theta$, hence</p>
+<p>$$\nabla_\theta \mathcal{L}_{\mathrm{FM}}(\theta) = \nabla_\theta \mathcal{L}_{\mathrm{CFM}}(\theta) \tag{6} \label{eq:grad-eq-en}$$</p>
+<p>This is exactly what the <a href="/2025/06/12/flow-matching-three-steps/">previous post</a> proved via the Pythagorean theorem, here generalized to arbitrary $z$.</p>
+<h3 id="The-key-point-q-z-is-free">The key point: $q(z)$ is free</h3>
+<p>Take $z := (x_0, x_1)$ with the conditional path a Gaussian bridge between the two points:</p>
+<p>$$p_t(x \mid z) = \mathcal{N}(x \mid t x_1 + (1-t) x_0, \enspace \sigma^2), \qquad u_t(x \mid z) = x_1 - x_0 \tag{7} \label{eq:icfm-en}$$</p>
+<p>Then $\eqref{eq:cfm-en}$ is precisely the loss derived in the <a href="/2025/06/12/flow-matching-three-steps/">previous post</a>, which took $q(z) = q(x_0) q(x_1)$ — the <strong>independent coupling</strong>, which the paper names <strong>I-CFM</strong>.</p>
+<div class="note info"><p><strong>This is where the framework earns its keep</strong>: $\eqref{eq:grad-eq-en}$ holds <strong>as long as $q(z)$ has marginals $q_0$ and $q_1$</strong>, with no requirement that $x_0 \perp x_1$.</p>
+<p>So independence is not an &quot;assumption&quot; but a <strong>default</strong> taken when constructing $q(z)$ — the previous derivation has no gap, and $Z_1 \sim q_1$ holds exactly. What it does mean is that $q(z)$ is a <strong>previously unused degree of freedom</strong>.</p>
+<p>The paper's first contribution is to make that freedom explicit (which incidentally also removes FM's restriction to a Gaussian source, since FM conditions only on $q(x_1)$ — any source distribution now works). The second contribution is to use it.</p>
+</div>
+<h2 id="4-Step-Two-Plugging-the-Static-OT-Plan-into-q-z">4. Step Two: Plugging the Static OT Plan into $q(z)$</h2>
+<p>Now §1's question has an almost obvious answer.</p>
+<h3 id="OT-CFM-2">OT-CFM</h3>
+<p>Let the conditioning distribution be the <strong>static OT plan</strong>:</p>
+<p>$$\boxed{q(z) := \pi^{\ast}(x_0, x_1)} \tag{8} \label{eq:otcfm-en}$$</p>
+<p>i.e., the solution of $\eqref{eq:static-ot-en}$. The conditional path stays exactly as in $\eqref{eq:icfm-en}$ — <strong>the only change is that $(x_0, x_1)$ is no longer sampled independently but jointly according to $\pi^{\ast}$</strong>.</p>
+<div class="note success"><p><strong>Proposition 3.4</strong>: under regularity conditions on $q_0$, $q_1$, and $\pi^{\ast}$, as $\sigma^2 \to 0$ the marginal path $p_t$ and field $u_t$ induced by $\eqref{eq:otcfm-en}$ <strong>minimize $\eqref{eq:dynamic-ot-en}$</strong>, i.e., $u_t$ solves the <strong>dynamic optimal transport</strong> problem between $q_0$ and $q_1$.</p>
+<p>This completes the lift: the input is a solution to <strong>static</strong> OT (a pairing), the output is a solution to <strong>dynamic</strong> OT (a velocity field), and training is just the regression $\eqref{eq:cfm-en}$ — <strong>no ODE simulation anywhere</strong>.</p>
+</div>
+<h3 id="Why-plugging-it-in-works">Why plugging it in works</h3>
+<p>The key is Brenier's theorem: the OT plan is deterministic and <strong>non-crossing</strong>, $x_1 = \nabla \Psi^{\ast}(x_0)$ (the gradient of a convex function).</p>
+<p>This closes the gap from §2. Since the family of straight lines does not cross, each point $x$ lies on exactly one line, and the weighted average in $\eqref{eq:marginal-field-en}$ <strong>collapses to a single value</strong>:</p>
+<p>$$u_t(x) = u_t(x \mid z) = \nabla \Psi^{\ast}(x_0) - x_0$$</p>
+<p>The conditional field and the marginal field coincide. And since every conditional path is an OT path, so is the marginal path. McCann's displacement interpolation $p_t = [(1-t)\mathrm{Id} + t \nabla\Psi^{\ast}]_{\sharp} q_0$ is exactly the dynamic OT solution.</p>
+<div class="note danger"><p><strong>Contrast with §2</strong>: under independent coupling the lines cross heavily $\to$ $\eqref{eq:marginal-field-en}$ really is averaging $\to$ conditional OT fails to reach the marginal. Under OT coupling there is no crossing $\to$ no averaging $\to$ conditional OT <em>is</em> marginal OT.</p>
+<p><strong>That is the entire mechanism behind the <code>Marginal OT</code> column of the checkbox table.</strong></p>
+</div>
+<h3 id="Practical-recipe-minibatch-OT">Practical recipe: minibatch OT</h3>
+<p>An exact OT plan costs $O(n^3)$ time and $O(n^2)$ memory, infeasible for large datasets. The paper splits by data scale:</p>
+<ol>
+<li><strong>Small datasets</strong> (e.g. single-cell): compute the exact OT plan; the network's job is to <strong>extrapolate that map to unseen data</strong>.</li>
+<li><strong>Large datasets</strong> (e.g. images): <strong>solve OT within each batch</strong>. Sample ${x_0^i}_{i=1}^B$ and ${x_1^i}_{i=1}^B$, solve the $B \times B$ assignment problem, and use the resulting pairs in $\eqref{eq:cfm-en}$.</li>
+</ol>
+<div class="note warning"><p><strong>Minibatch OT is biased</strong> — it is not global OT. But the paper notes:</p>
+<ul>
+<li>When the OT batch size equals the support size of $(q_0, q_1)$, exact OT is recovered, and by Prop 3.4 exact dynamic OT is learned.</li>
+<li>Empirically, batch sizes far below the dataset size already approximate the OT map well (Fig. D.2); the authors attribute this to generalization from the network optimization itself.</li>
+<li>Training overhead is $&lt; 1%$.</li>
+</ul>
+</div>
+<h2 id="5-By-products-Both-Training-and-Inference-Get-Faster">5. By-products: Both Training and Inference Get Faster</h2>
+<p>The paper's conclusion reads &quot;lifting static OT to dynamic ... <strong>while also</strong> allowing more efficient training and inference&quot;. The following two are that &quot;while also&quot; — important, but logically <strong>consequences</strong>, not the starting point.</p>
+<h3 id="Faster-training-lower-variance-in-the-regression-target">Faster training: lower variance in the regression target</h3>
+<p>$\eqref{eq:cfm-en}$ is a <strong>stochastic</strong> regression: the same $x$ can arise from different $z$, so the target $u_t(x \mid z)$ jitters. The paper calls this jitter the <strong>objective variance</strong>:</p>
+<p>$$\mathrm{OV} := \mathbb{E} \lVert u_t(x \mid z) - u_t(x) \rVert^2 \tag{9} \label{eq:ov-en}$$</p>
+<p>It is precisely the &quot;constant independent of $\theta$&quot; in $\eqref{eq:grad-eq-en}$, and also the floor of $\mathcal{L}_{\mathrm{CFM}}$ — no network, however strong, gets below it.</p>
+<p><strong>Proposition B.2</strong>: if $\pi$ is a Monge map, then $\mathrm{OV} \to 0$ as $\sigma \to 0$ for OT-CFM. This follows directly from §4's &quot;conditional field = marginal field&quot;. Under independent coupling $\mathrm{OV}$ does not vanish.</p>
+<p>Measured: OT-CFM and SB-CFM have $\mathrm{OV}$ at least <strong>an order of magnitude below</strong> I-CFM/FM, with correspondingly faster validation-error decay (Fig. 2 left, Fig. D.8).</p>
+<h3 id="Faster-inference-fewer-NFE">Faster inference: fewer NFE</h3>
+<p>Inference numerically integrates $\mathrm{d}Z_t = v_t^\theta(Z_t)\mathrm{d}t$, and each evaluation of $v_t^\theta$ is one forward pass. The total count is the <strong>NFE</strong> (Number of Function Evaluations) — the inference cost itself.</p>
+<p>The truncation error of $N$-step Euler is governed by acceleration: expanding $Z_{t+h} = Z_t + h\dot{Z}_t + \frac{h^2}{2}\ddot{Z}_t + O(h^3)$, Euler drops the $O(h^2 \lVert \ddot{Z}_t \rVert)$ term, and after accumulation</p>
+<p>$$\mathrm{NFE} = N \gtrsim \frac{C}{\varepsilon} \sup_{t} \lVert \ddot{Z}_t \rVert \tag{10} \label{eq:nfe-en}$$</p>
+<p>Under OT coupling the trajectories are <strong>straight</strong>, so $\ddot{Z}_t \equiv 0$ — zero truncation error, exact in one step in principle.</p>
+<p>Measured (Fig. 2 right, Fig. 3 right): at fixed NFE, OT-CFM produces better samples; to reach the same quality it needs fewer NFE. On CIFAR-10 OT-CFM beats I-CFM and FM on both FID and NFE.</p>
+<h3 id="Other-experimental-findings">Other experimental findings</h3>
+<ul>
+<li><strong>Dynamic OT accuracy</strong> (NPE, normalized path energy): OT-CFM's path energy is very close to $W_2^2$, i.e. it genuinely solves dynamic OT; on tasks like $\text{moons} \leftrightarrow \text{8gaussians}$ the gap to I-CFM is stark.</li>
+<li><strong>Single-cell trajectory interpolation</strong>: on CITE-seq / EB / Multiome, OT-CFM's EMD beats DSB, I-CFM, TrajectoryNet, and regularized CNFs across the board.</li>
+</ul>
+<h2 id="6-One-Parameter-Unifies-Three-Methods-SB-CFM">6. One Parameter Unifies Three Methods: SB-CFM</h2>
+<p>The third contribution follows the same thread: replace $q(z)$ with the <strong>entropically regularized</strong> OT plan $\pi^{2\sigma^2}$ and the conditional path with a Brownian bridge</p>
+<p>$$p_t(x \mid z) = \mathcal{N}\big(x \mid t x_1 + (1-t) x_0, \enspace t(1-t)\sigma^2\big) \tag{11} \label{eq:sb-en}$$</p>
+<p><strong>Proposition 3.5</strong>: the resulting marginal velocity field generates the same probability path as the solution of the Schrödinger bridge problem $\pi^{\ast} = \arg\min \mathrm{KL}(\pi \Vert p_{\mathrm{ref}})$.</p>
+<div class="note success"><p><strong>The entropic coefficient $\varepsilon$ strings all three together</strong>:</p>
+<p>$$\underbrace{\varepsilon \to 0}_{\textbf{OT-CFM}} \quad \longleftarrow \quad \underbrace{\varepsilon = 2\sigma^2}_{\textbf{SB-CFM}} \quad \longrightarrow \quad \underbrace{\varepsilon \to \infty}_{\textbf{I-CFM (independent)}}$$</p>
+<p>The independent coupling turns out to be the infinite-regularization limit — the maximum-entropy, least-structured coupling. That gives it a precise place: not a &quot;wrong choice&quot;, but <strong>one endpoint of this spectrum</strong>.</p>
+</div>
+<h2 id="7-Connection-to-the-Previous-Two-Posts">7. Connection to the Previous Two Posts</h2>
+<div class="note info"><table>
+<thead>
+<tr>
+<th></th>
+<th><a href="/2025/06/12/flow-matching-three-steps/">Flow Matching</a></th>
+<th><a href="/2025/06/18/meanflow-one-step-generation/">MeanFlow</a></th>
+<th><strong>This post (OT-CFM)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Core question</td>
+<td>How to train a velocity field simulation-free?</td>
+<td>How to generate in one step?</td>
+<td>How to solve dynamic OT simulation-free?</td>
+</tr>
+<tr>
+<td>What changes</td>
+<td>—</td>
+<td>The learning target ($v \to u$)</td>
+<td>The sampling distribution $q(z)$</td>
+</tr>
+<tr>
+<td>Mathematical tool</td>
+<td>$L^2$ orthogonal projection</td>
+<td>Fundamental Theorem of Calculus</td>
+<td>Static/dynamic OT equivalence (Benamou-Brenier)</td>
+</tr>
+<tr>
+<td>Inference NFE</td>
+<td>100-250</td>
+<td>1</td>
+<td>Substantially fewer</td>
+</tr>
+</tbody>
+</table>
+<p>All three share the same starting point $x_t = (1-t)x_0 + tx_1$ and the same CFM loss structure, changing different components: MeanFlow changes <em>what</em> is learned, OT-CFM changes <em>where samples come from</em>. The two are orthogonal and composable.</p>
+</div>
+<h2 id="8-Summary">8. Summary</h2>
+<ol>
+<li>
+<p><strong>Two OTs</strong>: static OT $\eqref{eq:static-ot-en}$ only asks about pairing and is solvable; dynamic OT $\eqref{eq:dynamic-ot-en}$ hands you a velocity field — useful, but previously approximable only by simulating the ODE.</p>
+</li>
+<li>
+<p><strong>The real FM-OT relationship</strong>: the conditional path is OT, the marginal path generally is not — because countless straight lines cross and the marginal field is an average. This is the meaning of <code>Cond. OT ✓ / Marginal OT ✗</code> in Table 1.</p>
+</li>
+<li>
+<p><strong>Generalized CFM</strong> (contribution 1): $\eqref{eq:grad-eq-en}$ only requires $q(z)$ to have the right marginals, not independence. This turns the coupling into a degree of freedom, and also lifts the requirement that the source be Gaussian.</p>
+</li>
+<li>
+<p><strong>OT-CFM</strong> (contribution 2): set $q(z) := \pi^{\ast}$. The OT plan does not cross $\Rightarrow$ marginal field = conditional field $\Rightarrow$ conditional OT propagates to marginal OT. Prop 3.4: as $\sigma \to 0$ it solves dynamic OT. <strong>The static solution is lifted to a dynamic one, simulation-free.</strong></p>
+</li>
+<li>
+<p><strong>By-products</strong>: objective variance $\to 0$ (faster training), straighter trajectories (fewer NFE).</p>
+</li>
+<li>
+<p><strong>SB-CFM</strong> (contribution 3): entropic OT + Brownian bridge $\Rightarrow$ Schrödinger bridge; sweeping $\varepsilon$ from $0$ to $\infty$ places OT-CFM and I-CFM at the two ends of one spectrum.</p>
+</li>
+</ol>
+<hr>
+<p><strong>References:</strong></p>
+<p><a id="note-1-en"></a><strong>[1]</strong> Tong, A., Fatras, K., Malkin, N., Huguet, G., Zhang, Y., Rector-Brooks, J., Wolf, G., Bengio, Y. <em>Improving and Generalizing Flow-Based Generative Models with Minibatch Optimal Transport</em>. TMLR, 2024. (arXiv:2302.00482)</p>
+<p><a id="note-2-en"></a><strong>[2]</strong> Benamou, J.-D. and Brenier, Y. <em>A computational fluid mechanics solution to the Monge-Kantorovich mass transfer problem</em>. Numerische Mathematik, 2000.</p>
+<p><a id="note-3-en"></a><strong>[3]</strong> Lipman, Y., Chen, R. T. Q., Ben-Hamu, H., Nickel, M., Le, M. <em>Flow Matching for Generative Modeling</em>. ICLR, 2023.</p>
+</div>
+<script>
+function switchLang(lang) {
+  // Switch content
+  document.querySelectorAll('.lang-content').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.querySelector('.lang-' + lang).style.display = 'block';
+  document.getElementById('btn-' + lang).classList.add('active');
+
+  // Switch title
+  var titleEl = document.querySelector('.post-title');
+  if (titleEl) {
+    if (lang === 'zh') {
+      titleEl.textContent = 'Flow Matching 与最优传输：把静态 OT 提升为动态 OT';
+    } else {
+      titleEl.textContent = 'Flow Matching and Optimal Transport: Lifting Static OT to Dynamic OT';
+    }
+  }
+
+  // Switch TOC: hide headings from the other language
+  var tocLinks = document.querySelectorAll('.post-toc a');
+  tocLinks.forEach(function(link) {
+    var li = link.closest('li');
+    if (!li) return;
+    var isChinese = /[一-鿿]/.test(link.textContent);
+    if (lang === 'zh') {
+      li.style.display = isChinese ? '' : 'none';
+    } else {
+      li.style.display = isChinese ? 'none' : '';
+    }
+  });
+}
+
+// Run on page load to set initial TOC state
+document.addEventListener('DOMContentLoaded', function() {
+  switchLang('en');
+});
+</script>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/flow-matching/" rel="tag"><i class="fa fa-tag"></i> flow matching</a>
+              <a href="/tags/generative-models/" rel="tag"><i class="fa fa-tag"></i> generative models</a>
+              <a href="/tags/optimal-transport/" rel="tag"><i class="fa fa-tag"></i> optimal transport</a>
+              <a href="/tags/machine-learning/" rel="tag"><i class="fa fa-tag"></i> machine learning</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2025/06/18/meanflow-one-step-generation/" rel="prev" title="From Flow Matching to MeanFlow: One-Step Generation">
+                  <i class="fa fa-angle-left"></i> From Flow Matching to MeanFlow: One-Step Generation
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2026/07/09/acl2026-scaling-laws/" rel="next" title="ACL 2026 Scaling Laws: A Deep Dive into 10 Papers">
+                  ACL 2026 Scaling Laws: A Deep Dive into 10 Papers <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+<div class="busuanzi-count">
+    <span class="post-meta-item" id="busuanzi_container_site_uv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="Total Visitors">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="Total Views">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+    </div>
+  </footer>
+
+  
+  <div class="toggle sidebar-toggle" role="button">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+  <div class="sidebar-dimmer"></div>
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+</body>
+</html>
