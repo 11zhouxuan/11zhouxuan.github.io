@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #289647;
+  background: #186cff;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -2953,6 +2953,12 @@ pre {
 .post-body li {
   margin-bottom: 0.3em;
 }
+.post-body a {
+  color: #2563eb;
+}
+.post-body a:hover {
+  color: #1d4ed8;
+}
 .post-body a[href^="#note-"] {
   text-decoration: none !important;
   border-bottom: none !important;
@@ -3010,4 +3016,34 @@ pre {
   border-color: #1e6e78;
   color: #fff;
   font-weight: 600;
+}
+.post-body mjx-container,
+.post-body mjx-container[display="true"] {
+  color: #1565c0;
+}
+.post-body .lang-content {
+  counter-reset: eqnum;
+}
+.post-body .lang-content mjx-container[display="true"] {
+  position: relative;
+  counter-increment: eqnum;
+  padding-right: 3.2em;
+}
+.post-body .lang-content mjx-container[display="true"]::after {
+  content: "(" counter(eqnum) ")";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #1565c0;
+  font-size: 0.95em;
+  font-family: "Source Sans 3", "Noto Sans SC", sans-serif;
+}
+@media (max-width: 991px) {
+  .post-body .lang-content mjx-container[display="true"] {
+    padding-right: 2.4em;
+  }
+  .post-body .lang-content mjx-container[display="true"]::after {
+    font-size: 0.8em;
+  }
 }
