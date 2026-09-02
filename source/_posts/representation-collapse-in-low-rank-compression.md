@@ -21,17 +21,41 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘积 $AB$（低秩分解），把总参数量压到 2.29B，然后比较两种截断方式。
 
-**plain SVD**：对 $W$ 做奇异值分解 $W = U\Sigma V^T$，只保留最大的 $r$ 个奇异值，$W \approx U\_r \Sigma\_r V\_r^T$，取 $A = U\_r\Sigma\_r$、$B = V\_r^T$。由 Eckart–Young 定理（见[预备篇](/2026/08/30/lord-compression-primer/)），这是下面这个目标的最优解：
+**方法一：plain SVD**，只用权重本身，不需要任何数据。
 
-$$\min\_{A,B}\ \lVert W - AB \rVert\_F^2$$
+> **算法 A：plain SVD 截断**
+>
+> **输入**：教师的线性层 $W\_1, \dots, W\_{252}$，目标秩 $r$（本文 $r = 384$）
+>
+> **对每层 $\ell$ 独立执行：**
+>
+> 1. 奇异值分解 $W\_\ell = U \Sigma V^T$，奇异值按降序排列
+> 2. 只保留最大的 $r$ 个：$A\_\ell = U\_{:,1:r} \Sigma\_{1:r,1:r}$、$B\_\ell = V\_{:,1:r}^T$
+> 3. 把该层替换为 $x \mapsto A\_\ell B\_\ell x$
+>
+> **输出**：学生模型（val loss = 18.65）
 
-每层统一保留 rank 384，得到 val loss = 18.65。
+由 Eckart–Young 定理（见[预备篇](/2026/08/30/lord-compression-primer/)），这一步是下面这个目标的最优解：
 
-**ASVD（激活加权 SVD）**：直觉是"常被用到的输入通道要逼近得更准"。取对角加权矩阵 $S = \mathrm{diag}(\mathbb{E}[\lvert x\_i\rvert]^{\alpha})$——第 $i$ 个对角元是该输入通道平均激活幅度的 $\alpha$ 次方，指数 $\alpha$ 控制加权强度（$\alpha=1.0$ 即按幅度原样加权）——把目标换成加权误差：
+$$\min\_{A,B}\ \lVert W - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
-$$\min\_{A,B}\ \lVert (W - AB)\ S \rVert\_F^2$$
+**方法二：ASVD（激活加权 SVD）**，直觉是"常被用到的输入通道要逼近得更准"，因此需要少量数据来测量"哪些通道常被用到"。这批数据称为**校准数据**：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来统计激活幅度，不做任何梯度更新——这也是"闭式方法"（解方程直接得答案）的共同特征。
 
-解法与 plain SVD 同构：对 $WS$ 做 SVD 截断得 $U\_r\Sigma\_r V\_r^T$，再取 $A = U\_r\Sigma\_r$、$B = V\_r^T S^{-1}$，权重就在"高激活通道误差放大、低激活通道误差缩小"的度量下最优。再配合**逐层 rank 分配**：重要性（$\lVert WS\rVert\_F$）高的层多给 rank、低的少给，平均 rank 357，分得最少的 Block 0 只有 32。得到 val loss = **8.50**。
+> **算法 B：ASVD 截断 + 逐层 rank 分配**
+>
+> **输入**：$W\_1, \dots, W\_{252}$，校准数据 $D$，加权指数 $\alpha$，参数预算
+>
+> 1. **测量激活**：教师在 $D$ 上前向，记录每层每个输入通道的平均绝对激活 $\mathbb{E}[\lvert x\_i \rvert]$，构造对角加权矩阵
+>    $$S\_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x\_1 \rvert]^{\alpha},\ \dots,\ \mathbb{E}[\lvert x\_n \rvert]^{\alpha}\big)$$
+> 2. **分配秩**：以 $\lVert W\_\ell S\_\ell \rVert\_F$ 作为层 $\ell$ 的重要性，按重要性正比分配 $r\_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）
+> 3. **加权截断**：对每层，对 $W\_\ell S\_\ell$ 做 SVD 保留前 $r\_\ell$ 项得 $U\_r \Sigma\_r V\_r^T$，令 $A\_\ell = U\_r \Sigma\_r$、$B\_\ell = V\_r^T S\_\ell^{-1}$（乘回 $S\_\ell^{-1}$ 把加权撤销，使 $A\_\ell B\_\ell \approx W\_\ell$）
+> 4. 把各层替换为 $x \mapsto A\_\ell B\_\ell x$
+>
+> **输出**：学生模型（$\alpha = 1.0$ 时 val loss = **8.50**）
+
+第 3 步求解的是加权目标——同样的误差，落在高激活通道上算得更重：
+
+$$\min\_{A,B}\ \lVert (W - AB) S \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
 在看结果之前，把**真正的目标**也写下来，它是全系列的参照系。压缩的本意是：把每个 $W\_\ell$ 换成 $A\_\ell B\_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低：
 
@@ -227,17 +251,41 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 
 The subject is Qwen3-8B (36 layers, our teacher model, val loss 2.11). We replace every linear layer $W$ with a product of two thin matrices $AB$ (low-rank factorization), squeezing the total parameter count to 2.29B, and compare two truncation schemes.
 
-**Plain SVD**: take the singular value decomposition $W = U\Sigma V^T$, keep only the largest $r$ singular values, $W \approx U\_r \Sigma\_r V\_r^T$, and set $A = U\_r\Sigma\_r$, $B = V\_r^T$. By the Eckart–Young theorem (see [the primer](/2026/08/30/lord-compression-primer/)), this is the optimum of
+**Method 1: plain SVD** — uses only the weights, needs no data at all.
 
-$$\min\_{A,B}\ \lVert W - AB \rVert\_F^2$$
+> **Algorithm A: plain SVD truncation**
+>
+> **Input**: the teacher's linear layers $W\_1, \dots, W\_{252}$, target rank $r$ ($r = 384$ here)
+>
+> **For each layer $\ell$, independently:**
+>
+> 1. Singular value decomposition $W\_\ell = U \Sigma V^T$, singular values in descending order
+> 2. Keep the largest $r$: $A\_\ell = U\_{:,1:r} \Sigma\_{1:r,1:r}$, $B\_\ell = V\_{:,1:r}^T$
+> 3. Replace the layer with $x \mapsto A\_\ell B\_\ell x$
+>
+> **Output**: the student model (val loss = 18.65)
 
-With a uniform rank 384 in every layer: val loss = 18.65.
+By the Eckart–Young theorem (see [the primer](/2026/08/30/lord-compression-primer/)), this step is the optimum of
 
-**ASVD (activation-weighted SVD)**: the intuition is "channels that get used a lot deserve a more accurate approximation." Take the diagonal weighting matrix $S = \mathrm{diag}(\mathbb{E}[\lvert x\_i\rvert]^{\alpha})$ — the $i$-th entry is input channel $i$'s average activation magnitude raised to the power $\alpha$, which controls the weighting strength ($\alpha=1.0$ means weighting by the raw magnitudes) — and switch the objective to the weighted error:
+$$\min\_{A,B}\ \lVert W - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
-$$\min\_{A,B}\ \lVert (W - AB)\ S \rVert\_F^2$$
+**Method 2: ASVD (activation-weighted SVD)** — the intuition is "channels that get used a lot deserve a more accurate approximation," which requires a little data to measure which channels those are. That data is called **calibration data**: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only to gather activation statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).
 
-The solution mirrors plain SVD: SVD-truncate $WS$ to get $U\_r\Sigma\_r V\_r^T$, then set $A = U\_r\Sigma\_r$, $B = V\_r^T S^{-1}$ — optimal in a metric that amplifies errors on high-activation channels and shrinks them elsewhere. Combined with **per-layer rank allocation**: layers with higher importance ($\lVert WS\rVert\_F$) get more rank, others less — mean rank 357, with Block 0 starved at rank 32. Val loss = **8.50**.
+> **Algorithm B: ASVD truncation + per-layer rank allocation**
+>
+> **Input**: $W\_1, \dots, W\_{252}$, calibration data $D$, weighting exponent $\alpha$, parameter budget
+>
+> 1. **Measure activations**: run the teacher over $D$, record each layer's per-input-channel mean absolute activation $\mathbb{E}[\lvert x\_i \rvert]$, and build the diagonal weighting matrix
+>    $$S\_\ell = \mathrm{diag}\big(\mathbb{E}[\lvert x\_1 \rvert]^{\alpha},\ \dots,\ \mathbb{E}[\lvert x\_n \rvert]^{\alpha}\big)$$
+> 2. **Allocate ranks**: treat $\lVert W\_\ell S\_\ell \rVert\_F$ as layer $\ell$'s importance and assign $r\_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)
+> 3. **Weighted truncation**: per layer, take the top-$r\_\ell$ SVD of $W\_\ell S\_\ell$ as $U\_r \Sigma\_r V\_r^T$ and set $A\_\ell = U\_r \Sigma\_r$, $B\_\ell = V\_r^T S\_\ell^{-1}$ (multiplying $S\_\ell^{-1}$ back undoes the weighting so that $A\_\ell B\_\ell \approx W\_\ell$)
+> 4. Replace each layer with $x \mapsto A\_\ell B\_\ell x$
+>
+> **Output**: the student model (val loss = **8.50** at $\alpha = 1.0$)
+
+Step 3 solves the weighted objective — the same error counts for more when it lands on a high-activation channel:
+
+$$\min\_{A,B}\ \lVert (W - AB) S \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{rank}(AB) \le r$$
 
 Before looking at the results, let us also write down the **true objective** — the reference point for the whole series. What compression actually wants: replace each $W\_\ell$ with $A\_\ell B\_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget:
 

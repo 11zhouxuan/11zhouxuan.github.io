@@ -52,6 +52,8 @@ $$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 ### 3. 方法：逐层仿射岭回归
 
+先定义**校准数据** $D$：从训练集（FineWeb-Edu）里取出的一小批文本，本篇用 32 个 batch、每 batch 8 段 × 8192 token，合计约 210 万个 token 位置。它的唯一用途是**估计统计量**——把教师和学生在同样文本上跑一遍前向，收集各层输入的均值与协方差，供下面的回归求解使用。全程没有任何梯度更新，所以这类方法叫"闭式"（closed-form，解方程直接得到答案）。$D$ 与用来报告 loss 的验证数据完全无重叠。（校准数据的用量和多样性本身对结果影响很大，这是[第五篇](/2026/08/30/closed-form-moving-ceiling/)的主题之一。）
+
 完整算法只有一个循环：
 
 > **算法 1：轨迹矫正线性蒸馏**
@@ -166,6 +168,8 @@ Write $x\_t$ for the clean input this layer would have received inside the teach
 Only the third CORRECTS drift. Each layer stops imitating $W$ and becomes a corrector: take the drifted input, emit what the teacher's trajectory would have produced.
 
 ### 3. The Method: Layerwise Affine Ridge Regression
+
+First, what **calibration data** $D$ means: a small batch of text drawn from the training set (FineWeb-Edu) — here 32 batches of 8 passages × 8192 tokens, about 2.1M token positions in total. Its only purpose is **estimating statistics**: run the teacher and the student over the same text and collect the means and covariances of each layer's inputs, to be consumed by the regressions below. No gradient update happens anywhere, which is why these methods are called closed-form (solve equations, get the answer directly). $D$ has no overlap with the validation data used to report losses. (How much calibration data, and how diverse, turns out to matter a great deal — one of [part 5](/2026/08/30/closed-form-moving-ceiling/)'s subjects.)
 
 The complete algorithm is a single loop:
 
