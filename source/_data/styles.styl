@@ -362,3 +362,24 @@ code, pre {
   color: #1e6e78;
   font-weight: 600;
 }
+
+// ---- Algorithm blocks (blockquotes) ----
+// The theme dims blockquote text to #666 over a grey fill, which makes the
+// formulas inside an algorithm block read as duller than the identical
+// formulas in body text. Match the body colour so math looks the same
+// everywhere, and keep the block marked by its left rule alone.
+.post-body blockquote {
+  color: #555 !important;
+  background-color: #fcfcfd;
+  border-left: 3px solid #1565C0;
+}
+
+.post-body blockquote p,
+.post-body blockquote li,
+.post-body blockquote strong {
+  color: #555 !important;
+}
+
+.post-body blockquote strong {
+  color: #333 !important;
+}
