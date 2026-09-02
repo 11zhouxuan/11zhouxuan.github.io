@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 5.05，并且这一次拿到了&quot;真的到头了&quot;的结构性证据">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-25T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T06:45:49.572Z">
+<meta property="article:modified_time" content="2026-09-02T06:50:59.300Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 06:45:49" itemprop="dateModified" datetime="2026-09-02T06:45:49+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:50:59" itemprop="dateModified" datetime="2026-09-02T06:50:59+00:00">2026-09-02</time>
     </span>
 
   
@@ -389,7 +389,7 @@
 </tbody>
 </table>
 <p><strong>照单全收 → 5.27（失败）</strong>；把偏离限制在均匀值的 0.6~1.6 倍（即&quot;阻尼&quot;）→ <strong>5.06（当时的新纪录）</strong>。教训：这种敏感度是局部量——它只回答&quot;在当前解附近动一动会怎样&quot;，砍 4 倍已经远超它的适用范围；三点剂量曲线（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。</p>
-<p><strong>形式化本篇的改动</strong>。前三篇里每层的 rank 是固定常数 $r$；本篇把 ${r_\ell}$ 变成优化变量：</p>
+<p><strong>把本篇的改动写成公式</strong>。前三篇里每层的 rank 是固定常数 $r$；本篇把每层的 rank ${r_\ell}$ 变成待求的变量：</p>
 <p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{层 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{预算}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{阻尼约束（不可省略）}}$$</p>
 <p>其中 $f_{\ell,i}$ 是第 $\ell$ 层第 $i$ 个方向的 loss 敏感度（前文的梯度平方和）。没有阻尼约束时这个问题的解就是&quot;照单全收&quot;的 5.27；加上它才得到 5.06——<strong>约束本身是改进的一半</strong>。</p>
 <h3 id="4-实验方向二：巨激活通道——双负结果与真正的放大机制">4. 实验方向二：巨激活通道——双负结果与真正的放大机制</h3>
@@ -611,7 +611,7 @@
 </tbody>
 </table>
 <p><strong>Taken at face value → 5.27 (fail)</strong>; deviation clipped to 0.6-1.6× of uniform (&quot;damping&quot;) → <strong>5.06 (record at the time)</strong>. Lesson: this sensitivity is a local quantity — it only answers &quot;what happens if you wiggle around the current solution&quot;; a 4× cut is far outside its domain. The three-point dose-response (untilted 5.10 / damped 5.06 / extreme 5.27) puts the optimum near the damped point.</p>
-<p><strong>This post's change, formalized.</strong> In the first three posts every layer's rank is a fixed constant $r$; this post turns ${r_\ell}$ into optimization variables:</p>
+<p><strong>This post's change, written as a formula.</strong> In the first three posts every layer's rank is a fixed constant $r$; this post turns the per-layer ranks ${r_\ell}$ into unknowns to be solved for:</p>
 <p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{expected damage of layer }\ell\text{'s cut directions}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{budget}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{damping constraint (not optional)}}$$</p>
 <p>where $f_{\ell,i}$ is direction $i$'s loss sensitivity in layer $\ell$ (the squared-gradient sums above). Without the damping constraint the solution is the face-value 5.27; with it, 5.06 — <strong>the constraint is half the improvement</strong>. The direction has a clean mechanism: q/k only shape attention weights, normalized by softmax and thus naturally drift-robust; v/o/down carry the content written into the residual stream.</p>
 <h3 id="4-Direction-2-Massive-Activation-Channels-—-a-Double-Negative-and-the-True-Amplifier">4. Direction 2: Massive-Activation Channels — a Double Negative and the True Amplifier</h3>

@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-19T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T06:45:49.574Z">
+<meta property="article:modified_time" content="2026-09-02T06:50:59.301Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 06:45:49" itemprop="dateModified" datetime="2026-09-02T06:45:49+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-02 06:50:59" itemprop="dateModified" datetime="2026-09-02T06:50:59+00:00">2026-09-02</time>
     </span>
 
   
@@ -370,7 +370,7 @@
 <p>直觉：$\Sigma_{ts}\Sigma_{ss}^{-1}$ 是&quot;从脏输入线性还原干净输入&quot;的最优算子，再与 $W$ 复合——还原与变换合成在一个矩阵里。</p>
 <p><strong>第 3 步</strong>：白化截断到 rank $r$。直接对 $M^*$ 做 SVD 截断隐含&quot;输入各方向同等重要&quot;的假设，而真实输入分布并非如此；先取 $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$ 把输入坐标变换到协方差为单位阵的&quot;白化&quot;坐标，再对 $M^*L$ 做 SVD 截断，就是在 $x_s$ 的真实分布下可证最优的截断（白化坐标里的 Eckart–Young 定理，推导见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>）。截断后重算 $b = W\bar{x}_t - AB\bar{x}_s$，让 bias 顺带吸收截断在均值处的误差。</p>
 <p><strong>第 4 步</strong>：替换该层，处理下一层。下一层采集到的 $x_s$ 自动包含新换上的层的误差，于是被下一层矫正。</p>
-<p><strong>方案一屏总结</strong>（本篇的全部改进浓缩在第一个式子的期望符号里）。对每个线性层 $\ell$，按前向顺序：</p>
+<p><strong>把整个方法写成公式，一共两行</strong>（本篇的全部改进都在第一行的期望符号里）。对每个线性层 $\ell$，按前向顺序：</p>
 <p>$$(M_\ell^*, b_\ell^*) = \arg\min_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W_\ell x_t}_{\text{目标：教师轨迹的干净输出}} - M \underbrace{x_s}_{\text{输入：学生的漂移输入}} - b \Big\rVert^2$$</p>
 <p>$$A_\ell B_\ell = \mathrm{SVD}_r\big(M_\ell^* L_\ell\big) L_\ell^{-1}, \qquad L_\ell = \mathrm{chol}\big(\Sigma_{ss}^{(\ell)} + \lambda I\big)$$</p>
 <p>对比第一篇的代理目标 $\min \lVert (W - AB) S \rVert_F^2$：那里输入分布和逼近目标都活在教师的世界里；这里<strong>输入来自学生的真实运行分布、目标来自教师轨迹</strong>——每一层同时在做压缩和对上游误差的纠错。这一处换目标就是本篇的全部改动，8.50 → 5.60 的差距全部由它贡献。</p>
@@ -525,7 +525,7 @@
 <p>Intuition: $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, composed with $W$ — restoration and transformation fused into one matrix.</p>
 <p><strong>Step 3</strong>: Whitened rank-$r$ truncation. Truncating the SVD of $M^*$ directly would implicitly assume all input directions matter equally, which the real input distribution violates; instead take $L = \mathrm{chol}(\Sigma_{ss}+\lambda I)$ to transform the input into &quot;whitened&quot; coordinates where the covariance is the identity, then SVD-truncate $M^*L$ — provably optimal under the student's true input distribution (Eckart–Young in whitened coordinates; derivation in <a href="/2026/08/30/lord-compression-primer/">the primer</a>). Recompute $b = W\bar{x}_t - AB\bar{x}_s$ afterwards so the bias also absorbs the truncation error at the mean.</p>
 <p><strong>Step 4</strong>: Replace the layer, move on. The next layer's $x_s$ automatically includes the newly introduced error, which the next regression corrects.</p>
-<p><strong>The whole method on one screen</strong> (this post's entire improvement is concentrated in the expectation of the first equation). For each linear layer $\ell$, in forward order:</p>
+<p><strong>The entire method, written out as formulas — just two lines</strong> (all of this post's improvement lives in the first line's expectation). For each linear layer $\ell$, in forward order:</p>
 <p>$$(M_\ell^*, b_\ell^*) = \arg\min_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W_\ell x_t}_{\text{target: clean teacher-trajectory output}} - M \underbrace{x_s}_{\text{input: the student's drifted input}} - b \Big\rVert^2$$</p>
 <p>$$A_\ell B_\ell = \mathrm{SVD}_r\big(M_\ell^* L_\ell\big) L_\ell^{-1}, \qquad L_\ell = \mathrm{chol}\big(\Sigma_{ss}^{(\ell)} + \lambda I\big)$$</p>
 <p>Contrast with part 1's proxy $\min \lVert (W - AB) S \rVert_F^2$: there, both the input distribution and the target live in the teacher's world; here <strong>the input comes from the student's real running distribution and the target from the teacher's trajectory</strong> — every layer simultaneously compresses and corrects upstream error. This single change of objective is the post's entire delta, and it accounts for all of 8.50 → 5.60.</p>
