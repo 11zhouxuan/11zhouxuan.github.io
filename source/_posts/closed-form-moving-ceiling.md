@@ -23,7 +23,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 
 （本文 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 6 节的 oracle 诊断保持当时的测量口径。）
 
-### 0. 终点方案一览：四处改动写进同一个式子
+### 0. 先看最终配方：四处改动写进同一个式子
 
 第二篇确立的逐层目标是：解出 $M^\*$ 后在白化度量下截断，$\min\_{A,B} \lVert (M^\* - AB) L \rVert\_F^2$。本篇终点的逐层目标：
 
@@ -123,7 +123,7 @@ $$\text{oracle}\_{\text{新范式}} = 3.75 \quad (<\ 3.79\_{\text{端到端蒸�
 
 ### 7. 结论
 
-**最终版图**（85% 线性层压缩、等预算 2.29B、零训练，双窗口）：
+**最终版图**（85% 线性层压缩、等预算 2.29B、零训练）：
 
 $$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}\_{\text{稀疏×度量}} \to \underbrace{4.61}\_{\text{+校准工程}} \to \underbrace{\mathbf{4.59}}\_{\text{+rms-lift}} \to \underbrace{3.75}\_{\text{新 oracle}} \to \underbrace{3.79}\_{\text{端到端蒸馏}} \to 2.11\_{\text{教师}}$$
 
@@ -154,7 +154,7 @@ Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r fact
 
 (All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle diagnostics in Section 6 keep their original measurement window.)
 
-### 0. The Endpoint Recipe at a Glance: Four Changes in One Objective
+### 0. The Final Recipe First: Four Changes in One Formula
 
 Part 2 established the layerwise objective: solve for $M^\*$, then truncate in the whitened metric, $\min\_{A,B} \lVert (M^\* - AB) L \rVert\_F^2$. This post's endpoint objective per layer:
 
@@ -254,7 +254,7 @@ $$\text{oracle}\_{\text{new}} = 3.75 \quad (<\ 3.79\_{\text{end-to-end distilled
 
 ### 7. Conclusions
 
-**The final landscape** (85% linear-layer compression, equal 2.29B budget, zero training, both windows):
+**The final landscape** (85% linear-layer compression, equal 2.29B budget, zero training):
 
 $$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}\_{\text{sparse×metric}} \to \underbrace{4.61}\_{\text{+calibration eng.}} \to \underbrace{\mathbf{4.59}}\_{\text{+rms-lift}} \to \underbrace{3.75}\_{\text{new oracle}} \to \underbrace{3.79}\_{\text{e2e distilled}} \to 2.11\_{\text{teacher}}$$
 

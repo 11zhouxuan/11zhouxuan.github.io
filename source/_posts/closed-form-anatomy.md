@@ -70,7 +70,7 @@ Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 
 **照单全收 → 5.27（失败）**；把偏离限制在均匀值的 0.6~1.6 倍（即"阻尼"）→ **5.06（当时的新纪录）**。教训：这种敏感度是局部量——它只回答"在当前解附近动一动会怎样"，砍 4 倍已经远超它的适用范围；三点剂量曲线（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。
 
-**形式化本篇的改动**。前三篇里每层的 rank 是固定常数 $r$；本篇把 $\{r\_\ell\}$ 变成优化变量：
+**把本篇的改动写成公式**。前三篇里每层的 rank 是固定常数 $r$；本篇把每层的 rank $\{r\_\ell\}$ 变成待求的变量：
 
 $$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{层 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{预算}, \qquad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{阻尼约束（不可省略）}}$$
 
@@ -207,7 +207,7 @@ Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/cont
 
 **Taken at face value → 5.27 (fail)**; deviation clipped to 0.6-1.6× of uniform ("damping") → **5.06 (record at the time)**. Lesson: this sensitivity is a local quantity — it only answers "what happens if you wiggle around the current solution"; a 4× cut is far outside its domain. The three-point dose-response (untilted 5.10 / damped 5.06 / extreme 5.27) puts the optimum near the damped point.
 
-**This post's change, formalized.** In the first three posts every layer's rank is a fixed constant $r$; this post turns $\{r\_\ell\}$ into optimization variables:
+**This post's change, written as a formula.** In the first three posts every layer's rank is a fixed constant $r$; this post turns the per-layer ranks $\{r\_\ell\}$ into unknowns to be solved for:
 
 $$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{expected damage of layer }\ell\text{'s cut directions}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{budget}, \qquad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{damping constraint (not optional)}}$$
 

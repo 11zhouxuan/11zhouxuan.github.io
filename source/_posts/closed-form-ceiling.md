@@ -56,7 +56,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
 
-**本篇方案的数学表述**。在第二篇的逐层回归（每层解 $\min \mathbb{E}\lVert W x\_t - M x\_s - b\rVert^2$ 后截断到 rank $r$）之外，本篇新增两类回归，它们的共同点是**没有 rank 约束**——这正是"免税"的形式化含义，最优解不需要截断、不损失精度：
+**把本篇新增的部分写成公式**。在第二篇的逐层回归（每层解 $\min \mathbb{E}\lVert W x\_t - M x\_s - b\rVert^2$ 后截断到 rank $r$）之外，本篇新增两类回归，它们的共同点是**没有 rank 约束**——这正是"免税"的形式化含义，最优解不需要截断、不损失精度：
 
 $$\underbrace{h \leftarrow P\_k h + b\_k}\_{\text{每 }K\text{ 个 block 一个残差流矫正器}}, \qquad (P\_k, b\_k) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2, \qquad P\_k \in \mathbb{R}^{4096 \times 4096}\ \text{满秩}$$
 
@@ -172,7 +172,7 @@ This generalizes into a principle: **spend budget where corrections are truncati
 
 Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
 
-**This post's method, stated precisely.** On top of part 2's layerwise regression (solve $\min \mathbb{E}\lVert W x\_t - M x\_s - b\rVert^2$ per layer, then truncate to rank $r$), this post adds two families of regressions whose common trait is having **no rank constraint** — the formal meaning of "tax-free": their optima need no truncation and lose no accuracy:
+**This post's additions, written as formulas.** On top of part 2's layerwise regression (solve $\min \mathbb{E}\lVert W x\_t - M x\_s - b\rVert^2$ per layer, then truncate to rank $r$), this post adds two families of regressions whose common trait is having **no rank constraint** — the formal meaning of "tax-free": their optima need no truncation and lose no accuracy:
 
 $$\underbrace{h \leftarrow P\_k h + b\_k}\_{\text{one residual-stream corrector every }K\text{ blocks}}, \qquad (P\_k, b\_k) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2, \qquad P\_k \in \mathbb{R}^{4096 \times 4096}\ \text{full rank}$$
 

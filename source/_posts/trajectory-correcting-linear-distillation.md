@@ -66,7 +66,7 @@ $$\min\_{M,b}\; \mathbb{E}\lVert W x\_t - M x\_s - b \rVert^2 \quad\Longrightarr
 
 **第 4 步**：替换该层，处理下一层。下一层采集到的 $x\_s$ 自动包含新换上的层的误差，于是被下一层矫正。
 
-**方案一屏总结**（本篇的全部改进浓缩在第一个式子的期望符号里）。对每个线性层 $\ell$，按前向顺序：
+**把整个方法写成公式，一共两行**（本篇的全部改进都在第一行的期望符号里）。对每个线性层 $\ell$，按前向顺序：
 
 $$(M\_\ell^\*, b\_\ell^\*) = \arg\min\_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W\_\ell x\_t}\_{\text{目标：教师轨迹的干净输出}} - M \underbrace{x\_s}\_{\text{输入：学生的漂移输入}} - b \Big\rVert^2$$
 
@@ -175,7 +175,7 @@ Intuition: $\Sigma\_{ts}\Sigma\_{ss}^{-1}$ is the optimal linear operator recove
 
 **Step 4**: Replace the layer, move on. The next layer's $x\_s$ automatically includes the newly introduced error, which the next regression corrects.
 
-**The whole method on one screen** (this post's entire improvement is concentrated in the expectation of the first equation). For each linear layer $\ell$, in forward order:
+**The entire method, written out as formulas — just two lines** (all of this post's improvement lives in the first line's expectation). For each linear layer $\ell$, in forward order:
 
 $$(M\_\ell^\*, b\_\ell^\*) = \arg\min\_{M, b}\ \mathbb{E}\Big\lVert \underbrace{W\_\ell x\_t}\_{\text{target: clean teacher-trajectory output}} - M \underbrace{x\_s}\_{\text{input: the student's drifted input}} - b \Big\rVert^2$$
 
