@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-01T08:54:06.774Z">
+<meta property="article:modified_time" content="2026-09-02T05:31:49.968Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-01 08:54:06" itemprop="dateModified" datetime="2026-09-01T08:54:06+00:00">2026-09-01</time>
+      <time title="Modified: 2026-09-02 05:31:49" itemprop="dateModified" datetime="2026-09-02T05:31:49+00:00">2026-09-02</time>
     </span>
 
   
@@ -720,9 +720,6 @@
 <p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。</p>
 </li>
 <li>
-<p><s>要恢复真正的预测能力，必须经过端到端训练——闭式方法无法同时打破坍缩又降低 loss。</s> <strong>【后续更正】这个结论被推翻了</strong>：错的不是闭式本身，而是当时所有方法共享的&quot;逐层逼近 $W$&quot;目标。把逐层目标换成&quot;从学生的漂移输入回归教师轨迹的干净输出&quot;，闭式方法可以同时打破坍缩并把 loss 降到 <strong>5.59</strong>（低于常数预测器下界 7.51，携带真实互信息）。详见<a href="/2026/08/19/trajectory-correcting-linear-distillation/">《轨迹矫正线性蒸馏》</a>。</p>
-</li>
-<li>
 <p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。同样，<strong>对比不同压缩方法时必须固定全部配置</strong>（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。</p>
 </li>
 </ol>
@@ -1156,9 +1153,6 @@
 </li>
 <li>
 <p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot; Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).</p>
-</li>
-<li>
-<p><s>Recovering true predictive ability requires end-to-end training — closed-form methods cannot simultaneously break collapse and lower loss.</s> <strong>[Later correction] This conclusion was overturned</strong>: the flaw was not closed-form methods per se, but the &quot;approximate $W$ per layer&quot; objective every tested method shared. Switching the layerwise objective to &quot;regress the teacher-trajectory output from the student's drifted input&quot; lets a closed-form method break the collapse AND reach <strong>5.59</strong> (below the constant-predictor floor 7.51, carrying genuine mutual information). See <a href="/2026/08/19/trajectory-correcting-linear-distillation/">Trajectory-Correcting Linear Distillation</a>.</p>
 </li>
 <li>
 <p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead. Likewise, <strong>when comparing compression methods, every configuration knob must be held fixed</strong> (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.</p>
