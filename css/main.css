@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #3deeaf;
+  background: #65ff50;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3074,8 +3074,6 @@ pre {
 }
 .post-body table {
   border: none !important;
-  border-top: 2px solid #333 !important;
-  border-bottom: 2px solid #333 !important;
 }
 .post-body table th,
 .post-body table td {
@@ -3085,7 +3083,7 @@ pre {
   background: none !important;
 }
 .post-body table thead th {
-  border-bottom: 1px solid #333 !important;
+  border-bottom: 1px solid #e5e7eb !important;
 }
 .post-body table tbody tr,
 .post-body table tbody tr:nth-of-type(even),
@@ -3096,13 +3094,11 @@ pre {
 }
 .post-body blockquote {
   color: #555 !important;
-  background: none !important;
-  border-left: none !important;
-  border-top: 1.5px solid #333;
-  border-bottom: 1.5px solid #333;
-  border-radius: 0;
-  padding: 0.7em 0.5em;
-  margin: 1.4em 0;
+  background: #fafafa !important;
+  border: none !important;
+  border-radius: 6px;
+  padding: 0.9em 1.3em;
+  margin: 1.5em 0;
 }
 .post-body blockquote p,
 .post-body blockquote li {
@@ -3110,4 +3106,18 @@ pre {
 }
 .post-body blockquote strong {
   color: #222 !important;
+}
+.post-body hr {
+  background: none;
+  border: none;
+  height: auto;
+  margin: 44px 0;
+  text-align: center;
+}
+.post-body hr::before {
+  content: "*  *  *";
+  display: block;
+  color: #9aa0a6;
+  font-size: 1.1em;
+  letter-spacing: 0.6em;
 }
