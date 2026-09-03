@@ -337,28 +337,24 @@ code, pre {
   }
 }
 
-// ---- Clean modern sans body text ----
+// ---- Academic typesetting: serif body, sans headings ----
+// Latin in STIX Two Text (matches MathJax's TeX look), Chinese in a serif
+// (Noto Serif SC webfont, falling back to system Songti); headings in a
+// modern sans — the standard journal-style mix.
 .post-body,
 .post-body p,
 .post-body li,
 .post-body td,
-.post-body th,
-.post-title,
-.post-body h1, .post-body h2, .post-body h3, .post-body h4 {
-  font-family: "Inter", -apple-system, "SF Pro Text", "Segoe UI", "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
-}
-
-.post-body {
-  letter-spacing: 0.01em;
-}
-
-.post-body h1, .post-body h2, .post-body h3, .post-body h4, .post-title {
-  letter-spacing: 0.02em;
-  font-weight: 650;
-}
-
 .post-body blockquote {
-  font-family: inherit;
+  font-family: "STIX Two Text", "Source Serif 4", Georgia, "Noto Serif SC", "Songti SC", "SimSun", "Source Han Serif SC", serif;
+}
+
+.post-body h1, .post-body h2, .post-body h3, .post-body h4,
+.post-body th,
+.post-title {
+  font-family: -apple-system, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 600;
 }
 
 // ---- Algorithm blocks (blockquotes) ----
