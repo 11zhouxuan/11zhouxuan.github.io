@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
 
   
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
 
   
@@ -1409,7 +1409,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
 
   
@@ -1948,7 +1948,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
 
   
@@ -2371,7 +2371,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
 
   
@@ -2411,14 +2411,14 @@ switchLang('zh');
 <td>噪声压倒信号</td>
 </tr>
 <tr>
-<td>ASVD（激活加权）</td>
+<td>ASVD（$\alpha=0.5$，均匀 rank）</td>
 <td>10.83</td>
-<td>部分退化</td>
+<td>高度退化，但未坍缩</td>
 </tr>
 <tr>
-<td>坍缩 ASVD</td>
+<td>ASVD（$\alpha=1.0$，逐矩阵分配 rank）</td>
 <td>8.50</td>
-<td><strong>常数函数</strong>（98.6% 预测逗号）</td>
+<td><strong>完全坍缩成常数函数</strong>（98.6% 预测逗号）</td>
 </tr>
 <tr>
 <td>常数预测器理论下界</td>
@@ -2427,7 +2427,8 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>8.50 看似最好，实为假象：它是&quot;放弃预测、输出接近 unigram 分布&quot;的退化策略，离常数预测器的信息论下界只有 1 nat。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。</p>
+<p>两行 ASVD 是同一方法的不同配置：把加权指数从 0.5 提到 1.0、均匀 rank 换成逐矩阵分配（最小的矩阵被饿到 rank 32），模型就从&quot;高度退化&quot;滑进&quot;完全坍缩&quot;。最后一行的<strong>常数预测器</strong>指完全无视上下文、每个位置输出同一个概率分布的模型——它能达到的最低 loss 是语料词频分布的熵 $H(\text{unigram}) = 7.51$（推导见第一篇第 2 节）。这条线是试金石：<strong>loss 低于 7.51 才说明模型真的在利用上下文</strong>。</p>
+<p>8.50 看似最好，实为假象：它是&quot;放弃预测、输出接近词频分布&quot;的退化策略，离常数预测器的下界只有 1 nat。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。</p>
 <p>但有一个关键事实说明这堵墙不是低秩本身的极限：<strong>从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构</strong>。也就是说，rank-384 参数空间里存在好得多的点，只是&quot;逐层逼近 $W$&quot;这类局部目标找不到它。</p>
 <h3 id="2-洞察：错的不是低秩，是逐层目标">2. 洞察：错的不是低秩，是逐层目标</h3>
 <p>所有失败的闭式方法都在解同一类问题——用某种范数逼近教师权重：</p>
@@ -2579,14 +2580,14 @@ switchLang('zh');
 <td>Noise overwhelms signal</td>
 </tr>
 <tr>
-<td>ASVD (activation-weighted)</td>
+<td>ASVD ($\alpha=0.5$, uniform ranks)</td>
 <td>10.83</td>
-<td>Partially degenerate</td>
+<td>Severely degenerate, but not collapsed</td>
 </tr>
 <tr>
-<td>Collapsed ASVD</td>
+<td>ASVD ($\alpha=1.0$, per-matrix ranks)</td>
 <td>8.50</td>
-<td><strong>Constant function</strong> (98.6% commas)</td>
+<td><strong>Fully collapsed to a constant function</strong> (98.6% commas)</td>
 </tr>
 <tr>
 <td>Constant-predictor floor</td>
@@ -2595,7 +2596,8 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>The 8.50 is an illusion: a &quot;give up and emit the unigram distribution&quot; strategy sitting 1 nat above the information-theoretic floor for constant predictors. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.</p>
+<p>The two ASVD rows are the same method under different configurations: raising the weighting exponent from 0.5 to 1.0 and swapping uniform ranks for per-matrix allocation (the smallest matrix starved to rank 32) slides the model from &quot;severely degenerate&quot; into &quot;fully collapsed.&quot; The last row's <strong>constant predictor</strong> is a model that ignores context entirely and emits the same distribution at every position — the lowest loss it can reach is the entropy of the corpus word-frequency distribution, $H(\text{unigram}) = 7.51$ (derived in part 1, Section 2). That line is the litmus test: <strong>only a loss below 7.51 proves the model actually uses context</strong>.</p>
+<p>The 8.50 is an illusion: a &quot;give up and emit the word-frequency distribution&quot; strategy sitting 1 nat above the constant-predictor floor. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.</p>
 <p>One fact showed the wall is not intrinsic to low rank: <strong>end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure</strong>. A far better point exists in the same parameter space; layerwise &quot;approximate $W$&quot; objectives simply cannot find it.</p>
 <h3 id="2-The-Insight-Low-Rank-Isn-t-Wrong-—-the-Layerwise-Objective-Is">2. The Insight: Low Rank Isn't Wrong — the Layerwise Objective Is</h3>
 <p>Every failed closed-form method solves some version of</p>
@@ -2802,7 +2804,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
 
   
@@ -3823,7 +3825,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
 
   
@@ -4488,7 +4490,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4585,7 +4587,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4683,7 +4685,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
