@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（五）：会移动的天花板——稀疏残差、更好的度量与校准数据  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  第四篇用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 4.59——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-03T08:02:54.982Z">
+<meta property="article:modified_time" content="2026-09-03T08:17:43.317Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="calibration">
@@ -269,7 +269,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 08:02:54" itemprop="dateModified" datetime="2026-09-03T08:02:54+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 08:17:43" itemprop="dateModified" datetime="2026-09-03T08:17:43+00:00">2026-09-03</time>
     </span>
 
   
@@ -391,7 +391,7 @@
 <h3 id="6-新范式的-oracle：地板低于一个训练过的模型">6. 新范式的 oracle：地板低于一个训练过的模型</h3>
 <p>给新配方重测 oracle 分解（换掉全部子层输入为教师干净值）：</p>
 <p>$$\text{oracle}_{\text{新范式}} = 3.75 \quad (&lt;\ 3.79_{\text{端到端蒸馏训练}})$$</p>
-<p><strong>闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。</strong> 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，<strong>当前纪录与训练之间的差距大头已经从&quot;税&quot;换成了&quot;漂移&quot;</strong>。而漂移矫正器是全秩的、吃不到度量收益（第 3 节的推论），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。</p>
+<p><strong>闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。</strong> 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，<strong>当前纪录与训练之间的差距大头已经从&quot;税&quot;换成了&quot;漂移&quot;</strong>。而漂移矫正器是全秩的、吃不到度量收益（第 3 节的推论），这 1.2 nat 仍锁在非线性后面：部分清洁实验（只把前半段或 block 16 附近的输入换成教师的干净值）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。</p>
 <h3 id="7-结论">7. 结论</h3>
 <p><strong>最终版图</strong>（85% 线性层压缩、等预算 2.29B、零训练）：</p>
 <p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{稀疏×度量}} \to \underbrace{4.61}_{\text{+校准工程}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{新 oracle}} \to \underbrace{3.79}_{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$</p>
@@ -539,7 +539,7 @@
 <h3 id="6-The-New-Paradigm-s-Oracle-a-Floor-Below-a-Trained-Model">6. The New Paradigm's Oracle: a Floor Below a Trained Model</h3>
 <p>Re-running the oracle decomposition (swap all sublayer inputs with the teacher's clean values) on the new recipe:</p>
 <p>$$\text{oracle}_{\text{new}} = 3.75 \quad (&lt;\ 3.79_{\text{end-to-end distilled}})$$</p>
-<p><strong>The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.</strong> Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. <strong>The gap between the current record and training is now mostly drift, not tax.</strong> And drift correctors are full-rank, hence unable to collect the metric's gain (the corollary in Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.</p>
+<p><strong>The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.</strong> Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. <strong>The gap between the current record and training is now mostly drift, not tax.</strong> And drift correctors are full-rank, hence unable to collect the metric's gain (the corollary in Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (cleaning only the early blocks or the region around block 16) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.</p>
 <h3 id="7-Conclusions">7. Conclusions</h3>
 <p><strong>The final landscape</strong> (85% linear-layer compression, equal 2.29B budget, zero training):</p>
 <p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{sparse×metric}} \to \underbrace{4.61}_{\text{+calibration eng.}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{new oracle}} \to \underbrace{3.79}_{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$</p>

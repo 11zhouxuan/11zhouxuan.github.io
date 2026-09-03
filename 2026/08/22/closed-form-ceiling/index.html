@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English    低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  这是低秩压缩三部曲的完结篇（第一篇：表示坍缩，第二篇：轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回">
+    <meta name="description" content="中文   English    低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  这是低秩压缩三部曲的完结篇（第一篇：表示坍缩，第二篇：轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier">
+<meta property="og:title" content="Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier">
 <meta property="og:url" content="https://11zhouxuan.github.io/2026/08/22/closed-form-ceiling/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English    低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  这是低秩压缩三部曲的完结篇（第一篇：表示坍缩，第二篇：轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回">
+<meta property="og:description" content="中文   English    低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  这是低秩压缩三部曲的完结篇（第一篇：表示坍缩，第二篇：轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-03T08:02:54.982Z">
+<meta property="article:modified_time" content="2026-09-03T08:17:43.317Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -35,17 +35,16 @@
 <meta property="article:tag" content="linear-algebra">
 <meta property="article:tag" content="low-rank">
 <meta property="article:tag" content="math">
-<meta property="article:tag" content="oracle-bound">
 <meta name="twitter:card" content="summary">
 
 
 <link rel="canonical" href="https://11zhouxuan.github.io/2026/08/22/closed-form-ceiling/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/22/closed-form-ceiling/","path":"2026/08/22/closed-form-ceiling/","title":"Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/22/closed-form-ceiling/","path":"2026/08/22/closed-form-ceiling/","title":"Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier | Xuan's Blog</title>
+<title>Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier | Xuan's Blog</title>
   
 
 
@@ -176,7 +175,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%89%EF%BC%89%EF%BC%9A%E9%97%AD%E5%BC%8F%E5%8E%8B%E7%BC%A9%E7%9A%84%E5%A4%A9%E8%8A%B1%E6%9D%BF%E2%80%94%E2%80%94%E5%85%8D%E7%A8%8E%E7%9F%AB%E6%AD%A3%E5%99%A8%E3%80%81oracle-%E4%B8%8A%E7%95%8C%E4%B8%8E%E9%9D%9E%E7%BA%BF%E6%80%A7%E6%94%BE%E5%A4%A7%E5%99%A8"><span class="nav-text">低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E6%B6%88%E8%9E%8D%E7%9A%84%E6%84%8F%E5%A4%96%EF%BC%9A%E4%BE%BF%E5%AE%9C%E7%9A%84%E8%B5%A2%E4%BA%86%E8%B4%B5%E7%9A%84"><span class="nav-text">1. 消融的意外：便宜的赢了贵的</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%85%8D%E7%A8%8E%E7%9F%AB%E6%AD%A3%E5%99%A8%E5%8E%9F%E7%90%86"><span class="nav-text">2. 免税矫正器原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-oracle-%E4%B8%8A%E7%95%8C%EF%BC%9A%E9%80%90%E5%B1%82%E8%8C%83%E5%BC%8F%E7%9A%84%E5%9C%B0%E6%9D%BF%E5%9C%A8-4-0"><span class="nav-text">3. oracle 上界：逐层范式的地板在 ~4.0</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E8%AE%AD%E7%BB%83%E5%88%A4%E5%86%B3%EF%BC%9A%E5%A5%BD%E7%9A%84%E9%97%AD%E5%BC%8F-init-%E5%80%BC-200-%E6%AD%A5%E8%AE%AD%E7%BB%83"><span class="nav-text">4. 训练判决：好的闭式 init 值 200+ 步训练</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E7%BB%93%E8%AE%BA"><span class="nav-text">5. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%82%AC%E5%B4%96%E8%B0%83%E6%9F%A5%E2%80%94%E2%80%94block-16-%E6%98%AF%E9%9D%9E%E7%BA%BF%E6%80%A7%E6%94%BE%E5%A4%A7%E5%99%A8"><span class="nav-text">附录 A：悬崖调查——block 16 是非线性放大器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E4%B8%8D%E5%90%8C-loss-%E6%B0%B4%E5%B9%B3%E7%9A%84%E6%A8%A1%E5%9E%8B%E5%9C%A8%E7%94%9F%E6%88%90%E4%BB%80%E4%B9%88"><span class="nav-text">附录 B：不同 loss 水平的模型在生成什么</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-3-The-Closed-Form-Ceiling-%E2%80%94-Tax-Free-Correctors-an-Oracle-Bound-and-a-Nonlinear-Amplifier"><span class="nav-text">Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-An-Ablation-Surprise-the-Cheap-Component-Beats-the-Expensive-One"><span class="nav-text">1. An Ablation Surprise: the Cheap Component Beats the Expensive One</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-The-Tax-Free-Corrector-Principle"><span class="nav-text">2. The Tax-Free Corrector Principle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Oracle-Bound-the-Layerwise-Paradigm-s-Floor-Is-4-0"><span class="nav-text">3. The Oracle Bound: the Layerwise Paradigm&#39;s Floor Is ~4.0</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-The-Training-Verdict-a-Good-Closed-Form-Init-Is-Worth-200-Steps"><span class="nav-text">4. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Conclusions"><span class="nav-text">5. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Cliff-%E2%80%94-Block-16-Is-a-Nonlinear-Amplifier"><span class="nav-text">Appendix A: The Cliff — Block 16 Is a Nonlinear Amplifier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-What-Models-at-Each-Loss-Level-Actually-Generate"><span class="nav-text">Appendix B: What Models at Each Loss Level Actually Generate</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%89%EF%BC%89%EF%BC%9A%E9%97%AD%E5%BC%8F%E5%8E%8B%E7%BC%A9%E7%9A%84%E5%A4%A9%E8%8A%B1%E6%9D%BF%E2%80%94%E2%80%94%E5%85%8D%E7%A8%8E%E7%9F%AB%E6%AD%A3%E5%99%A8%E4%B8%8E%E9%9D%9E%E7%BA%BF%E6%80%A7%E6%94%BE%E5%A4%A7%E5%99%A8"><span class="nav-text">低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E6%B6%88%E8%9E%8D%E7%9A%84%E6%84%8F%E5%A4%96%EF%BC%9A%E4%BE%BF%E5%AE%9C%E7%9A%84%E8%B5%A2%E4%BA%86%E8%B4%B5%E7%9A%84"><span class="nav-text">1. 消融的意外：便宜的赢了贵的</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%85%8D%E7%A8%8E%E7%9F%AB%E6%AD%A3%E5%99%A8%E5%8E%9F%E7%90%86"><span class="nav-text">2. 免税矫正器原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%89%A9%E4%BD%99%E7%9A%84%E5%B7%AE%E8%B7%9D%E5%9C%A8%E5%93%AA%EF%BC%9A%E5%87%A0%E4%B9%8E%E5%85%A8%E5%9C%A8-block-16"><span class="nav-text">3. 剩余的差距在哪：几乎全在 block 16</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E8%AE%AD%E7%BB%83%E5%88%A4%E5%86%B3%EF%BC%9A%E5%A5%BD%E7%9A%84%E9%97%AD%E5%BC%8F-init-%E5%80%BC-200-%E6%AD%A5%E8%AE%AD%E7%BB%83"><span class="nav-text">4. 训练判决：好的闭式 init 值 200+ 步训练</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E7%BB%93%E8%AE%BA"><span class="nav-text">5. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9Ablock-16-%E8%B0%83%E6%9F%A5%E2%80%94%E2%80%94%E9%97%AD%E5%BC%8F%E6%9E%81%E9%99%90%E4%B8%BA%E4%BB%80%E4%B9%88%E5%81%9C%E5%9C%A8-5-1"><span class="nav-text">附录 A：block 16 调查——闭式极限为什么停在 5.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E4%B8%8D%E5%90%8C-loss-%E6%B0%B4%E5%B9%B3%E7%9A%84%E6%A8%A1%E5%9E%8B%E5%9C%A8%E7%94%9F%E6%88%90%E4%BB%80%E4%B9%88"><span class="nav-text">附录 B：不同 loss 水平的模型在生成什么</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-3-The-Closed-Form-Ceiling-%E2%80%94-Tax-Free-Correctors-and-a-Nonlinear-Amplifier"><span class="nav-text">Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-An-Ablation-Surprise-the-Cheap-Component-Beats-the-Expensive-One"><span class="nav-text">1. An Ablation Surprise: the Cheap Component Beats the Expensive One</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-The-Tax-Free-Corrector-Principle"><span class="nav-text">2. The Tax-Free Corrector Principle</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Where-the-Remaining-Gap-Lives-Almost-Entirely-in-Block-16"><span class="nav-text">3. Where the Remaining Gap Lives: Almost Entirely in Block 16</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-The-Training-Verdict-a-Good-Closed-Form-Init-Is-Worth-200-Steps"><span class="nav-text">4. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Conclusions"><span class="nav-text">5. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Block-16-Investigation-%E2%80%94-Why-the-Closed-Form-Limit-Stops-at-5-1"><span class="nav-text">Appendix A: The Block-16 Investigation — Why the Closed-Form Limit Stops at 5.1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-What-Models-at-Each-Loss-Level-Actually-Generate"><span class="nav-text">Appendix B: What Models at Each Loss Level Actually Generate</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -245,12 +244,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier | Xuan's Blog">
+      <meta itemprop="name" content="Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier | Xuan's Blog">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier
+          Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier
         </h1>
 
         <div class="post-meta-container">
@@ -268,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 08:02:54" itemprop="dateModified" datetime="2026-09-03T08:02:54+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 08:17:43" itemprop="dateModified" datetime="2026-09-03T08:17:43+00:00">2026-09-03</time>
     </span>
 
   
@@ -293,7 +292,7 @@
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
-<h2 id="低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle-上界与非线性放大器">低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器</h2>
+<h2 id="低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器">低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器</h2>
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
@@ -361,27 +360,25 @@
 </tbody>
 </table>
 <p>同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。<strong>闭式同预算纪录：5.10。</strong></p>
-<p>本篇的完整方法是在第二篇算法 1 的基础上做两处扩展：</p>
+<p>本篇的完整方法如下。第 1–4 步就是第二篇的算法 1，<strong>加粗的第 5 步和循环后的收尾是本篇新增</strong>：</p>
 <blockquote>
-<p><strong>算法 2：免税矫正器（对算法 1 的两处扩展）</strong></p>
-<p><strong>扩展 1——残差流矫正器</strong>：在算法 1 的循环中，每当一个 block 的 7 个矩阵全部替换完毕、且该 block 编号是 $K$ 的倍数（本文 $K=3$，全网共 11 个矫正器），追加执行：</p>
+<p><strong>算法 2：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）</strong></p>
+<p><strong>输入</strong>：教师模型的全部权重矩阵 $W_1, \dots, W_N$，按前向顺序编号（$N = 252$：模型共 36 个 block，每个含 7 个）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$、矫正间隔 $K$（本文 $K = 3$；为配平矫正器的参数预算，$r$ 从 384 降到 316）</p>
+<p><strong>对 $\ell = 1, 2, \dots, N$ 依次执行</strong>（循环体内的变量都属于当前的 $W_\ell$，为简洁省略编号）：</p>
 <ol>
-<li>教师与当前学生在 $D$ 上配对前向，在该 block 出口采集教师残差流 $h_t$ 与学生残差流 $h_s$，累积均值与协方差</li>
-<li>解全秩回归 $(P, b) = \arg\min_{P, b}\ \mathbb{E}\lVert h_t - P h_s - b \rVert^2$（$P \in \mathbb{R}^{4096 \times 4096}$，闭式解与算法 1 第 2 步同构）</li>
-<li>在该 block 后插入矫正步 $h \mapsto Ph + b$；此后的统计采集自动包含它的效果，矫正链保持自洽</li>
+<li>教师与当前学生（前 $\ell-1$ 个矩阵已替换）在 $D$ 上配对前向，在 $W_\ell$ 的入口采集教师输入 $x_t$ 与学生输入 $x_s$，累积均值 $\bar{x}_t, \bar{x}_s$ 和中心化协方差 $\Sigma_{ts}, \Sigma_{ss}$</li>
+<li>岭回归：$M^* = W_\ell \Sigma_{ts} (\Sigma_{ss} + \lambda I)^{-1}$</li>
+<li>白化截断：$L = \mathrm{chol}(\Sigma_{ss} + \lambda I)$，对 $M^* L$ 做 SVD 保留前 $r$ 项得 $U_r \Sigma_r V_r^T$，令 $A = U_r \Sigma_r$、$B = V_r^T L^{-1}$</li>
+<li>偏置：$b = W_\ell \bar{x}_t - AB\bar{x}_s$；把 $W_\ell$ 替换为 $x \mapsto ABx + b$</li>
+<li><strong>残差流矫正器（新增）</strong>：若 $W_\ell$ 是某个 block 的第 7 个矩阵、且该 block 编号是 $K$ 的倍数（全网共 11 处），在该 block 出口采集教师残差流 $h_t$ 与学生残差流 $h_s$，解全秩回归 $(P, b_h) = \arg\min\ \mathbb{E}\lVert h_t - P h_s - b_h \rVert^2$（$P \in \mathbb{R}^{4096 \times 4096}$，闭式解同第 2 步，<strong>不截断</strong>），在该 block 后插入矫正步 $h \mapsto Ph + b_h$；此后的统计采集自动包含它的效果，矫正链保持自洽</li>
 </ol>
-<p><strong>扩展 2——lm_head 矫正</strong>：循环结束后，在 final RMSNorm 出口采集 $x_t, x_s$，同样解全秩回归 $P$，把它吸收进未压缩的输出头：$W_{lm}' = W_{lm}P$、$b_{lm} = W_{lm}(\bar{x}_t - P\bar{x}_s)$——形状与计算量不变，零新增参数（除 0.15M 的 bias）</p>
-<p><strong>预算配平</strong>：11 个矫正器共约 185M 参数，由全网 rank 从 384 降到 316 支付，总参数量保持 2.29B</p>
-<p><strong>输出</strong>：学生模型 = 低秩层 + 11 个残差流矫正器 + 矫正后的 lm_head（val loss = <strong>5.10</strong>）</p>
+<p><strong>循环结束后——lm_head 矫正（新增）</strong>：在 final RMSNorm 出口采集 $x_t, x_s$，同样解全秩回归 $P$，把它吸收进未压缩的输出头：$W_{lm}' = W_{lm}P$、$b_{lm} = W_{lm}(\bar{x}_t - P\bar{x}_s)$——形状与计算量不变，零新增参数（除 0.15M 的 bias）</p>
+<p><strong>输出</strong>：学生模型 = $N$ 个低秩层 + 11 个残差流矫正器 + 矫正后的 lm_head（val loss = <strong>5.10</strong>；矫正器共约 185M 参数，由 $r$ 的下调支付，总参数量保持 2.29B）</p>
 </blockquote>
-<p>与算法 1 逐矩阵回归的关键区别一目了然：那里的 $M^*$ 必须截断到 rank $r$（付截断税），这里的 $P$ 保持满秩——<strong>没有 rank 约束、最优解不损失精度，这正是&quot;免税&quot;的形式化含义</strong>。</p>
-<h3 id="3-oracle-上界：逐层范式的地板在-4-0">3. oracle 上界：逐层范式的地板在 ~4.0</h3>
-<p>5.10 距离训练可达的 3.3 还有多远的闭式空间？我们直接测量&quot;矫正器的理论极限&quot;。做法是一个 <strong>oracle 实验</strong>——允许作弊、专门用来测理论上限的实验：运行时把每个子层的输入张量替换成教师的干净值（配对前向，替换 q/k/v 和 gate/up 的输入），于是每层只贡献自己的局部截断误差，误差在残差流中只加性累积、不再穿过非线性复合。</p>
-<p>这个作弊模型的 loss 是&quot;rank-r 线性层 + 任意输入侧矫正器&quot;整个家族的<strong>地板</strong>：无论矫正器是线性、分段还是任意非线性，它最多做到把输入还原干净——也就是最多做到 oracle 的水平，不可能更低。实测：</p>
-<p>$$\text{oracle} = 4.0 \sim 4.3$$</p>
-<p>即使漂移矫正做到神级，rank-384 局部截断误差之和也要付 4 个 nat。想到 2.5？对这个范式<strong>严格不可达</strong>。</p>
-<p>但同时出现了一个更深的事实：<strong>训练（step 500 时 3.20）已经打穿了 oracle 界（4.0）</strong>。逻辑上完全自洽：oracle 只约束&quot;每层模仿教师对应层&quot;的范式，而梯度训练<strong>重组了各层的分工</strong>——训练出的层不再是教师各层的逼近，而是一组全新的因子化方案，其复合效果超越逐层模仿的极限。这是第二篇&quot;瓶颈在优化目标不在表达能力&quot;论点的最强版本。</p>
-<p>剩余非线性漂移的来源也定位到了：几乎全部来自<strong>单独一层</strong>（block 16）——它是教师自带的非线性放大器，容量、分配、线性矫正三类手段全部无效，闭式极限因此锁定在 ~5.1（调查细节见附录 A）。</p>
+<p>新旧两类回归的关键区别一目了然：第 3 步的 $M^*$ 必须截断到 rank $r$（付截断税），而第 5 步和收尾处的 $P$ 保持满秩——<strong>没有 rank 约束、最优解不损失精度，这正是&quot;免税&quot;的形式化含义</strong>。</p>
+<h3 id="3-剩余的差距在哪：几乎全在-block-16">3. 剩余的差距在哪：几乎全在 block 16</h3>
+<p>5.10 之后我们继续追问：剩下的误差到底在哪里产生？做法很直接——沿着模型逐个 block 检查，问&quot;走到这里为止，学生和教师的差距还有多少能用一个线性变换修回去&quot;。答案非常集中：修不掉的部分几乎全部产生自<strong>同一个位置</strong>——block 16 的 FFN。</p>
+<p>这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个<strong>非线性放大器</strong>。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在 ~5.1 附近。</p>
 <h3 id="4-训练判决：好的闭式-init-值-200-步训练">4. 训练判决：好的闭式 init 值 200+ 步训练</h3>
 <p>双臂对照（同 seed、同数据序、同 global batch），只差初始化：</p>
 <table>
@@ -416,26 +413,31 @@
 <ol>
 <li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
 </ol>
-<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 地板}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
 <ol start="2">
 <li>
 <p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
 </li>
 <li>
-<p><strong>闭式极限的成因链</strong>：实际 5.10 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 &lt; 4.0）。</p>
+<p><strong>闭式极限的成因</strong>：卡在 ~5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃&quot;每层模仿教师对应层&quot;的做法、直接优化最终 loss——这正是训练在做的事。</p>
 </li>
 <li>
 <p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
 </li>
 </ol>
-<p>实际的 5.10 和 oracle 地板 4.0 之间还隔着 1.1 nat。这段空间的结构是什么、还能挖出多少，是<a href="/2026/08/25/closed-form-anatomy/">第四篇</a>的主题。</p>
+<p>5.10 是不是闭式的尽头？把剩下的差距拆开、看看还能从哪里再挤一点，是<a href="/2026/08/25/closed-form-anatomy/">第四篇</a>的主题。</p>
 <hr>
 <h2 id="附录">附录</h2>
-<h3 id="附录-A：悬崖调查——block-16-是非线性放大器">附录 A：悬崖调查——block 16 是非线性放大器</h3>
-<p>逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自<strong>单独一层</strong>：</p>
-<p>$$R^2:\ \underbrace{0.815}_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}_{\text{一层砍掉 0.543}}$$</p>
-<p>其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊：MLP 输出幅度是邻居的 2 倍，override ratio（MLP 输出相对残差流的幅度之比）0.60 vs 邻居的 0.25——这是文献中 massive activation 层（少数激活幅度异常大的层）的典型特征。</p>
-<p>两个定点打击实验都失败了：block 16 MLP 全秩（连矫正都满血）→ 5.40，更差；前载 rank（0-16 用 480、17-35 用 298，减少流入悬崖的漂移）→ 5.38，也更差。结论：<strong>悬崖不是压缩造成的，是教师自己的功能特性</strong>——入口处 18% 的非线性残余误差被它的原生大幅度非线性计算放大成出口处 73% 的不可恢复纠缠。容量、分配、线性矫正三类武器全部无效；这 18% 对可负担的 rank 提升也不敏感。闭式极限就此锁定在 ~5.1。</p>
+<h3 id="附录-A：block-16-调查——闭式极限为什么停在-5-1">附录 A：block 16 调查——闭式极限为什么停在 5.1</h3>
+<p><strong>怎么测</strong>。教师和学生读同样的文本，在每个 block 的出口比较两边的残差流，用回归的 $R^2$ 度量&quot;学生的残差流还有多少能用一个线性变换拉回教师的样子&quot;（$R^2$ 从 0 到 1，越接近 1 表示越能修回去）。</p>
+<p><strong>结果非常集中</strong>。36 个 block 里，其余 35 个的每个子层对 $R^2$ 的影响都在 ±0.02 以内；唯独经过 block 16 的 FFN 时，$R^2$ 从 0.815 掉到 0.272——&quot;修不回去&quot;的部分有一大半产生在这一个位置。</p>
+<p><strong>这个层在教师里本来就特殊</strong>：它的 FFN 输出幅度是相邻层的 2 倍，输出大小达到残差流本身的 0.60 倍（邻居只有 0.25）。文献里把这类层叫 massive activation 层——少数激活值特别大的层，很多大模型里都存在。</p>
+<p><strong>两个针对它的补救实验都失败了</strong>：</p>
+<ul>
+<li>完全不压缩 block 16 的 FFN（保留原始全秩权重）：5.40，比 5.10 更差；</li>
+<li>给前半段多分 rank（block 0–16 用 480、17–35 用 298），想让流进 block 16 的误差更小：5.38，也更差。</li>
+</ul>
+<p><strong>结论</strong>：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在 ~5.1。</p>
 <h3 id="附录-B：不同-loss-水平的模型在生成什么">附录 B：不同 loss 水平的模型在生成什么</h3>
 <p>文本采样给出了质变的直观刻度（temperature 0.8）：</p>
 <table>
@@ -472,7 +474,7 @@
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
-<h2 id="Low-Rank-Compression-Series-3-The-Closed-Form-Ceiling-—-Tax-Free-Correctors-an-Oracle-Bound-and-a-Nonlinear-Amplifier">Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier</h2>
+<h2 id="Low-Rank-Compression-Series-3-The-Closed-Form-Ceiling-—-Tax-Free-Correctors-and-a-Nonlinear-Amplifier">Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier</h2>
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
@@ -540,27 +542,25 @@
 </tbody>
 </table>
 <p>Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. <strong>Closed-form equal-budget record: 5.10.</strong></p>
-<p>The complete method of this post is Algorithm 1 from part 2 plus two extensions:</p>
+<p>The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from part 2; <strong>the bold step 5 and the post-loop finish are new in this post</strong>:</p>
 <blockquote>
-<p><strong>Algorithm 2: Tax-Free Correctors (two extensions of Algorithm 1)</strong></p>
-<p><strong>Extension 1 — residual-stream correctors</strong>: inside Algorithm 1's loop, whenever a block's 7 matrices have all been replaced and the block index is a multiple of $K$ ($K=3$ here, 11 correctors in total), additionally:</p>
+<p><strong>Algorithm 2: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)</strong></p>
+<p><strong>Input</strong>: all of the teacher's weight matrices $W_1, \dots, W_N$ in forward order ($N = 252$: 36 blocks with 7 matrices each), calibration data $D$, target rank $r$, regularization strength $\lambda$, corrector interval $K$ ($K = 3$ here; to pay for the correctors, $r$ drops from 384 to 316)</p>
+<p><strong>For $\ell = 1, 2, \dots, N$</strong> (inside the loop, all variables belong to the current $W_\ell$; the index is dropped for brevity):</p>
 <ol>
-<li>Run teacher and the current student on $D$ in paired forwards; at that block's exit collect the teacher residual stream $h_t$ and student residual stream $h_s$; accumulate means and covariances</li>
-<li>Solve the full-rank regression $(P, b) = \arg\min_{P, b}\ \mathbb{E}\lVert h_t - P h_s - b \rVert^2$ ($P \in \mathbb{R}^{4096 \times 4096}$; the closed-form solution mirrors Algorithm 1, step 2)</li>
-<li>Insert the correction $h \mapsto Ph + b$ after that block; later statistics automatically include its effect, keeping the corrector chain self-consistent</li>
+<li>Run teacher and the current student (matrices $1..\ell-1$ already replaced) on $D$ in paired forwards; at $W_\ell$'s entrance collect the teacher input $x_t$ and student input $x_s$; accumulate the means $\bar{x}_t, \bar{x}_s$ and centered covariances $\Sigma_{ts}, \Sigma_{ss}$</li>
+<li>Ridge regression: $M^* = W_\ell \Sigma_{ts} (\Sigma_{ss} + \lambda I)^{-1}$</li>
+<li>Whitened truncation: $L = \mathrm{chol}(\Sigma_{ss} + \lambda I)$; take the top-$r$ SVD of $M^* L$ as $U_r \Sigma_r V_r^T$; set $A = U_r \Sigma_r$, $B = V_r^T L^{-1}$</li>
+<li>Bias: $b = W_\ell \bar{x}_t - AB\bar{x}_s$; replace $W_\ell$ with $x \mapsto ABx + b$</li>
+<li><strong>Residual-stream corrector (new)</strong>: if $W_\ell$ is the 7th matrix of its block and the block index is a multiple of $K$ (11 spots in total), collect the teacher residual stream $h_t$ and student residual stream $h_s$ at that block's exit, solve the full-rank regression $(P, b_h) = \arg\min\ \mathbb{E}\lVert h_t - P h_s - b_h \rVert^2$ ($P \in \mathbb{R}^{4096 \times 4096}$, closed form as in step 2, <strong>no truncation</strong>), and insert the correction $h \mapsto Ph + b_h$ after that block; later statistics automatically include its effect, keeping the corrector chain self-consistent</li>
 </ol>
-<p><strong>Extension 2 — lm_head fix</strong>: after the loop, collect $x_t, x_s$ at the final RMSNorm's exit, solve the same full-rank regression $P$, and absorb it into the uncompressed output head: $W_{lm}' = W_{lm}P$, $b_{lm} = W_{lm}(\bar{x}_t - P\bar{x}_s)$ — same shape, same FLOPs, zero new parameters (besides a 0.15M bias)</p>
-<p><strong>Budget balance</strong>: the 11 correctors cost about 185M parameters, paid for by lowering all ranks from 384 to 316; the total stays at 2.29B</p>
-<p><strong>Output</strong>: student model = low-rank layers + 11 residual-stream correctors + corrected lm_head (val loss = <strong>5.10</strong>)</p>
+<p><strong>After the loop — lm_head fix (new)</strong>: collect $x_t, x_s$ at the final RMSNorm's exit, solve the same full-rank regression $P$, and absorb it into the uncompressed output head: $W_{lm}' = W_{lm}P$, $b_{lm} = W_{lm}(\bar{x}_t - P\bar{x}_s)$ — same shape, same FLOPs, zero new parameters (besides a 0.15M bias)</p>
+<p><strong>Output</strong>: student model = $N$ low-rank layers + 11 residual-stream correctors + corrected lm_head (val loss = <strong>5.10</strong>; the correctors cost about 185M parameters, paid for by the lower $r$; the total stays at 2.29B)</p>
 </blockquote>
-<p>The contrast with Algorithm 1's per-matrix regression is immediate: there, $M^*$ must be truncated to rank $r$ (pays the truncation tax); here, $P$ stays full-rank — <strong>no rank constraint, no accuracy lost at the optimum, which is exactly what &quot;tax-free&quot; formalizes</strong>.</p>
-<h3 id="3-The-Oracle-Bound-the-Layerwise-Paradigm-s-Floor-Is-4-0">3. The Oracle Bound: the Layerwise Paradigm's Floor Is ~4.0</h3>
-<p>How much closed-form room remains between 5.10 and the 3.3 that training reaches? We measured the theoretical limit of correctors directly, with an <strong>oracle experiment</strong> — an experiment that is allowed to cheat, used purely to establish a theoretical bound: at runtime, swap every sublayer's input tensor for the teacher's clean value (paired forwards, swapping at the q/k/v and gate/up entrances), so each layer contributes only its own local truncation error, and errors accumulate additively in the residual stream without compounding through nonlinearities.</p>
-<p>This cheating model's loss is the <strong>floor</strong> for the entire family &quot;rank-r linear layers + arbitrary input-side correctors&quot;: no corrector, however nonlinear, can do better than restoring the inputs to clean — that is, no better than the oracle. Measured:</p>
-<p>$$\text{oracle} = 4.0 \sim 4.3$$</p>
-<p>Even with god-tier drift correction, the summed local truncation errors of rank 384 cost 4 nats. A target of 2.5 is <strong>provably unreachable</strong> for this paradigm.</p>
-<p>Simultaneously, a deeper fact emerged: <strong>training (3.20 at step 500) has already broken through the oracle bound (4.0)</strong>. This is logically consistent and profound: the oracle only binds the &quot;each layer imitates its teacher counterpart&quot; paradigm, whereas gradient training <strong>reorganizes the division of labor across layers</strong> — the trained layers are no longer approximations of individual teacher layers but a new factorized solution whose composition beats what layerwise imitation permits. This is the strongest form of part 2's thesis that the bottleneck is the optimization objective, not expressiveness.</p>
-<p>The source of the remaining nonlinear drift is also located: nearly all of it comes from a <strong>single layer</strong> (block 16) — a nonlinear amplifier native to the teacher, immune to capacity, allocation and linear correction alike, which locks the closed-form limit at ~5.1 (investigation in Appendix A).</p>
+<p>The contrast between the two kinds of regression is immediate: the $M^*$ of step 3 must be truncated to rank $r$ (pays the truncation tax), while the $P$ of step 5 and the finish stays full-rank — <strong>no rank constraint, no accuracy lost at the optimum, which is exactly what &quot;tax-free&quot; formalizes</strong>.</p>
+<h3 id="3-Where-the-Remaining-Gap-Lives-Almost-Entirely-in-Block-16">3. Where the Remaining Gap Lives: Almost Entirely in Block 16</h3>
+<p>After 5.10 we kept asking: where is the remaining error actually created? The probe is simple — walk through the model block by block and ask &quot;up to this point, how much of the student–teacher gap can still be repaired by one linear map?&quot; The answer is extremely concentrated: nearly all of the unrepairable part is created at <strong>one spot</strong> — block 16's FFN.</p>
+<p>That layer is special in the teacher to begin with: its output is twice its neighbors' magnitude, one of the massive-activation layers documented in the literature (a few layers with unusually large activations). It is hypersensitive to input error — a small unrepairable residue at its entrance comes out amplified into a large one: a <strong>nonlinear amplifier</strong>. Three rescues — leaving it uncompressed, reallocating rank, adding linear correction — all fail (details in Appendix A). The closed-form limit therefore stops near ~5.1.</p>
 <h3 id="4-The-Training-Verdict-a-Good-Closed-Form-Init-Is-Worth-200-Steps">4. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps</h3>
 <p>A two-arm controlled comparison (same seed, data order, global batch), differing only in initialization:</p>
 <table>
@@ -595,26 +595,31 @@
 <ol>
 <li><strong>The final closed-form landscape</strong> (85% compression, equal 2.29B budget):</li>
 </ol>
-<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle floor}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
 <ol start="2">
 <li>
 <p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget at <strong>truncation-tax-free</strong> spots (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
 </li>
 <li>
-<p><strong>The causal chain of the ceiling</strong>: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 &lt; 4.0).</p>
+<p><strong>Why the ceiling sits where it does</strong>: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning &quot;each layer imitates its teacher counterpart&quot; and optimizing the final loss directly — which is exactly what training does.</p>
 </li>
 <li>
 <p><strong>The engineering takeaway</strong>: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.</p>
 </li>
 </ol>
-<p>Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of <a href="/2026/08/25/closed-form-anatomy/">part 4</a>.</p>
+<p>Is 5.10 the end of the closed-form road? Taking the remaining gap apart to see where a little more can be squeezed out is the subject of <a href="/2026/08/25/closed-form-anatomy/">part 4</a>.</p>
 <hr>
 <h2 id="Appendix">Appendix</h2>
-<h3 id="Appendix-A-The-Cliff-—-Block-16-Is-a-Nonlinear-Amplifier">Appendix A: The Cliff — Block 16 Is a Nonlinear Amplifier</h3>
-<p>Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a <strong>single layer</strong>:</p>
-<p>$$R^2:\ \underbrace{0.815}_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}_{\text{one layer destroys 0.543}}$$</p>
-<p>Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself: MLP output 2× its neighbors' magnitude, override ratio (the MLP output's magnitude relative to the residual stream) 0.60 vs their 0.25 — the signature of a massive-activation layer (one of the few layers with abnormally large activations, a documented phenomenon).</p>
-<p>Two targeted interventions both failed: keeping block-16's MLP fully DENSE (full-rank lindist maps) → 5.40, worse; front-loading ranks (480 for blocks 0-16, 298 after, to reduce the drift flowing into the cliff) → 5.38, also worse. Conclusion: <strong>the cliff is not caused by compression — it is the teacher's own function</strong>: the ~18% nonlinear residue arriving at its input (insensitive to affordable rank increases) gets amplified by its native large-magnitude nonlinear computation into 73% unrecoverable entanglement at its output. Capacity, allocation, and linear correction are all powerless. The closed-form limit locks in at ~5.1.</p>
+<h3 id="Appendix-A-The-Block-16-Investigation-—-Why-the-Closed-Form-Limit-Stops-at-5-1">Appendix A: The Block-16 Investigation — Why the Closed-Form Limit Stops at 5.1</h3>
+<p><strong>How we measured.</strong> Teacher and student read the same text; at every block's exit we compare the two residual streams and use a regression's $R^2$ to quantify &quot;how much of the student's residual stream can be pulled back to the teacher's by one linear map&quot; ($R^2$ runs from 0 to 1; closer to 1 means more repairable).</p>
+<p><strong>The result is extremely concentrated.</strong> Of the 36 blocks, every sublayer in the other 35 moves $R^2$ by at most ±0.02; crossing block 16's FFN alone drops it from 0.815 to 0.272 — more than half of all the unrepairable error is created at this single spot.</p>
+<p><strong>The layer is special in the teacher to begin with</strong>: its FFN output is 2× its neighbors' magnitude and reaches 0.60 of the residual stream's own size (neighbors: 0.25). The literature calls these massive-activation layers — a few layers with unusually large activations, present in many large models.</p>
+<p><strong>Two targeted rescue attempts both failed</strong>:</p>
+<ul>
+<li>Leave block 16's FFN entirely uncompressed (original full-rank weights): 5.40, worse than 5.10;</li>
+<li>Give the first half more rank (480 for blocks 0–16, 298 after) so that less error flows into block 16: 5.38, also worse.</li>
+</ul>
+<p><strong>Conclusion</strong>: we did not break block 16 by compressing it — this teacher layer natively amplifies whatever error reaches it. At its entrance, about 18% of the error cannot be removed by any linear map; after its large-magnitude nonlinear computation, the unremovable share at the exit grows to 73%. Capacity, rank allocation, and linear correction all miss this mechanism, and the 18% barely responds to any rank increase we can afford. That is why the closed-form limit stops at ~5.1.</p>
 <h3 id="Appendix-B-What-Models-at-Each-Loss-Level-Actually-Generate">Appendix B: What Models at Each Loss Level Actually Generate</h3>
 <p>Text samples give the qualitative ladder (temperature 0.8):</p>
 <table>
@@ -659,7 +664,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier'};
+  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
@@ -680,7 +685,6 @@ switchLang('zh');
               <a href="/tags/compression/" rel="tag"><i class="fa fa-tag"></i> compression</a>
               <a href="/tags/distillation/" rel="tag"><i class="fa fa-tag"></i> distillation</a>
               <a href="/tags/low-rank/" rel="tag"><i class="fa fa-tag"></i> low-rank</a>
-              <a href="/tags/oracle-bound/" rel="tag"><i class="fa fa-tag"></i> oracle-bound</a>
           </div>
 
         
