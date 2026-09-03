@@ -25,13 +25,13 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 > **算法 A：plain SVD 截断**
 >
-> **输入**：教师的线性层 $W\_1, \dots, W\_{252}$，目标秩 $r$（本文 $r = 384$）
+> **输入**：教师的全部权重矩阵 $W\_1, \dots, W\_N$（本文 $N = 252$），目标秩 $r$（本文 $r = 384$）
 >
-> **对每层 $\ell$ 独立执行：**
+> **对每个 $W\_\ell$ 独立执行：**
 >
 > 1. 奇异值分解 $W\_\ell = U \Sigma V^T$，奇异值按降序排列
 > 2. 只保留最大的 $r$ 个：$A\_\ell = U\_{:,1:r} \Sigma\_{1:r,1:r}$、$B\_\ell = V\_{:,1:r}^T$
-> 3. 把该层替换为 $x^{(\ell)} \mapsto A\_\ell B\_\ell x^{(\ell)}$，其中 $x^{(\ell)}$ 是第 $\ell$ 层收到的输入向量
+> 3. 把 $W\_\ell$ 替换为 $A\_\ell B\_\ell$：该处计算变为 $x^{(\ell)} \mapsto A\_\ell B\_\ell x^{(\ell)}$，其中 $x^{(\ell)}$ 是 $W\_\ell$ 收到的输入向量
 >
 > **输出**：学生模型（val loss = 18.65）
 
@@ -41,19 +41,19 @@ $$\min\_{A,B}\ \lVert W\_\ell - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{ran
 
 **方法二：ASVD（激活加权 SVD）**，直觉是"$W\_\ell x$ 里那些实际取值更大的输入分量，要逼近得更准"。这需要少量数据来测量各分量实际有多大，这批数据称为**校准数据** $D$：从训练集里取出的若干段文本（本文用 8 段 × 8192 token 的量级），只用来做统计，不做任何梯度更新——这也是"闭式方法"（解方程直接得答案）的共同特征。
 
-记第 $\ell$ 层为 $W\_\ell \in \mathbb{R}^{m\_\ell \times n\_\ell}$，它收到的输入向量为 $x^{(\ell)} \in \mathbb{R}^{n\_\ell}$（层号写在上标，下标位留给向量的分量：$x^{(\ell)}\_i$ 是第 $\ell$ 层输入的第 $i$ 个分量；例如 q_proj 的 $n\_\ell = 4096$）。
+符号约定：$\ell$ 给**权重矩阵**编号而不是给层编号——模型有 36 层（block），每层含 7 个权重矩阵，全网共 $N = 252$ 个。记第 $\ell$ 个权重矩阵为 $W\_\ell \in \mathbb{R}^{m\_\ell \times n\_\ell}$，它收到的输入向量为 $x^{(\ell)} \in \mathbb{R}^{n\_\ell}$（矩阵编号写在上标，下标位留给向量的分量：$x^{(\ell)}\_i$ 是 $x^{(\ell)}$ 的第 $i$ 个分量；例如 q_proj 的 $n\_\ell = 4096$）。
 
-> **算法 B：ASVD 截断 + 逐层 rank 分配**
+> **算法 B：ASVD 截断 + 逐矩阵 rank 分配**
 >
-> **输入**：$W\_1, \dots, W\_{252}$，校准数据 $D$，指数 $\alpha$，参数预算
+> **输入**：$W\_1, \dots, W\_N$，校准数据 $D$，指数 $\alpha$，参数预算
 >
-> **对每层 $\ell$：**
+> **对每个 $W\_\ell$：**
 >
-> 1. 教师在 $D$ 上前向，收集第 $\ell$ 层在所有 token 位置收到的输入向量 $x^{(\ell)}$，逐分量取绝对值后求平均：
+> 1. 教师在 $D$ 上前向，收集 $W\_\ell$ 在所有 token 位置收到的输入向量 $x^{(\ell)}$，逐分量取绝对值后求平均：
 >    $$s^{(\ell)}\_i = \frac{1}{\lvert D\rvert}\sum\_{x^{(\ell)} \in D} \big\lvert x^{(\ell)}\_i \big\rvert \quad (i = 1, \dots, n\_\ell), \qquad S\_\ell = \mathrm{diag}\Big( \big(s^{(\ell)}\_1\big)^{\alpha}, \dots, \big(s^{(\ell)}\_{n\_\ell}\big)^{\alpha} \Big)$$
-> 2. 令层 $\ell$ 的重要性为 $\lVert W\_\ell S\_\ell \rVert\_F$，按重要性正比分配 $r\_\ell$，使总参数量落在预算内（本文均值 357，最小的 Block 0 只分到 32）
+> 2. 令 $W\_\ell$ 的重要性为 $\lVert W\_\ell S\_\ell \rVert\_F$，按重要性正比分配 $r\_\ell$，使总参数量落在预算内（本文均值 357，分得最少的是 Block 0 的矩阵，只有 32）
 > 3. 对 $W\_\ell S\_\ell$ 做 SVD 保留前 $r\_\ell$ 项得 $U\_r \Sigma\_r V\_r^T$，令 $A\_\ell = U\_r \Sigma\_r$、$B\_\ell = V\_r^T S\_\ell^{-1}$（乘回 $S\_\ell^{-1}$ 把加权撤销，使 $A\_\ell B\_\ell \approx W\_\ell$）
-> 4. 把该层替换为 $x^{(\ell)} \mapsto A\_\ell B\_\ell x^{(\ell)}$
+> 4. 把 $W\_\ell$ 替换为 $A\_\ell B\_\ell$
 >
 > **输出**：学生模型（$\alpha = 1.0$ 时 val loss = **8.50**）
 
@@ -63,7 +63,7 @@ $$\min\_{A,B}\ \lVert (W\_\ell - AB) S\_\ell \rVert\_F^2 \qquad \text{s.t.}\ \ \
 
 在看结果之前，把**真正的目标**也写下来，它是全系列的参照系。压缩的本意是：把每个 $W\_\ell$ 换成 $A\_\ell B\_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低（$u$ 表示一段输入文本）：
 
-$$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{252}}\ \mathbb{E}\_u\Big[\mathrm{CE}\big(\hat f(u)\big)\Big] \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) \le \text{预算}$$
+$$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{N}}\ \mathbb{E}\_u\Big[\mathrm{CE}\big(\hat f(u)\big)\Big] \qquad \text{s.t.}\quad \sum\_{\ell=1}^{N} r\_\ell (m\_\ell + n\_\ell) \le \text{预算}$$
 
 这个真目标关于因子是高度非凸的，没有闭式解。所以 plain SVD 和 ASVD 实际求解的都是上面那两个**逐层代理目标**——用"每层各自把 $W\_\ell$ 逼近好"代替"整个网络的输出好"。本篇接下来的全部现象，都来自代理目标与真目标之间的裂缝。
 
@@ -259,13 +259,13 @@ The subject is Qwen3-8B (36 layers, our teacher model, val loss 2.11). We replac
 
 > **Algorithm A: plain SVD truncation**
 >
-> **Input**: the teacher's linear layers $W\_1, \dots, W\_{252}$, target rank $r$ ($r = 384$ here)
+> **Input**: all of the teacher's weight matrices $W\_1, \dots, W\_N$ ($N = 252$ here), target rank $r$ ($r = 384$ here)
 >
-> **For each layer $\ell$, independently:**
+> **For each $W\_\ell$, independently:**
 >
 > 1. Singular value decomposition $W\_\ell = U \Sigma V^T$, singular values in descending order
 > 2. Keep the largest $r$: $A\_\ell = U\_{:,1:r} \Sigma\_{1:r,1:r}$, $B\_\ell = V\_{:,1:r}^T$
-> 3. Replace the layer with $x^{(\ell)} \mapsto A\_\ell B\_\ell x^{(\ell)}$, where $x^{(\ell)}$ is the input vector layer $\ell$ receives
+> 3. Replace $W\_\ell$ with $A\_\ell B\_\ell$: the computation there becomes $x^{(\ell)} \mapsto A\_\ell B\_\ell x^{(\ell)}$, where $x^{(\ell)}$ is the input vector $W\_\ell$ receives
 >
 > **Output**: the student model (val loss = 18.65)
 
@@ -275,19 +275,19 @@ $$\min\_{A,B}\ \lVert W\_\ell - AB \rVert\_F^2 \qquad \text{s.t.}\ \ \mathrm{ran
 
 **Method 2: ASVD (activation-weighted SVD)** — the intuition is "in $W\_\ell x$, the input components that actually take larger values deserve a more accurate approximation." That requires a little data to measure how large each component gets; this data is called **calibration data** $D$: a handful of passages drawn from the training set (on the order of 8 passages × 8192 tokens here), used only for statistics, with no gradient update anywhere — the defining trait of closed-form methods (solve equations, get the answer directly).
 
-Write layer $\ell$ as $W\_\ell \in \mathbb{R}^{m\_\ell \times n\_\ell}$ receiving input vectors $x^{(\ell)} \in \mathbb{R}^{n\_\ell}$ (the layer index goes in the superscript, leaving the subscript for components: $x^{(\ell)}\_i$ is component $i$ of layer $\ell$'s input; e.g. $n\_\ell = 4096$ for q_proj).
+A note on indexing: $\ell$ numbers **weight matrices**, not layers — the model has 36 layers (blocks), each containing 7 weight matrices, $N = 252$ in total. Write the $\ell$-th weight matrix as $W\_\ell \in \mathbb{R}^{m\_\ell \times n\_\ell}$, receiving input vectors $x^{(\ell)} \in \mathbb{R}^{n\_\ell}$ (the matrix index goes in the superscript, leaving the subscript for components: $x^{(\ell)}\_i$ is component $i$ of $x^{(\ell)}$; e.g. $n\_\ell = 4096$ for q_proj).
 
-> **Algorithm B: ASVD truncation + per-layer rank allocation**
+> **Algorithm B: ASVD truncation + per-matrix rank allocation**
 >
-> **Input**: $W\_1, \dots, W\_{252}$, calibration data $D$, exponent $\alpha$, parameter budget
+> **Input**: $W\_1, \dots, W\_N$, calibration data $D$, exponent $\alpha$, parameter budget
 >
 > **For each layer $\ell$:**
 >
-> 1. Run the teacher over $D$ and collect the input vectors $x^{(\ell)}$ that layer $\ell$ receives at all token positions, then average their componentwise absolute values:
+> 1. Run the teacher over $D$ and collect the input vectors $x^{(\ell)}$ that $W\_\ell$ receives at all token positions, then average their componentwise absolute values:
 >    $$s^{(\ell)}\_i = \frac{1}{\lvert D\rvert}\sum\_{x^{(\ell)} \in D} \big\lvert x^{(\ell)}\_i \big\rvert \quad (i = 1, \dots, n\_\ell), \qquad S\_\ell = \mathrm{diag}\Big( \big(s^{(\ell)}\_1\big)^{\alpha}, \dots, \big(s^{(\ell)}\_{n\_\ell}\big)^{\alpha} \Big)$$
-> 2. Let layer $\ell$'s importance be $\lVert W\_\ell S\_\ell \rVert\_F$ and assign $r\_\ell$ proportionally so the total parameter count fits the budget (mean 357 here, with Block 0 starved at 32)
+> 2. Let $W\_\ell$'s importance be $\lVert W\_\ell S\_\ell \rVert\_F$ and assign $r\_\ell$ proportionally so the total parameter count fits the budget (mean 357 here; Block 0's matrices get the least, only 32)
 > 3. Take the top-$r\_\ell$ SVD of $W\_\ell S\_\ell$ as $U\_r \Sigma\_r V\_r^T$ and set $A\_\ell = U\_r \Sigma\_r$, $B\_\ell = V\_r^T S\_\ell^{-1}$ (multiplying $S\_\ell^{-1}$ back undoes the weighting so that $A\_\ell B\_\ell \approx W\_\ell$)
-> 4. Replace the layer with $x^{(\ell)} \mapsto A\_\ell B\_\ell x^{(\ell)}$
+> 4. Replace $W\_\ell$ with $A\_\ell B\_\ell$
 >
 > **Output**: the student model (val loss = **8.50** at $\alpha = 1.0$)
 
@@ -297,7 +297,7 @@ $$\min\_{A,B}\ \lVert (W\_\ell - AB) S\_\ell \rVert\_F^2 \qquad \text{s.t.}\ \ \
 
 Before looking at the results, let us also write down the **true objective** — the reference point for the whole series. What compression actually wants: replace each $W\_\ell$ with $A\_\ell B\_\ell$ to get a student network $\hat f$, and make its validation loss as low as possible under the parameter budget ($u$ denotes a passage of input text):
 
-$$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{252}}\ \mathbb{E}\_u\Big[\mathrm{CE}\big(\hat f(u)\big)\Big] \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) \le \text{budget}$$
+$$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{N}}\ \mathbb{E}\_u\Big[\mathrm{CE}\big(\hat f(u)\big)\Big] \qquad \text{s.t.}\quad \sum\_{\ell=1}^{N} r\_\ell (m\_\ell + n\_\ell) \le \text{budget}$$
 
 This true objective is highly non-convex in the factors and has no closed-form solution. So what plain SVD and ASVD actually solve are the two **layerwise proxy objectives** above — substituting "each layer approximates its own $W\_\ell$ well" for "the whole network's output is good." Everything that follows in this post comes from the crack between the proxy and the true objective.
 
