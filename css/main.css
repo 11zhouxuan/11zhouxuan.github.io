@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #37e8ff;
+  background: #907e62;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3057,7 +3057,18 @@ pre {
 .post-body h2,
 .post-body h3,
 .post-body h4 {
-  font-family: "Source Serif 4", "Iowan Old Style", Georgia, "Songti SC", "SimSun", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+  font-family: "Inter", -apple-system, "SF Pro Text", "Segoe UI", "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+}
+.post-body {
+  letter-spacing: 0.01em;
+}
+.post-body h1,
+.post-body h2,
+.post-body h3,
+.post-body h4,
+.post-title {
+  letter-spacing: 0.02em;
+  font-weight: 650;
 }
 .post-body blockquote {
   font-family: inherit;
