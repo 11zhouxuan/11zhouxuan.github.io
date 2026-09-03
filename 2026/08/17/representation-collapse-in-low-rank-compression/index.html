@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-03T03:28:27.232Z">
+<meta property="article:modified_time" content="2026-09-03T04:32:35.952Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -174,7 +174,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E8%A1%A8%E7%A4%BA%E5%9D%8D%E7%BC%A9%E2%80%94%E2%80%94%E4%B8%BA%E4%BB%80%E4%B9%88-val-loss-%E5%A5%BD%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%A8%A1%E5%9E%8B%E5%A5%BD"><span class="nav-text">低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%80%E4%B8%AA%E6%84%8F%E5%A4%96%E7%9A%84%E5%8F%91%E7%8E%B0"><span class="nav-text">1. 一个意外的发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9D%8D%E7%BC%A9%E5%8F%8D%E8%80%8C-loss-%E6%9B%B4%E4%BD%8E%EF%BC%9F"><span class="nav-text">2. 为什么坍缩反而 loss 更低？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9D%8D%E7%BC%A9%E7%9A%84%E6%9C%BA%E5%88%B6"><span class="nav-text">3. 坍缩的机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%BE%AE%E8%A7%82%E6%9C%BA%E5%88%B6%EF%BC%9AMLP-%E6%98%AF%E5%87%B6%E6%89%8B"><span class="nav-text">3.5 坍缩的微观机制：MLP 是凶手</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%96%87%E7%8C%AE%E4%B8%AD%E7%9A%84%E5%AF%B9%E5%BA%94"><span class="nav-text">4. 文献中的对应</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E6%89%93%E7%A0%B4%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%B0%9D%E8%AF%95"><span class="nav-text">5. 打破坍缩的尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-%E9%AA%8C%E8%AF%81%EF%BC%9A%E5%9D%8D%E7%BC%A9%E6%98%AF%E7%9C%9F%E5%AE%9E%E7%9A%84%EF%BC%8C%E4%BD%86%E5%AF%B9%E9%85%8D%E7%BD%AE%E6%95%8F%E6%84%9F"><span class="nav-text">5.5 验证：坍缩是真实的，但对配置敏感</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E7%BB%93%E8%AE%BA"><span class="nav-text">6. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-1-Representation-Collapse-%E2%80%94-When-Low-Loss-Means-a-Broken-Model"><span class="nav-text">Low-Rank Compression Series (1): Representation Collapse — When Low Loss Means a Broken Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-An-Unexpected-Finding"><span class="nav-text">1. An Unexpected Finding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Why-Does-Collapse-Produce-Lower-Loss"><span class="nav-text">2. Why Does Collapse Produce Lower Loss?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Collapse-Mechanism"><span class="nav-text">3. The Collapse Mechanism</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-Microscopic-Mechanism-The-MLP-Is-the-Killer"><span class="nav-text">3.5 Microscopic Mechanism: The MLP Is the Killer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Connection-to-Literature"><span class="nav-text">4. Connection to Literature</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Attempts-to-Break-the-Collapse"><span class="nav-text">5. Attempts to Break the Collapse</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-5-Verification-The-Collapse-Is-Real-but-Config-Sensitive"><span class="nav-text">5.5 Verification: The Collapse Is Real, but Config-Sensitive</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Conclusions"><span class="nav-text">6. Conclusions</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E8%A1%A8%E7%A4%BA%E5%9D%8D%E7%BC%A9%E2%80%94%E2%80%94%E4%B8%BA%E4%BB%80%E4%B9%88-val-loss-%E5%A5%BD%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%A8%A1%E5%9E%8B%E5%A5%BD"><span class="nav-text">低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%80%E4%B8%AA%E6%84%8F%E5%A4%96%E7%9A%84%E5%8F%91%E7%8E%B0"><span class="nav-text">1. 一个意外的发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9D%8D%E7%BC%A9%E5%8F%8D%E8%80%8C-loss-%E6%9B%B4%E4%BD%8E%EF%BC%9F"><span class="nav-text">2. 为什么坍缩反而 loss 更低？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9D%8D%E7%BC%A9%E7%9A%84%E6%9C%BA%E5%88%B6"><span class="nav-text">3. 坍缩的机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%89%93%E7%A0%B4%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%B0%9D%E8%AF%95"><span class="nav-text">4. 打破坍缩的尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E7%BB%93%E8%AE%BA"><span class="nav-text">5. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%BE%AE%E8%A7%82%E6%9C%BA%E5%88%B6%E2%80%94%E2%80%94MLP-%E6%98%AF%E5%87%B6%E6%89%8B"><span class="nav-text">附录 A：坍缩的微观机制——MLP 是凶手</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E4%B8%8E%E6%96%87%E7%8C%AE%E7%9A%84%E5%AF%B9%E5%BA%94"><span class="nav-text">附录 B：与文献的对应</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-C%EF%BC%9A%E7%8B%AC%E7%AB%8B%E5%A4%8D%E6%A0%B8%E2%80%94%E2%80%94%E5%9D%8D%E7%BC%A9%E5%8F%AF%E5%A4%8D%E7%8E%B0%EF%BC%8C%E4%BD%86%E5%AF%B9%E9%85%8D%E7%BD%AE%E6%95%8F%E6%84%9F"><span class="nav-text">附录 C：独立复核——坍缩可复现，但对配置敏感</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-1-Representation-Collapse-%E2%80%94-When-Low-Loss-Means-a-Broken-Model"><span class="nav-text">Low-Rank Compression Series (1): Representation Collapse — When Low Loss Means a Broken Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-An-Unexpected-Finding"><span class="nav-text">1. An Unexpected Finding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Why-Does-Collapse-Produce-Lower-Loss"><span class="nav-text">2. Why Does Collapse Produce Lower Loss?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Collapse-Mechanism"><span class="nav-text">3. The Collapse Mechanism</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Attempts-to-Break-the-Collapse"><span class="nav-text">4. Attempts to Break the Collapse</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Conclusions"><span class="nav-text">5. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Microscopic-Mechanism-%E2%80%94-the-MLP-Is-the-Killer"><span class="nav-text">Appendix A: The Microscopic Mechanism — the MLP Is the Killer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-Connection-to-the-Literature"><span class="nav-text">Appendix B: Connection to the Literature</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-C-Independent-Verification-%E2%80%94-Reproducible-but-Config-Sensitive"><span class="nav-text">Appendix C: Independent Verification — Reproducible, but Config-Sensitive</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -436,7 +436,116 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>最后一层 cos=0.95 看起来&quot;对齐得很好&quot;——但这是一个<strong>假象</strong>。不是模型对每个 token 都和教师对齐，而是<strong>所有 token 都坍缩到了同一个方向</strong>，这个固定方向恰好和教师的某个&quot;平均方向&quot; cos=0.95。</p>
-<h3 id="3-5-坍缩的微观机制：MLP-是凶手">3.5 坍缩的微观机制：MLP 是凶手</h3>
+<p>（更微观的追踪——多样性在网络每个子组件中如何被逐步耗尽、为什么 down_proj 是主要凶手——见附录 A；这一现象在 Transformer 理论文献中的对应见附录 B。）</p>
+<h3 id="4-打破坍缩的尝试">4. 打破坍缩的尝试</h3>
+<p>既然坍缩来自&quot;36 层反复保留同一组方向&quot;，一个自然的对策是强迫相邻层保留的方向互相错开：在每层截断时加一个正交惩罚项（表中的 0.3 是惩罚权重），或者干脆让 ASVD 和 plain SVD 逐层交替：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>val loss</th>
+<th>unique 预测</th>
+<th>top-1 占比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD（无约束）</td>
+<td>8.50</td>
+<td>1</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>正交约束 0.3</td>
+<td>12.80</td>
+<td>23</td>
+<td>93.6%</td>
+</tr>
+<tr>
+<td>交替 ASVD/plain SVD</td>
+<td>14.56</td>
+<td>41</td>
+<td>35.2%</td>
+</tr>
+<tr>
+<td>Plain SVD（无加权）</td>
+<td>18.65</td>
+<td>401</td>
+<td>15.9%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。</p>
+<p>进一步的 rank 重分配实验（在均匀 rank=384、$\alpha=0.5$ 变体上做，其自身基线为 10.83）显示，即使给关键组件多得多的参数，也无法接近坍缩态的 loss：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>参数量</th>
+<th>val loss</th>
+<th>是否坍缩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>坍缩的 ASVD（$\alpha=1.0$ + 逐层 rank）</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>是（98.6% 逗号）</td>
+</tr>
+<tr>
+<td>均匀 rank=384，$\alpha=0.5$（重分配实验的基线）</td>
+<td>2.29B</td>
+<td>10.83</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ gate_proj 满秩</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ down_proj 满秩</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ down_proj rank=768（预算匹配）</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p><strong>没有任何非坍缩配置能接近坍缩态的 8.50</strong>——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：在这一族配置里，<strong>坍缩得越彻底，loss 越低；打破坍缩，loss 就变差</strong>。</p>
+<p>原因回到第 2 节：在模型<strong>真的没有足够能力区分 token</strong> 的情况下（rank=384、85% 压缩率），坍缩到高频 token 就是 loss-最优的策略，打破坍缩等于强迫模型做它做不到的事。</p>
+<p>由于&quot;整个模型只预测逗号&quot;过于反直觉，我们对它做了独立复核：坍缩完全可复现，且对分解配置高度敏感——把 $\alpha$ 减半或改用均匀 rank，模型就停在&quot;高度退化但未坍缩&quot;的状态。复核细节见附录 C。</p>
+<h3 id="5-结论">5. 结论</h3>
+<ol>
+<li>
+<p><strong>val loss 不是模型质量的可靠指标</strong>——一个完全坍缩的模型（只输出逗号）可以比一个&quot;有预测多样性但不准&quot;的模型 loss 更低。</p>
+</li>
+<li>
+<p><strong>ASVD 的激活加权在极端压缩率下会导致 representation collapse</strong>——加权越强（$\alpha$ 越大）、关键层被 rank 分配饿得越狠，坍缩越彻底。</p>
+</li>
+<li>
+<p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。</p>
+</li>
+<li>
+<p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。同样，<strong>对比不同压缩方法时必须固定全部配置</strong>（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。</p>
+</li>
+</ol>
+<hr>
+<h2 id="附录">附录</h2>
+<h3 id="附录-A：坍缩的微观机制——MLP-是凶手">附录 A：坍缩的微观机制——MLP 是凶手</h3>
 <p>进一步的诊断实验追踪了 <strong>effective rank（有效秩，下称 erank）</strong> 在网络每个子组件中的变化。erank 衡量一批向量实际张开了多少个独立方向：hidden state 名义上是 4096 维，但如果所有 token 的向量都挤在少数几个方向上，erank 就只有个位数。它是&quot;表示多样性&quot;的直接读数。</p>
 <blockquote>
 <p><strong>测量对象说明</strong>：本节的追踪数据来自均匀 rank=384、$\alpha=0.5$ 的 ASVD 变体（val loss 10.83）。它没有完全坍缩成常数函数（保留了 546 个 unique 预测），但表示已高度退化：最终 erank=7，不同 token 输出向量的两两平均 cosine 相似度（下称 pcos，越接近 1 表示所有 token 的输出越趋同）高达 0.92——是观察&quot;多样性如何被逐层耗尽&quot;的合适对象。完全坍缩的 8.50 模型（$\alpha=1.0$ + 逐层 rank）是同一机制的更极端版本。</p>
@@ -608,7 +717,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p><strong>ASVD 的 MLP 对所有 token 输出几乎相同的向量</strong>（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。</p>
 <p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。</p>
 <p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留 $s_i$ 大的那些分量），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
-<h3 id="4-文献中的对应">4. 文献中的对应</h3>
+<h3 id="附录-B：与文献的对应">附录 B：与文献的对应</h3>
 <p>这个现象在 transformer 研究中已有理论解释：</p>
 <ul>
 <li><strong>Signal Propagation in Transformers (2022)</strong>：堆叠 self-attention 层导致 token 表示的 rank collapse</li>
@@ -616,97 +725,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <li><strong>BA-LoRA (2024)</strong>：在 LoRA 训练中识别出 representation collapse，解决方案是 diversity 正则化</li>
 </ul>
 <p>我们的情况属于&quot;value 矩阵选择不当&quot;的极端版本——低秩截断让所有层的投影方向系统性地对齐，满足了坍缩的条件。</p>
-<h3 id="5-打破坍缩的尝试">5. 打破坍缩的尝试</h3>
-<p>既然坍缩来自&quot;36 层反复保留同一组方向&quot;，一个自然的对策是强迫相邻层保留的方向互相错开：在每层截断时加一个正交惩罚项（表中的 0.3 是惩罚权重），或者干脆让 ASVD 和 plain SVD 逐层交替：</p>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>val loss</th>
-<th>unique 预测</th>
-<th>top-1 占比</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ASVD（无约束）</td>
-<td>8.50</td>
-<td>1</td>
-<td>100%</td>
-</tr>
-<tr>
-<td>正交约束 0.3</td>
-<td>12.80</td>
-<td>23</td>
-<td>93.6%</td>
-</tr>
-<tr>
-<td>交替 ASVD/plain SVD</td>
-<td>14.56</td>
-<td>41</td>
-<td>35.2%</td>
-</tr>
-<tr>
-<td>Plain SVD（无加权）</td>
-<td>18.65</td>
-<td>401</td>
-<td>15.9%</td>
-</tr>
-</tbody>
-</table>
-<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。</p>
-<p>进一步的 rank 重分配实验（在均匀 rank=384、$\alpha=0.5$ 变体上做，其自身基线为 10.83）显示，即使给关键组件多得多的参数，也无法接近坍缩态的 loss：</p>
-<table>
-<thead>
-<tr>
-<th>配置</th>
-<th>参数量</th>
-<th>val loss</th>
-<th>是否坍缩</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>坍缩的 ASVD（$\alpha=1.0$ + 逐层 rank）</td>
-<td>2.29B</td>
-<td><strong>8.50</strong></td>
-<td>是（98.6% 逗号）</td>
-</tr>
-<tr>
-<td>均匀 rank=384，$\alpha=0.5$（重分配实验的基线）</td>
-<td>2.29B</td>
-<td>10.83</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ gate_proj 满秩</td>
-<td>3.88B</td>
-<td>14.22</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ down_proj 满秩</td>
-<td>3.88B</td>
-<td>11.32</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ down_proj rank=1024</td>
-<td>2.67B</td>
-<td>11.33</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ down_proj rank=768（预算匹配）</td>
-<td>2.29B</td>
-<td>12.31</td>
-<td>否</td>
-</tr>
-</tbody>
-</table>
-<p><strong>没有任何非坍缩配置能接近坍缩态的 8.50</strong>——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：在这一族配置里，<strong>坍缩得越彻底，loss 越低；打破坍缩，loss 就变差</strong>。</p>
-<p>原因回到第 2 节：在模型<strong>真的没有足够能力区分 token</strong> 的情况下（rank=384、85% 压缩率），坍缩到高频 token 就是 loss-最优的策略，打破坍缩等于强迫模型做它做不到的事。</p>
-<h3 id="5-5-验证：坍缩是真实的，但对配置敏感">5.5 验证：坍缩是真实的，但对配置敏感</h3>
+<h3 id="附录-C：独立复核——坍缩可复现，但对配置敏感">附录 C：独立复核——坍缩可复现，但对配置敏感</h3>
 <p>由于&quot;整个模型只预测逗号&quot;的结论过于反直觉，我们对它做了独立的复核：重新评估保存的 checkpoint、在 held-out 数据上复测、检查输出分布的位置间 KL、并与信息论下界对照。结论：<strong>坍缩完全可复现</strong>（val loss 8.5008、逗号 98.6%、位置间 KL=0.007、top-1 prob 0.095 ≈ 常数预测器）。</p>
 <p>但复核也暴露了一个重要事实：<strong>坍缩对分解配置高度敏感</strong>——</p>
 <table>
@@ -735,22 +754,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tr>
 </tbody>
 </table>
-<p>只有&quot;更强的激活加权（$\alpha=1.0$）+ 被饿死的 Block 0（rank 32）&quot;这个组合触发了完全坍缩。把 $\alpha$ 减半或改用均匀 rank，模型就停在&quot;高度退化但未坍缩&quot;的状态——而 loss 反而更差。这与第 5 节的 tradeoff 完全一致：<strong>在这组变体里，坍缩得越彻底，loss 越低</strong>（8.50 &lt; 9.66 &lt; 10.83）。</p>
-<h3 id="6-结论">6. 结论</h3>
-<ol>
-<li>
-<p><strong>val loss 不是模型质量的可靠指标</strong>——一个完全坍缩的模型（只输出逗号）可以比一个&quot;有预测多样性但不准&quot;的模型 loss 更低。</p>
-</li>
-<li>
-<p><strong>ASVD 的激活加权在极端压缩率下会导致 representation collapse</strong>——加权越强（$\alpha$ 越大）、关键层被 rank 分配饿得越狠，坍缩越彻底。</p>
-</li>
-<li>
-<p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。</p>
-</li>
-<li>
-<p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。同样，<strong>对比不同压缩方法时必须固定全部配置</strong>（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。</p>
-</li>
-</ol>
+<p>只有&quot;更强的激活加权（$\alpha=1.0$）+ 被饿死的 Block 0（rank 32）&quot;这个组合触发了完全坍缩。把 $\alpha$ 减半或改用均匀 rank，模型就停在&quot;高度退化但未坍缩&quot;的状态——而 loss 反而更差。这与正文第 4 节的 tradeoff 完全一致：<strong>在这组变体里，坍缩得越彻底，loss 越低</strong>（8.50 &lt; 9.66 &lt; 10.83）。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -899,7 +903,116 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>The final cos=0.95 looks like &quot;good alignment&quot; — but it is an <strong>illusion</strong>. It is not that each token aligns with its teacher counterpart, but that <strong>all tokens have collapsed to the same direction</strong>, and that fixed direction happens to have cos=0.95 with some &quot;average direction&quot; of the teacher.</p>
-<h3 id="3-5-Microscopic-Mechanism-The-MLP-Is-the-Killer">3.5 Microscopic Mechanism: The MLP Is the Killer</h3>
+<p>(For the finer-grained trace — how diversity gets depleted in each sub-component, and why down_proj is the main culprit — see Appendix A; the correspondence with the Transformer theory literature is in Appendix B.)</p>
+<h3 id="4-Attempts-to-Break-the-Collapse">4. Attempts to Break the Collapse</h3>
+<p>Since the collapse comes from &quot;36 layers repeatedly keeping the same set of directions,&quot; a natural countermeasure is to force adjacent layers to keep different directions: add an orthogonality penalty during each layer's truncation (0.3 in the table is the penalty weight), or simply alternate ASVD and plain SVD across layers:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>val loss</th>
+<th>Unique predictions</th>
+<th>Top-1 fraction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD (no constraint)</td>
+<td>8.50</td>
+<td>1</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Orthogonality 0.3</td>
+<td>12.80</td>
+<td>23</td>
+<td>93.6%</td>
+</tr>
+<tr>
+<td>Alternating ASVD/plain</td>
+<td>14.56</td>
+<td>41</td>
+<td>35.2%</td>
+</tr>
+<tr>
+<td>Plain SVD (no weighting)</td>
+<td>18.65</td>
+<td>401</td>
+<td>15.9%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>.</p>
+<p>Further rank-reallocation experiments (run on the uniform rank=384, $\alpha=0.5$ variant, whose own baseline is 10.83) show that even with far more parameters for key components, no configuration approaches the collapsed model's loss:</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Params</th>
+<th>val loss</th>
+<th>Collapsed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Collapsed ASVD ($\alpha=1.0$ + per-layer ranks)</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>Yes (98.6% comma)</td>
+</tr>
+<tr>
+<td>Uniform rank=384, $\alpha=0.5$ (baseline for the boosts)</td>
+<td>2.29B</td>
+<td>10.83</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ gate_proj full rank</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ down_proj full rank</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ down_proj rank=768 (budget-matched)</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>No non-collapsed configuration comes close to the collapsed 8.50</strong> — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff: within this family of configurations, <strong>the more complete the collapse, the lower the loss; breaking the collapse makes the loss worse</strong>.</p>
+<p>The reason is Section 2 again: when the model <strong>genuinely lacks the capacity to distinguish tokens</strong> (rank 384 at 85% compression), collapsing to frequent tokens IS the loss-optimal strategy, and breaking the collapse forces the model to attempt what it cannot do.</p>
+<p>Because &quot;the whole model predicts only commas&quot; is so counter-intuitive, we re-verified it independently: the collapse is fully reproducible, and highly sensitive to the factorization configuration — halving $\alpha$ or switching to uniform ranks leaves the model severely degenerate but not collapsed. Details in Appendix C.</p>
+<h3 id="5-Conclusions">5. Conclusions</h3>
+<ol>
+<li>
+<p><strong>Val loss is not a reliable indicator of model quality</strong> — a fully collapsed model (only outputs comma) can have lower loss than a model with prediction diversity but poor accuracy.</p>
+</li>
+<li>
+<p><strong>ASVD's activation weighting causes representation collapse at extreme compression ratios</strong> — the stronger the weighting (larger $\alpha$) and the more severely key layers are starved by rank allocation, the more complete the collapse.</p>
+</li>
+<li>
+<p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot; Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).</p>
+</li>
+<li>
+<p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead. Likewise, <strong>when comparing compression methods, every configuration knob must be held fixed</strong> (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.</p>
+</li>
+</ol>
+<hr>
+<h2 id="Appendix">Appendix</h2>
+<h3 id="Appendix-A-The-Microscopic-Mechanism-—-the-MLP-Is-the-Killer">Appendix A: The Microscopic Mechanism — the MLP Is the Killer</h3>
 <p>Further diagnostic experiments traced the <strong>effective rank (erank)</strong> through every sub-component of the network. Erank measures how many independent directions a batch of vectors actually spans: the hidden state is nominally 4096-dimensional, but if all tokens' vectors crowd into a few directions, the erank is in the single digits. It is a direct readout of representation diversity.</p>
 <blockquote>
 <p><strong>What was measured</strong>: the traces in this section come from the uniform rank=384, $\alpha=0.5$ ASVD variant (val loss 10.83). It does not fully collapse into a constant function (it retains 546 unique predictions), but its representations are severely degenerate: final erank=7, and the mean pairwise cosine similarity between different tokens' output vectors (hereafter pcos; closer to 1 means the outputs are more alike) reaches 0.92 — a suitable subject for observing how token diversity gets depleted layer by layer. The fully collapsed 8.50 model ($\alpha=1.0$ + per-layer ranks) is a more extreme instance of the same mechanism.</p>
@@ -1071,7 +1184,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p><strong>ASVD's MLP outputs are nearly identical across all tokens</strong> (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).</p>
 <p>In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.</p>
 <p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (the components with large $s_i$) while discarding the <strong>token-specific differences</strong>.</p>
-<h3 id="4-Connection-to-Literature">4. Connection to Literature</h3>
+<h3 id="Appendix-B-Connection-to-the-Literature">Appendix B: Connection to the Literature</h3>
 <p>This phenomenon has theoretical explanations in transformer research:</p>
 <ul>
 <li><strong>Signal Propagation in Transformers (2022)</strong>: Stacking self-attention layers causes rank collapse of token representations</li>
@@ -1079,97 +1192,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <li><strong>BA-LoRA (2024)</strong>: Identifies representation collapse in LoRA training; solution is diversity regularization</li>
 </ul>
 <p>Our case is an extreme version of &quot;improper value matrices&quot; — low-rank truncation systematically aligns all layers' projection directions, fulfilling the conditions for collapse.</p>
-<h3 id="5-Attempts-to-Break-the-Collapse">5. Attempts to Break the Collapse</h3>
-<p>Since the collapse comes from &quot;36 layers repeatedly keeping the same set of directions,&quot; a natural countermeasure is to force adjacent layers to keep different directions: add an orthogonality penalty during each layer's truncation (0.3 in the table is the penalty weight), or simply alternate ASVD and plain SVD across layers:</p>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>val loss</th>
-<th>Unique predictions</th>
-<th>Top-1 fraction</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ASVD (no constraint)</td>
-<td>8.50</td>
-<td>1</td>
-<td>100%</td>
-</tr>
-<tr>
-<td>Orthogonality 0.3</td>
-<td>12.80</td>
-<td>23</td>
-<td>93.6%</td>
-</tr>
-<tr>
-<td>Alternating ASVD/plain</td>
-<td>14.56</td>
-<td>41</td>
-<td>35.2%</td>
-</tr>
-<tr>
-<td>Plain SVD (no weighting)</td>
-<td>18.65</td>
-<td>401</td>
-<td>15.9%</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>.</p>
-<p>Further rank-reallocation experiments (run on the uniform rank=384, $\alpha=0.5$ variant, whose own baseline is 10.83) show that even with far more parameters for key components, no configuration approaches the collapsed model's loss:</p>
-<table>
-<thead>
-<tr>
-<th>Configuration</th>
-<th>Params</th>
-<th>val loss</th>
-<th>Collapsed?</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Collapsed ASVD ($\alpha=1.0$ + per-layer ranks)</td>
-<td>2.29B</td>
-<td><strong>8.50</strong></td>
-<td>Yes (98.6% comma)</td>
-</tr>
-<tr>
-<td>Uniform rank=384, $\alpha=0.5$ (baseline for the boosts)</td>
-<td>2.29B</td>
-<td>10.83</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ gate_proj full rank</td>
-<td>3.88B</td>
-<td>14.22</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ down_proj full rank</td>
-<td>3.88B</td>
-<td>11.32</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ down_proj rank=1024</td>
-<td>2.67B</td>
-<td>11.33</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ down_proj rank=768 (budget-matched)</td>
-<td>2.29B</td>
-<td>12.31</td>
-<td>No</td>
-</tr>
-</tbody>
-</table>
-<p><strong>No non-collapsed configuration comes close to the collapsed 8.50</strong> — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff: within this family of configurations, <strong>the more complete the collapse, the lower the loss; breaking the collapse makes the loss worse</strong>.</p>
-<p>The reason is Section 2 again: when the model <strong>genuinely lacks the capacity to distinguish tokens</strong> (rank 384 at 85% compression), collapsing to frequent tokens IS the loss-optimal strategy, and breaking the collapse forces the model to attempt what it cannot do.</p>
-<h3 id="5-5-Verification-The-Collapse-Is-Real-but-Config-Sensitive">5.5 Verification: The Collapse Is Real, but Config-Sensitive</h3>
+<h3 id="Appendix-C-Independent-Verification-—-Reproducible-but-Config-Sensitive">Appendix C: Independent Verification — Reproducible, but Config-Sensitive</h3>
 <p>Because &quot;the whole model predicts only commas&quot; is so counter-intuitive, we independently re-verified it: re-evaluating the saved checkpoint, re-measuring on held-out data, checking pairwise KL between positions, and comparing against the information-theoretic floor. Verdict: <strong>the collapse is fully reproducible</strong> (val loss 8.5008, comma at 98.6%, cross-position KL = 0.007, top-1 prob 0.095 ≈ a constant predictor).</p>
 <p>The verification also exposed an important fact: <strong>collapse is highly sensitive to the factorization configuration</strong> —</p>
 <table>
@@ -1198,22 +1221,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tr>
 </tbody>
 </table>
-<p>Only the combination &quot;stronger activation weighting ($\alpha=1.0$) + a starved Block 0 (rank 32)&quot; triggers full collapse. Halving $\alpha$ or switching to uniform ranks leaves the model in a &quot;severely degenerate but not collapsed&quot; state — with worse loss. This is fully consistent with the tradeoff in Section 5: <strong>within this family of variants, the more complete the collapse, the lower the loss</strong> (8.50 &lt; 9.66 &lt; 10.83).</p>
-<h3 id="6-Conclusions">6. Conclusions</h3>
-<ol>
-<li>
-<p><strong>Val loss is not a reliable indicator of model quality</strong> — a fully collapsed model (only outputs comma) can have lower loss than a model with prediction diversity but poor accuracy.</p>
-</li>
-<li>
-<p><strong>ASVD's activation weighting causes representation collapse at extreme compression ratios</strong> — the stronger the weighting (larger $\alpha$) and the more severely key layers are starved by rank allocation, the more complete the collapse.</p>
-</li>
-<li>
-<p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot; Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).</p>
-</li>
-<li>
-<p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead. Likewise, <strong>when comparing compression methods, every configuration knob must be held fixed</strong> (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.</p>
-</li>
-</ol>
+<p>Only the combination &quot;stronger activation weighting ($\alpha=1.0$) + a starved Block 0 (rank 32)&quot; triggers full collapse. Halving $\alpha$ or switching to uniform ranks leaves the model in a &quot;severely degenerate but not collapsed&quot; state — with worse loss. This is fully consistent with the tradeoff in Section 4 of the main text: <strong>within this family of variants, the more complete the collapse, the lower the loss</strong> (8.50 &lt; 9.66 &lt; 10.83).</p>
 </div>
 <script>
 function switchLang(lang) {

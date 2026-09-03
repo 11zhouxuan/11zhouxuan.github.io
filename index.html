@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -987,7 +987,7 @@ switchLang('zh');
 <h3 id="0-先看最终配方：四处改动写进同一个式子">0. 先看最终配方：四处改动写进同一个式子</h3>
 <p>第二篇确立的逐层目标是：解出 $M^*$ 后在白化度量下截断，$\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$。本篇终点的逐层目标：</p>
 <p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{改动②：loss 敏感度度量}} \big(M^* - AB - \underbrace{S}_{\text{改动①：稀疏残差}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
-<p>其中 $y_j$ 是该层输出向量的第 $j$ 个分量，$w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。</p>
+<p>其中 $y_j$ 是该层输出向量的第 $j$ 个分量，$w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见第 5 节）。</p>
 <p>下面按发生顺序逐个讲这四处改动。</p>
 <h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿截断税">1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税</h3>
 <p>截断税（~2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
@@ -1022,7 +1022,7 @@ switchLang('zh');
 <p>第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下&quot;几乎无损&quot;（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：<strong>我们的截断在错误的目标函数下最优</strong>。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。</p>
 <p>修法仍是闭式的。设 $y_j$ 为该层输出向量的第 $j$ 个分量，测 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
-<p>SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。<strong>单独 −0.07（4.98），零参数成本</strong>——lm_head 矫正以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个&quot;邻近&quot;的 artifact 上测一次即可（见第 5 节的迭代失败）。</p>
+<p>SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。<strong>单独 −0.07（4.98），零参数成本</strong>——lm_head 矫正以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个&quot;邻近&quot;的 artifact 上测一次即可（见附录 A 的迭代失败）。</p>
 <h3 id="3-超线性叠加：修正-小改进不叠加">3. 超线性叠加：修正&quot;小改进不叠加&quot;</h3>
 <p>第四篇提出过&quot;小改进不叠加&quot;的规律（0.02 级的改进合并时互相侵蚀）。这次的组合实验修正了它：</p>
 <table>
@@ -1101,7 +1101,27 @@ switchLang('zh');
 <li><strong>数量与多样性是两个独立的轴。</strong> 数量的第一档收益最大（32→128 批：−0.15），它压的是采样方差；数量吃饱之后，批数不变、把 1 个 shard 换成 4 个仍有 −0.05——这是偏差-方差分解里的<strong>偏差项</strong>：同一个 shard 里加再多数据，分布的偏色一分不动，只有换数据源才能压掉。</li>
 <li>两轴各自饱和：多样性 8 shards（256×8 与 256×16 打平）、数量 ~512 批（26 万→105 万 token 位置）仍有小幅收益。饱和点大约在&quot;统计噪声降到单个算法改进量级（±0.01）&quot;处，符合直觉。</li>
 </ol>
-<h3 id="5-失败清单：简单鲁棒版永远赢">5. 失败清单：简单鲁棒版永远赢</h3>
+<p>与四个胜利并排的还有四个干净的失败：每当我们把一个有效的简单机制&quot;做精&quot;（迭代重测梯度、完整协方差、更大稀疏份额、按损失分布图定向分配），结果都没有变好——<strong>在校准数据有限的闭式世界里，参数量少的估计器赢</strong>。清单和幅度见附录 A。</p>
+<h3 id="5-换度量的最后一笔收益：rms-lift-的平反">5. 换度量的最后一笔收益：rms-lift 的平反</h3>
+<p>第四篇里，rms-lift 非线性矫正器在等预算下与直接加 rank 打平，被判&quot;机制证实、收益归零&quot;。换上新度量和加固后的统计地基重试，它贡献了最后的 −0.02：<strong>4.61 → 4.59，当前的闭式最终纪录</strong>。方向再次支持&quot;换度量会重新激活此前打平的杠杆&quot;，但幅度必须诚实标注——这 0.02 只有约一倍折间波动，是锦上添花而不是新机制。</p>
+<h3 id="6-新范式的-oracle：地板低于一个训练过的模型">6. 新范式的 oracle：地板低于一个训练过的模型</h3>
+<p>给新配方重测 oracle 分解（换掉全部子层输入为教师干净值）：</p>
+<p>$$\text{oracle}_{\text{新范式}} = 3.75 \quad (&lt;\ 3.79_{\text{端到端蒸馏训练}})$$</p>
+<p><strong>闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。</strong> 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，<strong>当前纪录与训练之间的差距大头已经从&quot;税&quot;换成了&quot;漂移&quot;</strong>。而漂移矫正器是全秩的、吃不到度量收益（第 3 节的推论），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。</p>
+<h3 id="7-结论">7. 结论</h3>
+<p><strong>最终版图</strong>（85% 线性层压缩、等预算 2.29B、零训练）：</p>
+<p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{稀疏×度量}} \to \underbrace{4.61}_{\text{+校准工程}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{新 oracle}} \to \underbrace{3.79}_{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$</p>
+<p>本篇新增的三条可迁移定律：</p>
+<ol>
+<li><strong>度量是一等公民。</strong> 逼近算法的&quot;最优性&quot;永远是相对某个度量的；换成 loss 感知的度量后，此前&quot;榨干&quot;的每个杠杆都重新有了改进空间。检查任何压缩管线时，先问它的截断在什么度量下最优。</li>
+<li><strong>校准数据是一个被忽略的工程对象。</strong> 数量和多样性各自独立贡献、各自饱和，两个轴都值得用剂量实验便宜地测一遍。~0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
+<li><strong>参数少的估计器赢</strong>（闭式版奥卡姆剃刀）：对角 &gt; 完整协方差，单遍 &gt; 迭代，阻尼 &gt; 全量执行。校准数据的信息量是硬约束，精巧化只是把它重新分配给噪声。</li>
+</ol>
+<p>天花板还会不会动？诚实的答案：本篇之后，配方内的所有维度（表达形式、度量、分配、矫正器、统计）都各自测到了饱和点，剩余的结构性候选只剩逐 head 的 (V,O) 联合分解一项。但第四篇也曾这样宣布过收官——这大概是这个系列最诚实的一课：<strong>&quot;到头了&quot;是一个关于当前假设集的陈述，不是关于问题本身的</strong>。</p>
+<p>这个系列的下一步也不在&quot;把 2.29B 的 loss 再降 0.02&quot;上了。回到<a href="/2026/08/30/lord-compression-primer/">预备篇</a>第 0 节的初心：低秩 init 的真正用途是给<strong>任意大小</strong>的小模型预训练造起点。rank 384/192/96/48/24 的秩扫描和&quot;低秩 init vs 随机 init&quot;的 scaling law 对照实验正在跑，那将是下一篇的主题。</p>
+<hr>
+<h2 id="附录">附录</h2>
+<h3 id="附录-A：失败清单——简单鲁棒版永远赢">附录 A：失败清单——简单鲁棒版永远赢</h3>
 <p>与四个胜利并排的是四个干净的失败，它们共享一个模式——<strong>每当我们把一个有效的简单机制&quot;做精&quot;，结果都更差</strong>：</p>
 <table>
 <thead>
@@ -1135,23 +1155,6 @@ switchLang('zh');
 </tbody>
 </table>
 <p>诚实标注幅度：严格协议下这些&quot;变差&quot;多在 0.01~0.03，部分已在折间波动之内。所以稳健的结论不是&quot;精巧化有害&quot;，而是<strong>四个更贵、更复杂的版本没有一个带来收益</strong>。机制各不相同（迭代破坏自洽链、特征子空间对少量校准 batch 过拟合、oracle 收益不等于真实边际价值），但工程结论一致：<strong>在校准数据有限的闭式世界里，参数量少的估计器赢</strong>——对角赢完整、单遍赢迭代、阻尼赢全量。每个&quot;更准的模型&quot;都要用同样的几十到几百个 batch 去喂，多出来的自由度全变成噪声。</p>
-<h3 id="5-5-换度量的最后一笔收益：rms-lift-的平反">5.5 换度量的最后一笔收益：rms-lift 的平反</h3>
-<p>第四篇里，rms-lift 非线性矫正器在等预算下与直接加 rank 打平，被判&quot;机制证实、收益归零&quot;。换上新度量和加固后的统计地基重试，它贡献了最后的 −0.02：<strong>4.61 → 4.59，当前的闭式最终纪录</strong>。方向再次支持&quot;换度量会重新激活此前打平的杠杆&quot;，但幅度必须诚实标注——这 0.02 只有约一倍折间波动，是锦上添花而不是新机制。</p>
-<h3 id="6-新范式的-oracle：地板低于一个训练过的模型">6. 新范式的 oracle：地板低于一个训练过的模型</h3>
-<p>给新配方重测 oracle 分解（换掉全部子层输入为教师干净值）：</p>
-<p>$$\text{oracle}_{\text{新范式}} = 3.75 \quad (&lt;\ 3.79_{\text{端到端蒸馏训练}})$$</p>
-<p><strong>闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。</strong> 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，<strong>当前纪录与训练之间的差距大头已经从&quot;税&quot;换成了&quot;漂移&quot;</strong>。而漂移矫正器是全秩的、吃不到度量收益（第 3 节的推论），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。</p>
-<h3 id="7-结论">7. 结论</h3>
-<p><strong>最终版图</strong>（85% 线性层压缩、等预算 2.29B、零训练）：</p>
-<p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{稀疏×度量}} \to \underbrace{4.61}_{\text{+校准工程}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{新 oracle}} \to \underbrace{3.79}_{\text{端到端蒸馏}} \to 2.11_{\text{教师}}$$</p>
-<p>本篇新增的三条可迁移定律：</p>
-<ol>
-<li><strong>度量是一等公民。</strong> 逼近算法的&quot;最优性&quot;永远是相对某个度量的；换成 loss 感知的度量后，此前&quot;榨干&quot;的每个杠杆都重新有了改进空间。检查任何压缩管线时，先问它的截断在什么度量下最优。</li>
-<li><strong>校准数据是一个被忽略的工程对象。</strong> 数量和多样性各自独立贡献、各自饱和，两个轴都值得用剂量实验便宜地测一遍。~0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
-<li><strong>参数少的估计器赢</strong>（闭式版奥卡姆剃刀）：对角 &gt; 完整协方差，单遍 &gt; 迭代，阻尼 &gt; 全量执行。校准数据的信息量是硬约束，精巧化只是把它重新分配给噪声。</li>
-</ol>
-<p>天花板还会不会动？诚实的答案：本篇之后，配方内的所有维度（表达形式、度量、分配、矫正器、统计）都各自测到了饱和点，剩余的结构性候选只剩逐 head 的 (V,O) 联合分解一项。但第四篇也曾这样宣布过收官——这大概是这个系列最诚实的一课：<strong>&quot;到头了&quot;是一个关于当前假设集的陈述，不是关于问题本身的</strong>。</p>
-<p>这个系列的下一步也不在&quot;把 2.29B 的 loss 再降 0.02&quot;上了。回到<a href="/2026/08/30/lord-compression-primer/">预备篇</a>第 0 节的初心：低秩 init 的真正用途是给<strong>任意大小</strong>的小模型预训练造起点。rank 384/192/96/48/24 的秩扫描和&quot;低秩 init vs 随机 init&quot;的 scaling law 对照实验正在跑，那将是下一篇的主题。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -1165,7 +1168,7 @@ switchLang('zh');
 <h3 id="0-The-Final-Recipe-First-Four-Changes-in-One-Formula">0. The Final Recipe First: Four Changes in One Formula</h3>
 <p>Part 2 established the layerwise objective: solve for $M^*$, then truncate in the whitened metric, $\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$. This post's endpoint objective per layer:</p>
 <p>$$\min_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}_{\text{change ②: loss-sensitivity metric}} \big(M^* - AB - \underbrace{S}_{\text{change ①: sparse residual}}\big) L \Big\rVert_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$</p>
-<p>where $y_j$ is the $j$-th component of the layer's output vector and $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).</p>
+<p>where $y_j$ is the $j$-th component of the layer's output vector and $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5).</p>
 <p>The sections below introduce these four changes in the order they happened.</p>
 <h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-the-Truncation-Tax">1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax</h3>
 <p>The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage on the content pathway: the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>: it is by nature &quot;a few large entries at arbitrary positions.&quot; It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
@@ -1200,7 +1203,7 @@ switchLang('zh');
 <p>Part 4's loss-distribution map left one anomaly unexplained: qkv@late looks &quot;nearly lossless&quot; in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: <strong>our truncation was optimal under the wrong objective</strong>. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.</p>
 <p>The fix stays closed-form. Let $y_j$ be the $j$-th component of the layer's output vector and measure $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
 <p>$$\min_{AB}\ \lVert \mathrm{diag}(w) (M^*-AB) L \rVert_F^2$$</p>
-<p>— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. <strong>−0.07 on its own (4.98) at zero parameter cost</strong>, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a &quot;nearby&quot; artifact suffices (see Section 5's iteration failure).</p>
+<p>— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. <strong>−0.07 on its own (4.98) at zero parameter cost</strong>, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a &quot;nearby&quot; artifact suffices (see the iteration failure in Appendix A).</p>
 <h3 id="3-Super-Additive-Stacking-Amending-the-No-Stacking-Rule">3. Super-Additive Stacking: Amending the No-Stacking Rule</h3>
 <p>Part 4 proposed a rule that small improvements don't stack (0.02-level gains erode each other on combination). The combination experiment this time amended it:</p>
 <table>
@@ -1279,7 +1282,27 @@ switchLang('zh');
 <li><strong>Quantity and diversity are two independent axes.</strong> Quantity's first installment is the largest (32 → 128 batches: −0.15) — it shrinks sampling variance. Once quantity is fed, holding 128 batches fixed and going 1 shard → 4 shards still buys −0.05 — the <strong>bias</strong> term of the bias-variance split: more data from the same shard leaves the distributional tint untouched; only changing the data source removes it.</li>
 <li>Each axis saturates on its own: diversity at 8 shards (256×8 ties 256×16), quantity still pays mildly at ~512 batches (0.26M → 1.05M token positions). Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.</li>
 </ol>
-<h3 id="5-The-Failure-List-Simple-Robust-Always-Wins">5. The Failure List: Simple-Robust Always Wins</h3>
+<p>Alongside the four wins sit four clean failures: every attempt to refine a working simple mechanism (re-measured gradients, full covariance, a larger sparse share, loss-map-guided allocation) failed to improve anything — <strong>in the calibration-limited closed-form world, the estimator with fewer parameters wins</strong>. The list and the margins are in Appendix A.</p>
+<h3 id="5-The-Metric-s-Last-Installment-rms-Lift-Redeemed">5. The Metric's Last Installment: rms-Lift Redeemed</h3>
+<p>In part 4 the rms-lift nonlinear corrector tied with simply buying rank at equal budget and was shelved (&quot;mechanism confirmed, gain zero&quot;). Retried under the new metric and the reinforced statistics, it contributed the final −0.02: <strong>4.61 → 4.59, the closed-form track's final record</strong>. The direction again supports &quot;changing the metric re-energizes levers that had washed out&quot; — but honesty about the size: this 0.02 is about one fold-to-fold spread, a finishing touch rather than a new mechanism.</p>
+<h3 id="6-The-New-Paradigm-s-Oracle-a-Floor-Below-a-Trained-Model">6. The New Paradigm's Oracle: a Floor Below a Trained Model</h3>
+<p>Re-running the oracle decomposition (swap all sublayer inputs with the teacher's clean values) on the new recipe:</p>
+<p>$$\text{oracle}_{\text{new}} = 3.75 \quad (&lt;\ 3.79_{\text{end-to-end distilled}})$$</p>
+<p><strong>The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.</strong> Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. <strong>The gap between the current record and training is now mostly drift, not tax.</strong> And drift correctors are full-rank, hence unable to collect the metric's gain (the corollary in Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.</p>
+<h3 id="7-Conclusions">7. Conclusions</h3>
+<p><strong>The final landscape</strong> (85% linear-layer compression, equal 2.29B budget, zero training):</p>
+<p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{sparse×metric}} \to \underbrace{4.61}_{\text{+calibration eng.}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{new oracle}} \to \underbrace{3.79}_{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$</p>
+<p>Three new transferable lessons from this round:</p>
+<ol>
+<li><strong>The metric is a first-class citizen.</strong> An approximation algorithm's &quot;optimality&quot; is always relative to a metric; switching to a loss-aware one reopened every previously &quot;exhausted&quot; lever. When auditing any compression pipeline, first ask under which metric its truncation is optimal.</li>
+<li><strong>Calibration data is a neglected engineering object.</strong> Quantity and diversity contribute independently and saturate independently; both axes are cheap to measure with dose-response runs. ~0.27 nat of free gains lie untouched in the literature's standard setup.</li>
+<li><strong>Fewer-parameter estimators win</strong> (the closed-form Occam's razor): diagonal &gt; full covariance, single-pass &gt; iterated, damped &gt; full-strength. The information in the calibration set is the hard constraint; sophistication merely reallocates it to noise.</li>
+</ol>
+<p>Will the ceiling move again? The honest answer: after this post, every dimension of the recipe (representation, metric, allocation, correctors, statistics) has been measured to its own saturation point, and the one remaining structural candidate is a per-head joint (V,O) decomposition. But part 4 declared closure once, too — which is perhaps this series' most honest lesson: <strong>&quot;it's over&quot; is a statement about the current hypothesis set, not about the problem.</strong></p>
+<p>The series' next step is also no longer about shaving another 0.02 off a 2.29B model. Back to Section 0 of <a href="/2026/08/30/lord-compression-primer/">the primer</a>: the real use of low-rank initialization is manufacturing pretraining starting points for small models of <strong>any size</strong>. The rank sweep (384/192/96/48/24) and the &quot;low-rank init vs random init&quot; scaling-law comparison are running now — that will be the next post.</p>
+<hr>
+<h2 id="Appendix">Appendix</h2>
+<h3 id="Appendix-A-The-Failure-List-—-Simple-Robust-Always-Wins">Appendix A: The Failure List — Simple-Robust Always Wins</h3>
 <p>Alongside four wins sit four clean failures, sharing one pattern — <strong>every time we refined a working simple mechanism, the result got worse</strong>:</p>
 <table>
 <thead>
@@ -1313,23 +1336,6 @@ switchLang('zh');
 </tbody>
 </table>
 <p>Honesty about the sizes: under the rigorous protocol these &quot;regressions&quot; are mostly 0.01-0.03, some within fold noise. The robust conclusion is therefore not &quot;refinement hurts&quot; but that <strong>none of the four more expensive, more complex versions delivered any gain</strong>. The mechanisms differ (iteration breaks the self-consistent chain; the eigen-subspace overfits the small calibration set; oracle gains ≠ real marginal value), but the engineering conclusion is uniform: <strong>in the calibration-limited closed-form world, the estimator with fewer parameters wins</strong> — diagonal over full, single-pass over iterated, damped over full-strength. Every &quot;more accurate model&quot; must be fed by the same few-dozen-to-few-hundred batches; the extra degrees of freedom all turn into noise.</p>
-<h3 id="5-5-The-Metric-s-Last-Installment-rms-Lift-Redeemed">5.5 The Metric's Last Installment: rms-Lift Redeemed</h3>
-<p>In part 4 the rms-lift nonlinear corrector tied with simply buying rank at equal budget and was shelved (&quot;mechanism confirmed, gain zero&quot;). Retried under the new metric and the reinforced statistics, it contributed the final −0.02: <strong>4.61 → 4.59, the closed-form track's final record</strong>. The direction again supports &quot;changing the metric re-energizes levers that had washed out&quot; — but honesty about the size: this 0.02 is about one fold-to-fold spread, a finishing touch rather than a new mechanism.</p>
-<h3 id="6-The-New-Paradigm-s-Oracle-a-Floor-Below-a-Trained-Model">6. The New Paradigm's Oracle: a Floor Below a Trained Model</h3>
-<p>Re-running the oracle decomposition (swap all sublayer inputs with the teacher's clean values) on the new recipe:</p>
-<p>$$\text{oracle}_{\text{new}} = 3.75 \quad (&lt;\ 3.79_{\text{end-to-end distilled}})$$</p>
-<p><strong>The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.</strong> Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. <strong>The gap between the current record and training is now mostly drift, not tax.</strong> And drift correctors are full-rank, hence unable to collect the metric's gain (the corollary in Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.</p>
-<h3 id="7-Conclusions">7. Conclusions</h3>
-<p><strong>The final landscape</strong> (85% linear-layer compression, equal 2.29B budget, zero training):</p>
-<p>$$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}_{\text{sparse×metric}} \to \underbrace{4.61}_{\text{+calibration eng.}} \to \underbrace{\mathbf{4.59}}_{\text{+rms-lift}} \to \underbrace{3.75}_{\text{new oracle}} \to \underbrace{3.79}_{\text{e2e distilled}} \to 2.11_{\text{teacher}}$$</p>
-<p>Three new transferable lessons from this round:</p>
-<ol>
-<li><strong>The metric is a first-class citizen.</strong> An approximation algorithm's &quot;optimality&quot; is always relative to a metric; switching to a loss-aware one reopened every previously &quot;exhausted&quot; lever. When auditing any compression pipeline, first ask under which metric its truncation is optimal.</li>
-<li><strong>Calibration data is a neglected engineering object.</strong> Quantity and diversity contribute independently and saturate independently; both axes are cheap to measure with dose-response runs. ~0.27 nat of free gains lie untouched in the literature's standard setup.</li>
-<li><strong>Fewer-parameter estimators win</strong> (the closed-form Occam's razor): diagonal &gt; full covariance, single-pass &gt; iterated, damped &gt; full-strength. The information in the calibration set is the hard constraint; sophistication merely reallocates it to noise.</li>
-</ol>
-<p>Will the ceiling move again? The honest answer: after this post, every dimension of the recipe (representation, metric, allocation, correctors, statistics) has been measured to its own saturation point, and the one remaining structural candidate is a per-head joint (V,O) decomposition. But part 4 declared closure once, too — which is perhaps this series' most honest lesson: <strong>&quot;it's over&quot; is a statement about the current hypothesis set, not about the problem.</strong></p>
-<p>The series' next step is also no longer about shaving another 0.02 off a 2.29B model. Back to Section 0 of <a href="/2026/08/30/lord-compression-primer/">the primer</a>: the real use of low-rank initialization is manufacturing pretraining starting points for small models of <strong>any size</strong>. The rank sweep (384/192/96/48/24) and the &quot;low-rank init vs random init&quot; scaling-law comparison are running now — that will be the next post.</p>
 </div>
 <script>
 function switchLang(lang) {
@@ -1409,7 +1415,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -1434,7 +1440,7 @@ switchLang('zh');
 </blockquote>
 <p><a href="/2026/08/22/closed-form-ceiling/">三部曲的完结篇</a>宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 <strong>5.05</strong>，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这 0.05 nat 是怎么挣的——以及一路上收获的、比 0.05 值钱得多的四个机制发现：loss 敏感度的模式/内容通路二分、RMSNorm×巨通道的乘性放大器、<strong>截断税的深度分布</strong>（一个 oracle 分解实验），和&quot;小改进不叠加&quot;的规律。</p>
 <p>背景（一句话版）：Qwen3-8B（val loss 2.11）→ 每个 linear 换 rank-384 的 $AB$（2.29B，删 72% 参数），闭式方法 = 逐层轨迹矫正回归 + lm_head 矫正 + 残差流矫正器，起点 5.10。</p>
-<p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 6 节 oracle 分解的诊断数字是一次性实验、保持当时的测量口径，只用于相对比较。）</p>
+<p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 3 节 oracle 分解的诊断数字是一次性实验、保持当时的测量口径，只用于相对比较。）</p>
 <h3 id="1-差距的三个组成部分：5-06-到-2-11-之间差在哪里">1. 差距的三个组成部分：5.06 到 2.11 之间差在哪里</h3>
 <p>在动手之前先回答一个架构级的问题：闭式为什么恰好卡在 5 附近？把全部实验证据（oracle 地板、悬崖诊断、消融）拼起来，从教师到闭式的 ~2.9 nat 可以拆成三个<strong>互相独立、机制不同</strong>的组成部分：</p>
 <p>$$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15_{\text{oracle}} \xrightarrow{\text{②漂移残余} \approx 0.9} 5.06 \qquad 3.2_{\text{训练}} \xleftarrow{\text{③重组收益}}$$</p>
@@ -1486,17 +1492,11 @@ switchLang('zh');
 </tbody>
 </table>
 <p>网络分成两条通路：<strong>模式通路</strong>（q/k → softmax）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；<strong>内容通路</strong>（v→o、up→down 的写路径）<strong>谱衰减极慢、用满全宽</strong>——down_proj 要把 12288 维乘积空间里以&quot;超位置&quot;方式存储的特征（superposition：把远多于维度数的特征重叠地存在同一组维度里）解码回残差流，这样的解码矩阵天生没有低秩结构可利用。这部分损失是信息论性质的，对&quot;更好的逼近算法&quot;免疫。</p>
-<p><strong>② 漂移残余</strong>：实际 5.06 与 oracle 4.15 之间，是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta_g\delta_u$ 二阶项和 RMSNorm 的除法（第 4 节有它的精确机制）。</p>
+<p><strong>② 漂移残余</strong>：实际 5.06 与 oracle 4.15 之间，是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta_g\delta_u$ 二阶项和 RMSNorm 的除法（附录 B 有它的精确机制）。</p>
 <p><strong>③ 重组收益</strong>：训练（3.2）打穿 oracle 地板（4.15）的唯一解释——残差架构下最终计算是 36 个 block 贡献的<strong>和</strong>，同一个总函数有无数种拆成 36 份的方式，梯度下降找到了比&quot;模仿教师原有分工&quot;更适合 rank-384 的新分工。逐层模仿的目标从定义上就拿不到这部分收益。</p>
 <p>三个组成部分对应三个不同的瓶颈。本篇的四个实验方向全部发生在 ① 和 ② 的边界上。</p>
-<h3 id="2-文献坐标：我们到底在前沿的什么位置">2. 文献坐标：我们到底在前沿的什么位置</h3>
-<p>动手前做了一轮系统调研（2024-2026 的 training-free 低秩压缩文献），两个结论校准了预期：</p>
-<ol>
-<li><strong>没有任何已发表的 training-free 方法在 70%+ 参数削减下报告过可用结果。</strong> 纯闭式的最远数据点是 SVD-LLM 在 LLaMA-7B 删 60% 时 PPL 53.7——折成 loss 约 4.0，与我们的 oracle 界惊人吻合：文献从侧面证实这堵墙的量级是真的。我们在删 72% 拿 5.0x，在前沿之上。</li>
-<li><strong>非均匀 rank 分配是文献中最一致的收益来源</strong>（Dobi-SVD、SVD-LLM v2、D-Rank、UniRank、AIR、LACE-SVD 六篇独立工作同向）：高压缩下&quot;分配比分解本身更重要&quot;。这直接触发了实验方向一。</li>
-</ol>
-<h3 id="3-实验方向一：loss-敏感度驱动的-rank-分配——方向对，但要阻尼">3. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</h3>
-<p>我们之前试过从白化谱做分配（重构误差驱动），失败（5.73）。文献说有效的是 <strong>loss 敏感度驱动</strong>——这是两回事：前者问&quot;砍掉这个方向，本层输出变多少&quot;，后者问&quot;砍掉这个方向，最终 loss 变多少&quot;。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha_i=1$，反传时只求门的梯度，累积 $f_i = \sum(\partial L/\partial\alpha_i)^2$（梯度平方和，Fisher 信息的对角近似，衡量 loss 对该方向的敏感度）；用尾部的 $f$ 校准白化谱（$f_{l,i}\approx c_l\sigma_{l,i}^2$），然后在总预算固定的约束下把 rank 优先分给敏感度高的层，直到预算用完。</p>
+<h3 id="2-实验方向一：loss-敏感度驱动的-rank-分配——方向对，但要阻尼">2. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</h3>
+<p>我们之前试过从白化谱做分配（重构误差驱动），失败（5.73）。文献一致认可的是 <strong>loss 敏感度驱动</strong>（六篇独立工作同向；调研坐标见附录 A）——这是两回事：前者问&quot;砍掉这个方向，本层输出变多少&quot;，后者问&quot;砍掉这个方向，最终 loss 变多少&quot;。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha_i=1$，反传时只求门的梯度，累积 $f_i = \sum(\partial L/\partial\alpha_i)^2$（梯度平方和，Fisher 信息的对角近似，衡量 loss 对该方向的敏感度）；用尾部的 $f$ 校准白化谱（$f_{l,i}\approx c_l\sigma_{l,i}^2$），然后在总预算固定的约束下把 rank 优先分给敏感度高的层，直到预算用完。</p>
 <p>Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：</p>
 <table>
 <thead>
@@ -1528,41 +1528,8 @@ switchLang('zh');
 <p><strong>把本篇的改动写成公式</strong>。前三篇里每层的 rank 是固定常数 $r$；本篇把每层的 rank ${r_\ell}$ 变成待求的变量：</p>
 <p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{层 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{预算}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{阻尼约束（不可省略）}}$$</p>
 <p>其中 $f_{\ell,i}$ 是第 $\ell$ 层第 $i$ 个方向的 loss 敏感度（前文的梯度平方和）。没有阻尼约束时这个问题的解就是&quot;照单全收&quot;的 5.27；加上它才得到 5.06——<strong>约束本身是改进的一半</strong>。</p>
-<h3 id="4-实验方向二：巨激活通道——双负结果与真正的放大机制">4. 实验方向二：巨激活通道——双负结果与真正的放大机制</h3>
-<p>测量教师的输出侧异常，发现巨幅激活（massive activations，<a href="/2026/08/22/closed-form-ceiling/">第三篇</a>第 4 节提过的现象）在这个模型里是<strong>两条贯穿全网的全局通道</strong>：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。</p>
-<p>顺着第三篇&quot;免税矫正器&quot;的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。<strong>双双打平。</strong> 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向<strong>天然优先服务它们</strong>——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。</p>
-<p>但测量顺带揭示了&quot;②漂移残余&quot;的精确机制：<strong>RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放</strong>。这是一个把局部小误差全局化的耦合器，也是此前&quot;悬崖&quot;（block 16 一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。</p>
-<h3 id="5-实验方向三：rms-lift-非线性矫正器——机制证实，收益归零">5. 实验方向三：rms-lift 非线性矫正器——机制证实，收益归零</h3>
-<p>既然放大器是 RMSNorm 的乘性耦合，对症的做法就是给残差矫正器一个能表达&quot;缩放校正&quot;的特征空间：把回归输入从 $h$ 提升到 $[h;\ h\cdot(\bar r/\mathrm{rms}(h)-1)]$——第二块是每 token 的<strong>尺度异常分量</strong>。对参数仍然线性，ridge 依旧闭式可解。</p>
-<p>两个教训先于结果到来。第一枪用了朴素形式 $[h;\ h/\mathrm{rms}(h)]$：两块特征高度共线且尺度差百倍，ridge 给出一对巨大且互相抵消的权重——校准集上的 R² 暴涨、held-out 反而变差（典型的过拟合信号）。<strong>lift 特征必须中心化 + 尺度匹配。</strong> 修好条件数（异常分量形式 + $\lambda=10^{-3}$）后：</p>
-<table>
-<thead>
-<tr>
-<th>配置</th>
-<th>val loss</th>
-<th>判决</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>线性矫正器（基线）</td>
-<td>5.06</td>
-<td></td>
-</tr>
-<tr>
-<td>rms-lift 全秩（<strong>+8% 参数</strong>）</td>
-<td><strong>4.99</strong></td>
-<td>闭式首次低于 5.0；悬崖后矫正器 R² 0.36→0.66</td>
-</tr>
-<tr>
-<td>rms-lift 截断 rank-256（等预算）</td>
-<td>5.07</td>
-<td>打平</td>
-</tr>
-</tbody>
-</table>
-<p><strong>机制证实，收益归零</strong>：乘性漂移确实可修（R² 提升与低于 5.0 为证），但修复它的参数效率与直接加 rank 恰好持平——等预算下没有额外便宜可占。这与免税矫正器原理形成闭环：lm_head 和线性残差矫正器赢在修复&quot;没人管的漂移&quot;，而 lift 的非线性部分在修复&quot;已被线性工具照顾过的残余&quot;，边际收益自然持平。</p>
-<h3 id="6-实验方向四：oracle-分解——逐位置测量截断损失的分布">6. 实验方向四：oracle 分解——逐位置测量截断损失的分布</h3>
+<p>实验方向二、三都是干净的负结果，但各自揭示了机制，细节在附录：巨激活通道天然不付截断税（<strong>附录 B</strong>——顺带定位了&quot;②漂移残余&quot;的放大器：RMSNorm 的分母被两条巨通道主导，它们一漂移、全部 4096 维跟着乘性重缩放）；rms-lift 非线性矫正器能修乘性漂移，但参数效率与直接加 rank 持平（<strong>附录 C</strong>）。主线于是回到 rank 的放置：</p>
+<h3 id="3-实验方向四：oracle-分解——截断税住在哪些-block-里">3. 实验方向四：oracle 分解——截断税住在哪些 block 里</h3>
 <p><a href="/2026/08/22/closed-form-ceiling/">第三篇</a>的完整 oracle（把全部子层输入换成教师的干净值）只给出一个总量。把它拆开——每次只换一部分输入（本表是一次性诊断实验，用当时的评估口径，看相对差值即可）：</p>
 <table>
 <thead>
@@ -1610,7 +1577,7 @@ switchLang('zh');
 <p><strong>其二：局部&quot;清洁&quot;上游反而伤害下游（−0.40）。</strong> 顺序管线里每一层和矫正器都是<strong>适配上游特定误差模式</strong>拟合的，突然给它们干净的中间值，下游的补偿全部失配。这是矫正链自洽性的第三次独立验证（前两次：不动点迭代 5.95、跨层联合优化的文献负结果）。</p>
 <p>据此做 back-load（把 rank 往后半段倾斜）：前半 rank ×0.8、后半按预算配平放大（×1.24）。<strong>5.05——最终纪录</strong>，剂量曲线在 ×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。</p>
 <p>最后一个实验是把两个已验证的小改进叠加（back-load + rms-lift-256）：<strong>失败，比单独 back-load 还差</strong>。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。</p>
-<h3 id="7-结论：三个瓶颈、三条出路与三条经验">7. 结论：三个瓶颈、三条出路与三条经验</h3>
+<h3 id="4-结论：三个瓶颈、三条出路与三条经验">4. 结论：三个瓶颈、三条出路与三条经验</h3>
 <p><strong>最终版图</strong>（85% 压缩率、等预算 2.29B）：</p>
 <p>$$8.50_{\text{坍缩假象}} \to 5.60_{\text{轨迹矫正}} \to 5.10_{\text{免税矫正器}} \to \mathbf{5.05}_{\text{+分配+back-load}} \to 4.15_{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
 <table>
@@ -1647,6 +1614,48 @@ switchLang('zh');
 </ol>
 <p>闭式赛道就此真正收官：等预算 ~5.05 是&quot;逐层回归 + 线性/轻非线性矫正 + rank 分配&quot;这套工具箱的终点。通往 2.5 的路在训练上（本文发稿时训练臂已到 2.87 且在下降），通往 4.15 以下的闭式路在范式外。</p>
 <p>第三篇宣布过一次收官，被本篇推翻；本篇的收官宣言又能站多久？<a href="/2026/08/30/closed-form-moving-ceiling/">第五篇</a>见分晓。</p>
+<hr>
+<h2 id="附录">附录</h2>
+<h3 id="附录-A：文献坐标——我们在前沿的什么位置">附录 A：文献坐标——我们在前沿的什么位置</h3>
+<p>动手前做了一轮系统调研（2024-2026 的 training-free 低秩压缩文献），两个结论校准了预期：</p>
+<ol>
+<li><strong>没有任何已发表的 training-free 方法在 70%+ 参数削减下报告过可用结果。</strong> 纯闭式的最远数据点是 SVD-LLM 在 LLaMA-7B 删 60% 时 PPL 53.7——折成 loss 约 4.0，与我们的 oracle 界惊人吻合：文献从侧面证实这堵墙的量级是真的。我们在删 72% 拿 5.0x，在前沿之上。</li>
+<li><strong>非均匀 rank 分配是文献中最一致的收益来源</strong>（Dobi-SVD、SVD-LLM v2、D-Rank、UniRank、AIR、LACE-SVD 六篇独立工作同向）：高压缩下&quot;分配比分解本身更重要&quot;。这直接触发了实验方向一。</li>
+</ol>
+<h3 id="附录-B：实验方向二——巨激活通道的双负结果与真正的放大机制">附录 B：实验方向二——巨激活通道的双负结果与真正的放大机制</h3>
+<p>测量教师的输出侧异常，发现巨幅激活（massive activations，<a href="/2026/08/22/closed-form-ceiling/">第三篇</a>附录 A 提过的现象）在这个模型里是<strong>两条贯穿全网的全局通道</strong>：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。</p>
+<p>顺着第三篇&quot;免税矫正器&quot;的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。<strong>双双打平。</strong> 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向<strong>天然优先服务它们</strong>——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。</p>
+<p>但测量顺带揭示了&quot;②漂移残余&quot;的精确机制：<strong>RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放</strong>。这是一个把局部小误差全局化的耦合器，也是此前&quot;悬崖&quot;（block 16 一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。</p>
+<h3 id="附录-C：实验方向三——rms-lift-非线性矫正器，机制证实、收益归零">附录 C：实验方向三——rms-lift 非线性矫正器，机制证实、收益归零</h3>
+<p>既然放大器是 RMSNorm 的乘性耦合，对症的做法就是给残差矫正器一个能表达&quot;缩放校正&quot;的特征空间：把回归输入从 $h$ 提升到 $[h;\ h\cdot(\bar r/\mathrm{rms}(h)-1)]$——第二块是每 token 的<strong>尺度异常分量</strong>。对参数仍然线性，ridge 依旧闭式可解。</p>
+<p>两个教训先于结果到来。第一枪用了朴素形式 $[h;\ h/\mathrm{rms}(h)]$：两块特征高度共线且尺度差百倍，ridge 给出一对巨大且互相抵消的权重——校准集上的 R² 暴涨、held-out 反而变差（典型的过拟合信号）。<strong>lift 特征必须中心化 + 尺度匹配。</strong> 修好条件数（异常分量形式 + $\lambda=10^{-3}$）后：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>val loss</th>
+<th>判决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性矫正器（基线）</td>
+<td>5.06</td>
+<td></td>
+</tr>
+<tr>
+<td>rms-lift 全秩（<strong>+8% 参数</strong>）</td>
+<td><strong>4.99</strong></td>
+<td>闭式首次低于 5.0；悬崖后矫正器 R² 0.36→0.66</td>
+</tr>
+<tr>
+<td>rms-lift 截断 rank-256（等预算）</td>
+<td>5.07</td>
+<td>打平</td>
+</tr>
+</tbody>
+</table>
+<p><strong>机制证实，收益归零</strong>：乘性漂移确实可修（R² 提升与低于 5.0 为证），但修复它的参数效率与直接加 rank 恰好持平——等预算下没有额外便宜可占。这与免税矫正器原理形成闭环：lm_head 和线性残差矫正器赢在修复&quot;没人管的漂移&quot;，而 lift 的非线性部分在修复&quot;已被线性工具照顾过的残余&quot;，边际收益自然持平。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -1656,7 +1665,7 @@ switchLang('zh');
 </blockquote>
 <p><a href="/2026/08/22/closed-form-ceiling/">The trilogy finale</a> declared the closed-form track finished at 5.10. We then ran four more experimental directions, pushed the equal-budget record to <strong>5.05</strong>, and — this time — obtained structural evidence that it is truly over. This post covers how that 0.05 nat was earned, and four mechanistic findings worth far more than the 0.05: the pattern/content pathway split in loss sensitivity, the RMSNorm×massive-channel multiplicative amplifier, <strong>the depth distribution of the truncation tax</strong> (an oracle-decomposition experiment), and the rule that small improvements don't stack.</p>
 <p>Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by rank-384 $AB$ (2.29B params, 72% removed); closed-form = layerwise trajectory-correcting regression + lm_head fix + residual-stream correctors, starting at 5.10.</p>
-<p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle-decomposition diagnostics in Section 6 are one-off experiments kept in their original measurement window, used for relative comparison only.)</p>
+<p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle-decomposition diagnostics in Section 3 are one-off experiments kept in their original measurement window, used for relative comparison only.)</p>
 <h3 id="1-Three-Components-of-the-Gap-What-Separates-5-06-from-2-11">1. Three Components of the Gap: What Separates 5.06 from 2.11</h3>
 <p>Before running anything, an architecture-level question: why is closed-form stuck near 5? Assembling all the evidence (oracle bound, cliff diagnosis, ablations), the ~2.9 nats from teacher to closed-form split into three <strong>independent components with distinct mechanisms</strong>:</p>
 <p>$$2.11 \xrightarrow{\text{① truncation tax} \approx 2.0} 4.15_{\text{oracle}} \xrightarrow{\text{② drift residue} \approx 0.9} 5.06 \qquad 3.2_{\text{trained}} \xleftarrow{\text{③ reorganization gain}}$$</p>
@@ -1708,17 +1717,11 @@ switchLang('zh');
 </tbody>
 </table>
 <p>The network splits into two pathways: the <strong>pattern pathway</strong> (q/k → softmax) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the <strong>content pathway</strong> (v→o, up→down write path) has <strong>slowly decaying spectra using the full width</strong> — down_proj must decode features stored in superposition (packing far more features than dimensions, overlapped in the same coordinates) in the 12288-dim product space back into the residual stream, and such decoding matrices have no low-rank structure to exploit. This loss is information-theoretic; it is immune to &quot;a better approximation algorithm&quot;.</p>
-<p><strong>② Drift residue</strong>: the gap between the practical 5.06 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta_g\delta_u$ term and RMSNorm's division (its precise mechanism in Section 4).</p>
+<p><strong>② Drift residue</strong>: the gap between the practical 5.06 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta_g\delta_u$ term and RMSNorm's division (its precise mechanism in Appendix B).</p>
 <p><strong>③ Reorganization gain</strong>: the only explanation for training (3.2) breaking the oracle (4.15) — in a residual architecture the final computation is a <strong>sum</strong> of 36 block contributions; the same total function admits infinitely many decompositions, and gradient descent found one better suited to rank 384 than the teacher's own. Layerwise-imitation objectives cannot capture this gain by definition.</p>
 <p>Three components, three different bottlenecks. All four experimental directions below operate on the boundary between ① and ②.</p>
-<h3 id="2-Literature-Coordinates-Where-We-Actually-Sit-on-the-Frontier">2. Literature Coordinates: Where We Actually Sit on the Frontier</h3>
-<p>A systematic literature sweep (training-free low-rank LLM compression, 2024-2026) calibrated expectations with two findings:</p>
-<ol>
-<li><strong>No published training-free method reports usable results at 70%+ parameter removal.</strong> The furthest pure closed-form data point is SVD-LLM at 60% removal on LLaMA-7B: PPL 53.7 ≈ loss 4.0 — startlingly consistent with our oracle bound. The literature independently confirms the wall's magnitude. At 72% removal and 5.0x, we sit ahead of the frontier.</li>
-<li><strong>Non-uniform rank allocation is the literature's most consistent source of gains</strong> (six independent works — Dobi-SVD, SVD-LLM v2, D-Rank, UniRank, AIR, LACE-SVD — all agree: at high compression, allocation matters more than the decomposition itself). This triggered Direction 1.</li>
-</ol>
-<h3 id="3-Direction-1-Loss-Aware-Rank-Allocation-—-Right-Direction-Needs-Damping">3. Direction 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</h3>
-<p>We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.73). What the literature endorses is <strong>loss-sensitivity-driven</strong> allocation — a different thing: the former asks &quot;how much does this layer's output change if I cut this direction,&quot; the latter asks &quot;how much does the final loss change.&quot; Method: hang a multiplicative gate $\alpha_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate $f_i = \sum(\partial L/\partial\alpha_i)^2$ (a sum of squared gradients — the diagonal approximation of Fisher information, measuring the loss's sensitivity to that direction); calibrate the whitened spectra with the tail values ($f_{l,i}\approx c_l\sigma_{l,i}^2$), then hand rank to the most sensitive layers first until the fixed budget runs out.</p>
+<h3 id="2-Direction-1-Loss-Aware-Rank-Allocation-—-Right-Direction-Needs-Damping">2. Direction 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</h3>
+<p>We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.73). What the literature consistently endorses is <strong>loss-sensitivity-driven</strong> allocation (six independent works agree; the survey coordinates are in Appendix A) — a different thing: the former asks &quot;how much does this layer's output change if I cut this direction,&quot; the latter asks &quot;how much does the final loss change.&quot; Method: hang a multiplicative gate $\alpha_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate $f_i = \sum(\partial L/\partial\alpha_i)^2$ (a sum of squared gradients — the diagonal approximation of Fisher information, measuring the loss's sensitivity to that direction); calibrate the whitened spectra with the tail values ($f_{l,i}\approx c_l\sigma_{l,i}^2$), then hand rank to the most sensitive layers first until the fixed budget runs out.</p>
 <p>Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/content split:</p>
 <table>
 <thead>
@@ -1750,41 +1753,8 @@ switchLang('zh');
 <p><strong>This post's change, written as a formula.</strong> In the first three posts every layer's rank is a fixed constant $r$; this post turns the per-layer ranks ${r_\ell}$ into unknowns to be solved for:</p>
 <p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{expected damage of layer }\ell\text{'s cut directions}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{budget}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{damping constraint (not optional)}}$$</p>
 <p>where $f_{\ell,i}$ is direction $i$'s loss sensitivity in layer $\ell$ (the squared-gradient sums above). Without the damping constraint the solution is the face-value 5.27; with it, 5.06 — <strong>the constraint is half the improvement</strong>. The direction has a clean mechanism: q/k only shape attention weights, normalized by softmax and thus naturally drift-robust; v/o/down carry the content written into the residual stream.</p>
-<h3 id="4-Direction-2-Massive-Activation-Channels-—-a-Double-Negative-and-the-True-Amplifier">4. Direction 2: Massive-Activation Channels — a Double Negative and the True Amplifier</h3>
-<p>Measuring the teacher's output-side outliers revealed that massive activations (the phenomenon noted in <a href="/2026/08/22/closed-form-ceiling/">part 3</a>, Section 4) are in this model <strong>two global channels running the full depth</strong>: dims 1838 and 2276, 60-110× the median channel, growing monotonically from block 0 to 33 (mean|x| 4.9 → 607); nearly every o_proj/down_proj's largest output row targets them.</p>
-<p>Following part 3's tax-free-corrector principle we ran two equal-budget passthrough experiments: exempt the massive input COLUMNS from SVD truncation (top-24 per layer, kept exact), and exempt the massive output ROWS (top-8 of o/down). <strong>Both washed out.</strong> The conclusion is worth more than a win: the whitened SVD's objective is dominated by those very rows/columns, so the top singular directions <strong>serve them first</strong> — massive channels pay no truncation tax to begin with. A clean contrast with the lm_head/residual-corrector successes: those fixed whole matrices nobody was correcting; these are channels inside matrices that were already well served.</p>
-<p>But the measurement exposed the precise mechanism of ② (drift residue): <strong>RMSNorm's denominator is dominated by those two dims — when they drift, all 4096 channels get multiplicatively rescaled.</strong> It is a coupler that globalizes local errors, and the true identity of the earlier &quot;cliff&quot; (block 16 destroying residual R² by 0.54). The damage comes entirely from drift flowing at runtime, not from weight approximation — which is why every static weight-side arrangement (dense block, front-load, passthroughs; four failures) never touched it.</p>
-<h3 id="5-Direction-3-rms-Lift-Nonlinear-Correctors-—-Mechanism-Confirmed-Gain-Zero">5. Direction 3: rms-Lift Nonlinear Correctors — Mechanism Confirmed, Gain Zero</h3>
-<p>If the amplifier is RMSNorm's multiplicative coupling, the targeted fix is a corrector feature space that can express scale corrections: lift the regression input from $h$ to $[h;\ h\cdot(\bar r/\mathrm{rms}(h)-1)]$ — the second block being the per-token <strong>scale-anomaly component</strong>. Still linear in parameters; the ridge solve stays closed-form.</p>
-<p>Two lessons arrived before the result. The first shot used the naive form $[h;\ h/\mathrm{rms}(h)]$: the two blocks are highly collinear with a 100× scale mismatch, so ridge produced huge mutually-canceling weights — in-sample R² soared while held-out got worse (a classic overfitting signature). <strong>Lift features must be centered and scale-matched.</strong> After reconditioning (anomaly form + $\lambda=10^{-3}$):</p>
-<table>
-<thead>
-<tr>
-<th>Configuration</th>
-<th>val loss</th>
-<th>Verdict</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Linear correctors (baseline)</td>
-<td>5.06</td>
-<td></td>
-</tr>
-<tr>
-<td>rms-lift, full-rank ( <strong>+8% params</strong>)</td>
-<td><strong>4.99</strong></td>
-<td>first closed-form below 5.0; post-cliff corrector R² 0.36→0.66</td>
-</tr>
-<tr>
-<td>rms-lift, truncated to rank 256 (equal budget)</td>
-<td>5.07</td>
-<td>wash</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Mechanism confirmed, gain zero</strong>: multiplicative drift is genuinely repairable (the R² gain and the sub-5.0 prove it), but the repair's parameter efficiency exactly matches just buying more rank — no extra bargain at equal budget. This closes the loop on the tax-free-corrector principle: lm_head and the linear residual correctors won by fixing drift nobody was managing; the lift's nonlinear part fixes residue the linear tools had already tended, so its marginal return is at par.</p>
-<h3 id="6-Direction-4-The-Oracle-Decomposition-—-the-Depth-Structure-of-the-Tax-and-Back-Loading">6. Direction 4: The Oracle Decomposition — the Depth Structure of the Tax, and Back-Loading</h3>
+<p>Directions 2 and 3 are both clean negatives, each revealing a mechanism — details in the appendices: massive-activation channels pay no truncation tax to begin with (<strong>Appendix B</strong> — which also located the amplifier behind ② drift residue: RMSNorm's denominator is dominated by two giant channels; when they drift, all 4096 dimensions get multiplicatively rescaled); rms-lift nonlinear correctors do repair multiplicative drift, but at parameter efficiency exactly on par with just buying rank (<strong>Appendix C</strong>). The main line therefore returns to where rank is placed:</p>
+<h3 id="3-Direction-4-The-Oracle-Decomposition-—-Which-Blocks-the-Tax-Lives-In">3. Direction 4: The Oracle Decomposition — Which Blocks the Tax Lives In</h3>
 <p><a href="/2026/08/22/closed-form-ceiling/">Part 3</a>'s full oracle (swap all sublayer inputs with the teacher's clean values) only gives a total. Decompose it — swap one subset at a time (this table is a one-off diagnostic kept in its original measurement window; read the relative differences):</p>
 <table>
 <thead>
@@ -1832,7 +1802,7 @@ switchLang('zh');
 <p><strong>Second: locally &quot;cleaning&quot; upstream hurts downstream (−0.40).</strong> In a sequential pipeline every layer and corrector is fit to its upstream's specific error pattern; hand them clean intermediates and downstream compensations misfire en masse. This is the third independent proof of corrector-chain self-consistency (after fixed-point iteration 5.95, and the literature's cross-layer joint-optimization negative).</p>
 <p>Hence back-loading (tilting rank toward the second half): early ranks ×0.8, late ranks budget-balanced up (×1.24). <strong>5.05 — the final record</strong>, with the dose-response optimal near ×0.8 (both untilted and ×0.65 are slightly worse). Honesty about the size: it beats damped allocation's 5.06 by only ~0.014, on the order of the fold-to-fold spread (±0.015) — the direction matches the oracle decomposition's prediction, but the gain sits close to measurement precision.</p>
 <p>The last experiment stacked the two verified small improvements (back-load + rms-lift-256): <strong>fail — worse than back-load alone.</strong> Improvements at the 0.02 level harvest the same residue and erode each other when combined.</p>
-<h3 id="7-Conclusions-Three-Bottlenecks-Three-Ways-Out-Three-Lessons">7. Conclusions: Three Bottlenecks, Three Ways Out, Three Lessons</h3>
+<h3 id="4-Conclusions-Three-Bottlenecks-Three-Ways-Out-Three-Lessons">4. Conclusions: Three Bottlenecks, Three Ways Out, Three Lessons</h3>
 <p><strong>The final landscape</strong> (85% compression, equal 2.29B budget):</p>
 <p>$$8.50_{\text{collapse illusion}} \to 5.60_{\text{traj. correction}} \to 5.10_{\text{tax-free correctors}} \to \mathbf{5.05}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
 <table>
@@ -1869,6 +1839,48 @@ switchLang('zh');
 </ol>
 <p>The closed-form track is now genuinely closed: equal-budget ~5.05 is the terminus of the &quot;layerwise regression + linear/light-nonlinear correctors + rank allocation&quot; toolbox. The road to 2.5 runs through training (the training arm was at 2.87 and descending as this was published); the road below 4.15 for closed-form runs outside the paradigm.</p>
 <p>Part 3 declared closure once and this post overturned it — how long will this post's own declaration stand? <a href="/2026/08/30/closed-form-moving-ceiling/">Part 5</a> has the answer.</p>
+<hr>
+<h2 id="Appendix">Appendix</h2>
+<h3 id="Appendix-A-Literature-Coordinates-—-Where-We-Sit-on-the-Frontier">Appendix A: Literature Coordinates — Where We Sit on the Frontier</h3>
+<p>A systematic literature sweep (training-free low-rank LLM compression, 2024-2026) calibrated expectations with two findings:</p>
+<ol>
+<li><strong>No published training-free method reports usable results at 70%+ parameter removal.</strong> The furthest pure closed-form data point is SVD-LLM at 60% removal on LLaMA-7B: PPL 53.7 ≈ loss 4.0 — startlingly consistent with our oracle bound. The literature independently confirms the wall's magnitude. At 72% removal and 5.0x, we sit ahead of the frontier.</li>
+<li><strong>Non-uniform rank allocation is the literature's most consistent source of gains</strong> (six independent works — Dobi-SVD, SVD-LLM v2, D-Rank, UniRank, AIR, LACE-SVD — all agree: at high compression, allocation matters more than the decomposition itself). This triggered Direction 1.</li>
+</ol>
+<h3 id="Appendix-B-Direction-2-—-Massive-Activation-Channels-a-Double-Negative-and-the-True-Amplifier">Appendix B: Direction 2 — Massive-Activation Channels, a Double Negative and the True Amplifier</h3>
+<p>Measuring the teacher's output-side outliers revealed that massive activations (the phenomenon noted in <a href="/2026/08/22/closed-form-ceiling/">part 3</a>, Appendix A) are in this model <strong>two global channels running the full depth</strong>: dims 1838 and 2276, 60-110× the median channel, growing monotonically from block 0 to 33 (mean|x| 4.9 → 607); nearly every o_proj/down_proj's largest output row targets them.</p>
+<p>Following part 3's tax-free-corrector principle we ran two equal-budget passthrough experiments: exempt the massive input COLUMNS from SVD truncation (top-24 per layer, kept exact), and exempt the massive output ROWS (top-8 of o/down). <strong>Both washed out.</strong> The conclusion is worth more than a win: the whitened SVD's objective is dominated by those very rows/columns, so the top singular directions <strong>serve them first</strong> — massive channels pay no truncation tax to begin with. A clean contrast with the lm_head/residual-corrector successes: those fixed whole matrices nobody was correcting; these are channels inside matrices that were already well served.</p>
+<p>But the measurement exposed the precise mechanism of ② (drift residue): <strong>RMSNorm's denominator is dominated by those two dims — when they drift, all 4096 channels get multiplicatively rescaled.</strong> It is a coupler that globalizes local errors, and the true identity of the earlier &quot;cliff&quot; (block 16 destroying residual R² by 0.54). The damage comes entirely from drift flowing at runtime, not from weight approximation — which is why every static weight-side arrangement (dense block, front-load, passthroughs; four failures) never touched it.</p>
+<h3 id="Appendix-C-Direction-3-—-rms-Lift-Nonlinear-Correctors-Mechanism-Confirmed-Gain-Zero">Appendix C: Direction 3 — rms-Lift Nonlinear Correctors, Mechanism Confirmed, Gain Zero</h3>
+<p>If the amplifier is RMSNorm's multiplicative coupling, the targeted fix is a corrector feature space that can express scale corrections: lift the regression input from $h$ to $[h;\ h\cdot(\bar r/\mathrm{rms}(h)-1)]$ — the second block being the per-token <strong>scale-anomaly component</strong>. Still linear in parameters; the ridge solve stays closed-form.</p>
+<p>Two lessons arrived before the result. The first shot used the naive form $[h;\ h/\mathrm{rms}(h)]$: the two blocks are highly collinear with a 100× scale mismatch, so ridge produced huge mutually-canceling weights — in-sample R² soared while held-out got worse (a classic overfitting signature). <strong>Lift features must be centered and scale-matched.</strong> After reconditioning (anomaly form + $\lambda=10^{-3}$):</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>val loss</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linear correctors (baseline)</td>
+<td>5.06</td>
+<td></td>
+</tr>
+<tr>
+<td>rms-lift, full-rank ( <strong>+8% params</strong>)</td>
+<td><strong>4.99</strong></td>
+<td>first closed-form below 5.0; post-cliff corrector R² 0.36→0.66</td>
+</tr>
+<tr>
+<td>rms-lift, truncated to rank 256 (equal budget)</td>
+<td>5.07</td>
+<td>wash</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mechanism confirmed, gain zero</strong>: multiplicative drift is genuinely repairable (the R² gain and the sub-5.0 prove it), but the repair's parameter efficiency exactly matches just buying more rank — no extra bargain at equal budget. This closes the loop on the tax-free-corrector principle: lm_head and the linear residual correctors won by fixing drift nobody was managing; the lift's nonlinear part fixes residue the linear tools had already tended, so its marginal return is at par.</p>
 </div>
 <script>
 function switchLang(lang) {
@@ -1948,7 +1960,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -1972,7 +1984,7 @@ switchLang('zh');
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
 <p>这是低秩压缩三部曲的完结篇（<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">第一篇：表示坍缩</a>，<a href="/2026/08/19/trajectory-correcting-linear-distillation/">第二篇：轨迹矫正线性蒸馏</a>）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对&quot;闭式 init + 训练&quot;的完整路线意味着什么。</p>
-<p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 5 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）</p>
+<p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 4 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）</p>
 <h3 id="1-消融的意外：便宜的赢了贵的">1. 消融的意外：便宜的赢了贵的</h3>
 <p>上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维）——乘法处的误差交叉项 $g\delta_u + u\delta_g$（$\delta$ 是各自的漂移误差）在原空间里是非线性的，但在这个扩展空间里重新变成了线性可表，理论上非常对症。同时顺手加了一个&quot;免费&quot;组件：lm_head 矫正。</p>
 <p>消融实验（逐个拆掉组件、分别测量每个组件的贡献）的结果完全出乎预料（同为 rank-384 基础）：</p>
@@ -2045,12 +2057,8 @@ switchLang('zh');
 <p>$$\text{oracle} = 4.0 \sim 4.3$$</p>
 <p>即使漂移矫正做到神级，rank-384 局部截断误差之和也要付 4 个 nat。想到 2.5？对这个范式<strong>严格不可达</strong>。</p>
 <p>但同时出现了一个更深的事实：<strong>训练（step 500 时 3.20）已经打穿了 oracle 界（4.0）</strong>。逻辑上完全自洽：oracle 只约束&quot;每层模仿教师对应层&quot;的范式，而梯度训练<strong>重组了各层的分工</strong>——训练出的层不再是教师各层的逼近，而是一组全新的因子化方案，其复合效果超越逐层模仿的极限。这是第二篇&quot;瓶颈在优化目标不在表达能力&quot;论点的最强版本。</p>
-<h3 id="4-悬崖调查：block-16-是非线性放大器">4. 悬崖调查：block 16 是非线性放大器</h3>
-<p>逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自<strong>单独一层</strong>：</p>
-<p>$$R^2:\ \underbrace{0.815}_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}_{\text{一层砍掉 0.543}}$$</p>
-<p>其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊：MLP 输出幅度是邻居的 2 倍，override ratio（MLP 输出相对残差流的幅度之比）0.60 vs 邻居的 0.25——这是文献中 massive activation 层（少数激活幅度异常大的层）的典型特征。</p>
-<p>两个定点打击实验都失败了：block 16 MLP 全秩（连矫正都满血）→ 5.40，更差；前载 rank（0-16 用 480、17-35 用 298，减少流入悬崖的漂移）→ 5.38，也更差。结论：<strong>悬崖不是压缩造成的，是教师自己的功能特性</strong>——入口处 18% 的非线性残余误差被它的原生大幅度非线性计算放大成出口处 73% 的不可恢复纠缠。容量、分配、线性矫正三类武器全部无效；这 18% 对可负担的 rank 提升也不敏感。闭式极限就此锁定在 ~5.1。</p>
-<h3 id="5-训练判决：好的闭式-init-值-200-步训练">5. 训练判决：好的闭式 init 值 200+ 步训练</h3>
+<p>剩余非线性漂移的来源也定位到了：几乎全部来自<strong>单独一层</strong>（block 16）——它是教师自带的非线性放大器，容量、分配、线性矫正三类手段全部无效，闭式极限因此锁定在 ~5.1（调查细节见附录 A）。</p>
+<h3 id="4-训练判决：好的闭式-init-值-200-步训练">4. 训练判决：好的闭式 init 值 200+ 步训练</h3>
 <p>双臂对照（同 seed、同数据序、同 global batch），只差初始化：</p>
 <table>
 <thead>
@@ -2079,6 +2087,32 @@ switchLang('zh');
 </tbody>
 </table>
 <p>lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 步还不如 lindist 臂的起点。<strong>好的闭式初始化至少值 200 步（4 亿 token）的训练量，且优势在观察窗口内持续存活。</strong></p>
+<p>（各个 loss 水平的模型实际生成的文本什么样——从词汤、复读机到通顺叙事——见附录 B 的采样对照，它给这些数字提供了直观刻度。）</p>
+<h3 id="5-结论">5. 结论</h3>
+<ol>
+<li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
+</ol>
+<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 地板}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<ol start="2">
+<li>
+<p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
+</li>
+<li>
+<p><strong>闭式极限的成因链</strong>：实际 5.10 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 &lt; 4.0）。</p>
+</li>
+<li>
+<p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
+</li>
+</ol>
+<p>实际的 5.10 和 oracle 地板 4.0 之间还隔着 1.1 nat。这段空间的结构是什么、还能挖出多少，是<a href="/2026/08/25/closed-form-anatomy/">第四篇</a>的主题。</p>
+<hr>
+<h2 id="附录">附录</h2>
+<h3 id="附录-A：悬崖调查——block-16-是非线性放大器">附录 A：悬崖调查——block 16 是非线性放大器</h3>
+<p>逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自<strong>单独一层</strong>：</p>
+<p>$$R^2:\ \underbrace{0.815}_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}_{\text{一层砍掉 0.543}}$$</p>
+<p>其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊：MLP 输出幅度是邻居的 2 倍，override ratio（MLP 输出相对残差流的幅度之比）0.60 vs 邻居的 0.25——这是文献中 massive activation 层（少数激活幅度异常大的层）的典型特征。</p>
+<p>两个定点打击实验都失败了：block 16 MLP 全秩（连矫正都满血）→ 5.40，更差；前载 rank（0-16 用 480、17-35 用 298，减少流入悬崖的漂移）→ 5.38，也更差。结论：<strong>悬崖不是压缩造成的，是教师自己的功能特性</strong>——入口处 18% 的非线性残余误差被它的原生大幅度非线性计算放大成出口处 73% 的不可恢复纠缠。容量、分配、线性矫正三类武器全部无效；这 18% 对可负担的 rank 提升也不敏感。闭式极限就此锁定在 ~5.1。</p>
+<h3 id="附录-B：不同-loss-水平的模型在生成什么">附录 B：不同 loss 水平的模型在生成什么</h3>
 <p>文本采样给出了质变的直观刻度（temperature 0.8）：</p>
 <table>
 <thead>
@@ -2111,23 +2145,6 @@ switchLang('zh');
 </tbody>
 </table>
 <p>复读机的消退符合&quot;能力增长使复制策略失去 loss 优势&quot;的预测——退化策略（坍缩、复读）是能力不足时交叉熵的理性选择，能力恢复到哪一层，对应的退化就消失到哪一层。</p>
-<h3 id="6-结论">6. 结论</h3>
-<ol>
-<li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
-</ol>
-<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to \underbrace{\approx 4.0}_{\text{逐层范式 oracle 地板}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
-<ol start="2">
-<li>
-<p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
-</li>
-<li>
-<p><strong>闭式极限的成因链</strong>：实际 5.10 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 &lt; 4.0）。</p>
-</li>
-<li>
-<p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
-</li>
-</ol>
-<p>实际的 5.10 和 oracle 地板 4.0 之间还隔着 1.1 nat。这段空间的结构是什么、还能挖出多少，是<a href="/2026/08/25/closed-form-anatomy/">第四篇</a>的主题。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -2136,7 +2153,7 @@ switchLang('zh');
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
 <p>This concludes the low-rank compression trilogy (<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">part 1: representation collapse</a>, <a href="/2026/08/19/trajectory-correcting-linear-distillation/">part 2: trajectory-correcting linear distillation</a>). Part 2 ended with closed-form (training-free) methods at val loss 5.60. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the &quot;closed-form init + training&quot; pipeline.</p>
-<p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 5 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)</p>
+<p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 4 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)</p>
 <h3 id="1-An-Ablation-Surprise-the-Cheap-Component-Beats-the-Expensive-One">1. An Ablation Surprise: the Cheap Component Beats the Expensive One</h3>
 <p>Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim) — the error cross terms $g\delta_u + u\delta_g$ (where $\delta$ is each factor's drift) are nonlinear in the original space but become linearly representable in the extended one; theoretically well-aimed. We also added a &quot;free&quot; component along the way: an lm_head correction.</p>
 <p>The ablation (removing components one at a time to measure each one's contribution) was a complete surprise (rank-384 base):</p>
@@ -2209,12 +2226,8 @@ switchLang('zh');
 <p>$$\text{oracle} = 4.0 \sim 4.3$$</p>
 <p>Even with god-tier drift correction, the summed local truncation errors of rank 384 cost 4 nats. A target of 2.5 is <strong>provably unreachable</strong> for this paradigm.</p>
 <p>Simultaneously, a deeper fact emerged: <strong>training (3.20 at step 500) has already broken through the oracle bound (4.0)</strong>. This is logically consistent and profound: the oracle only binds the &quot;each layer imitates its teacher counterpart&quot; paradigm, whereas gradient training <strong>reorganizes the division of labor across layers</strong> — the trained layers are no longer approximations of individual teacher layers but a new factorized solution whose composition beats what layerwise imitation permits. This is the strongest form of part 2's thesis that the bottleneck is the optimization objective, not expressiveness.</p>
-<h3 id="4-The-Cliff-Block-16-Is-a-Nonlinear-Amplifier">4. The Cliff: Block 16 Is a Nonlinear Amplifier</h3>
-<p>Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a <strong>single layer</strong>:</p>
-<p>$$R^2:\ \underbrace{0.815}_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}_{\text{one layer destroys 0.543}}$$</p>
-<p>Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself: MLP output 2× its neighbors' magnitude, override ratio (the MLP output's magnitude relative to the residual stream) 0.60 vs their 0.25 — the signature of a massive-activation layer (one of the few layers with abnormally large activations, a documented phenomenon).</p>
-<p>Two targeted interventions both failed: keeping block-16's MLP fully DENSE (full-rank lindist maps) → 5.40, worse; front-loading ranks (480 for blocks 0-16, 298 after, to reduce the drift flowing into the cliff) → 5.38, also worse. Conclusion: <strong>the cliff is not caused by compression — it is the teacher's own function</strong>: the ~18% nonlinear residue arriving at its input (insensitive to affordable rank increases) gets amplified by its native large-magnitude nonlinear computation into 73% unrecoverable entanglement at its output. Capacity, allocation, and linear correction are all powerless. The closed-form limit locks in at ~5.1.</p>
-<h3 id="5-The-Training-Verdict-a-Good-Closed-Form-Init-Is-Worth-200-Steps">5. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps</h3>
+<p>The source of the remaining nonlinear drift is also located: nearly all of it comes from a <strong>single layer</strong> (block 16) — a nonlinear amplifier native to the teacher, immune to capacity, allocation and linear correction alike, which locks the closed-form limit at ~5.1 (investigation in Appendix A).</p>
+<h3 id="4-The-Training-Verdict-a-Good-Closed-Form-Init-Is-Worth-200-Steps">4. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps</h3>
 <p>A two-arm controlled comparison (same seed, data order, global batch), differing only in initialization:</p>
 <table>
 <thead>
@@ -2243,6 +2256,32 @@ switchLang('zh');
 </tbody>
 </table>
 <p>The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed arm after 200 steps was still worse than the lindist arm's starting point. <strong>A good closed-form init is worth at least 200 steps (~0.4B tokens) of training, and the advantage persists throughout the observation window.</strong></p>
+<p>(What models at each loss level actually generate — from word salad through broken-record loops to fluent narrative — is shown in Appendix B, which gives these numbers a tangible scale.)</p>
+<h3 id="5-Conclusions">5. Conclusions</h3>
+<ol>
+<li><strong>The final closed-form landscape</strong> (85% compression, equal 2.29B budget):</li>
+</ol>
+<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle floor}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<ol start="2">
+<li>
+<p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget at <strong>truncation-tax-free</strong> spots (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
+</li>
+<li>
+<p><strong>The causal chain of the ceiling</strong>: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 &lt; 4.0).</p>
+</li>
+<li>
+<p><strong>The engineering takeaway</strong>: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.</p>
+</li>
+</ol>
+<p>Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of <a href="/2026/08/25/closed-form-anatomy/">part 4</a>.</p>
+<hr>
+<h2 id="Appendix">Appendix</h2>
+<h3 id="Appendix-A-The-Cliff-—-Block-16-Is-a-Nonlinear-Amplifier">Appendix A: The Cliff — Block 16 Is a Nonlinear Amplifier</h3>
+<p>Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a <strong>single layer</strong>:</p>
+<p>$$R^2:\ \underbrace{0.815}_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}_{\text{one layer destroys 0.543}}$$</p>
+<p>Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself: MLP output 2× its neighbors' magnitude, override ratio (the MLP output's magnitude relative to the residual stream) 0.60 vs their 0.25 — the signature of a massive-activation layer (one of the few layers with abnormally large activations, a documented phenomenon).</p>
+<p>Two targeted interventions both failed: keeping block-16's MLP fully DENSE (full-rank lindist maps) → 5.40, worse; front-loading ranks (480 for blocks 0-16, 298 after, to reduce the drift flowing into the cliff) → 5.38, also worse. Conclusion: <strong>the cliff is not caused by compression — it is the teacher's own function</strong>: the ~18% nonlinear residue arriving at its input (insensitive to affordable rank increases) gets amplified by its native large-magnitude nonlinear computation into 73% unrecoverable entanglement at its output. Capacity, allocation, and linear correction are all powerless. The closed-form limit locks in at ~5.1.</p>
+<h3 id="Appendix-B-What-Models-at-Each-Loss-Level-Actually-Generate">Appendix B: What Models at Each Loss Level Actually Generate</h3>
 <p>Text samples give the qualitative ladder (temperature 0.8):</p>
 <table>
 <thead>
@@ -2275,23 +2314,6 @@ switchLang('zh');
 </tbody>
 </table>
 <p>The fading of repetition matches the prediction that degenerate strategies (collapse, loops) are cross-entropy-rational responses to missing capability — as capability returns, each degeneration dissolves in order.</p>
-<h3 id="6-Conclusions">6. Conclusions</h3>
-<ol>
-<li><strong>The final closed-form landscape</strong> (85% compression, equal 2.29B budget):</li>
-</ol>
-<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to \underbrace{\approx 4.0}_{\text{layerwise oracle floor}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
-<ol start="2">
-<li>
-<p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget at <strong>truncation-tax-free</strong> spots (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
-</li>
-<li>
-<p><strong>The causal chain of the ceiling</strong>: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 &lt; 4.0).</p>
-</li>
-<li>
-<p><strong>The engineering takeaway</strong>: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.</p>
-</li>
-</ol>
-<p>Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of <a href="/2026/08/25/closed-form-anatomy/">part 4</a>.</p>
 </div>
 <script>
 function switchLang(lang) {
@@ -2371,7 +2393,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -2513,14 +2535,8 @@ switchLang('zh');
 <p>完整版图：</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \underbrace{7.51}_{\text{常数下界}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{训练}} \to \underbrace{2.11}_{\text{教师}}$$</p>
 <p>5.60 <strong>低于常数预测器的信息论下界 7.51</strong>——模型真正携带了从上下文到下一个 token 的互信息，这是所有闭式方法中的第一次。预测行为完全健康：top-1 是正确的高频词 &quot; the&quot;（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。</p>
-<h3 id="5-方法的平台：三个负结果">5. 方法的平台：三个负结果</h3>
-<p>进一步的优化尝试全部失败，方法在 ~5.6 收敛：</p>
-<ol>
-<li><strong>不动点迭代 → 5.95（变差）</strong>。想法是&quot;压缩后的学生漂移变了，那就用它重新采集统计、把所有层再解一遍，迭代到自洽&quot;。实测反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍顺序处理就是最优做法。</strong></li>
-<li><strong>按奇异值谱分配 per-layer rank → 5.73（略差）</strong>。给谱衰减慢（更难压）的层多分 rank、衰减快的少分。均匀 rank 已接近最优；从均匀运行算出的分配也无法迁移到新运行（漂移模式随分配改变）。</li>
-<li><strong>λ 不敏感</strong>：$10^{-3}$ 与 $10^{-4}$ 差 0.01。</li>
-</ol>
-<h3 id="6-剩下的差距在哪：R²-诊断">6. 剩下的差距在哪：R² 诊断</h3>
+<p>方法在 ~5.6 收敛：进一步的精巧化尝试（不动点迭代重解、按奇异值谱分配 rank、调 $\lambda$）全部没有收益，细节见附录 A。这个平台是怎么来的、剩下的差距是什么性质——是下一节的问题。</p>
+<h3 id="5-剩下的差距在哪：R²-诊断">5. 剩下的差距在哪：R² 诊断</h3>
 <p>逐层测量&quot;教师输入能从学生输入线性恢复的比例&quot;（回归的 $R^2$）：</p>
 <table>
 <thead>
@@ -2549,12 +2565,21 @@ switchLang('zh');
 </tbody>
 </table>
 <p>中段网络的漂移有一半以上是<strong>非线性</strong>的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：<strong>逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移</strong>，原理上需要非线性矫正器或全局优化（训练）才能跨越。</p>
-<h3 id="7-结论">7. 结论</h3>
+<h3 id="6-结论">6. 结论</h3>
 <ol>
 <li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.60。</li>
 <li><strong>闭式方法的正确姿势是回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
 <li><strong>逐层线性矫正在 ~5.6 收敛</strong>：漂移中线性可恢复的部分已经榨干，剩余差距是非线性的。这个&quot;天花板&quot;是否真的到头，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
 <li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
+</ol>
+<hr>
+<h2 id="附录">附录</h2>
+<h3 id="附录-A：方法的平台——三个负结果">附录 A：方法的平台——三个负结果</h3>
+<p>进一步的优化尝试全部失败，方法在 ~5.6 收敛：</p>
+<ol>
+<li><strong>不动点迭代 → 5.95（变差）</strong>。想法是&quot;压缩后的学生漂移变了，那就用它重新采集统计、把所有层再解一遍，迭代到自洽&quot;。实测反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍顺序处理就是最优做法。</strong></li>
+<li><strong>按奇异值谱分配 per-layer rank → 5.73（略差）</strong>。给谱衰减慢（更难压）的层多分 rank、衰减快的少分。均匀 rank 已接近最优；从均匀运行算出的分配也无法迁移到新运行（漂移模式随分配改变）。</li>
+<li><strong>λ 不敏感</strong>：$10^{-3}$ 与 $10^{-4}$ 差 0.01。</li>
 </ol>
 </div>
 <!-- English Version -->
@@ -2682,14 +2707,8 @@ switchLang('zh');
 <p>The full landscape:</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{collapse illusion}} \to \underbrace{7.51}_{\text{constant floor}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{trained}} \to \underbrace{2.11}_{\text{teacher}}$$</p>
 <p>5.60 is <strong>below the constant-predictor floor of 7.51</strong> — the model genuinely carries mutual information from context to next token, a first among all closed-form methods. Its behavior is healthy: top-1 is the correct high-frequency word &quot; the&quot; (same as the teacher), and the KL divergence between output distributions at different positions is 5.4, i.e. predictions really do vary with context (the collapsed model: 0.007, the same distribution everywhere).</p>
-<h3 id="5-The-Plateau-Three-Negative-Results">5. The Plateau: Three Negative Results</h3>
-<p>Further optimization attempts all failed; the method converges at ~5.6:</p>
-<ol>
-<li><strong>Fixed-point iteration → 5.95 (worse)</strong>. The idea: the compressed student's drift has changed, so re-collect statistics with it and re-solve every layer, iterating toward self-consistency. In practice this destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. <strong>A single sequential sweep is the best approach.</strong></li>
-<li><strong>Singular-spectrum-driven per-layer rank allocation → 5.73 (slightly worse)</strong>. Give more rank to layers whose spectrum decays slowly (harder to compress), less to the rest. Uniform ranks are already near-optimal, and an allocation computed from a uniform run does not transfer to a new run (the drift pattern changes with the allocation).</li>
-<li><strong>λ-insensitive</strong>: $10^{-3}$ vs $10^{-4}$ differ by 0.01.</li>
-</ol>
-<h3 id="6-Where-the-Remaining-Gap-Lives-the-R²-Diagnostic">6. Where the Remaining Gap Lives: the R² Diagnostic</h3>
+<p>The method converges at ~5.6: further refinements (fixed-point re-solving, spectrum-driven rank allocation, tuning $\lambda$) all fail to pay — details in Appendix A. Where this plateau comes from, and what the remaining gap is made of, is the next section's question.</p>
+<h3 id="5-Where-the-Remaining-Gap-Lives-the-R²-Diagnostic">5. Where the Remaining Gap Lives: the R² Diagnostic</h3>
 <p>Per layer, measure the fraction of the teacher input linearly recoverable from the student input (the regression $R^2$):</p>
 <table>
 <thead>
@@ -2718,12 +2737,21 @@ switchLang('zh');
 </tbody>
 </table>
 <p>More than half of the mid-network drift is <strong>nonlinear</strong>, worst at the SwiGLU gate×up product — multiplying two quantities that each carry error produces squared and cross terms, components no linear operator can undo. This explains the 5.6 plateau: <strong>layerwise linear correction has extracted all the linearly recoverable drift; the remaining 1.8-nat gap (from 5.60 to the trained 3.79) is nonlinear drift</strong>, requiring nonlinear correctors or global optimization (training) to cross.</p>
-<h3 id="7-Conclusions">7. Conclusions</h3>
+<h3 id="6-Conclusions">6. Conclusions</h3>
 <ol>
 <li><strong>The bottleneck of low-rank compression is not expressiveness but the optimization objective.</strong> A 3.79 point exists in the rank-384 space; &quot;approximate $W$ per layer&quot; cannot find it, while &quot;correct the trajectory per layer&quot; reaches 5.60.</li>
 <li><strong>The right closed-form primitive is regression, not factorization</strong>: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.</li>
 <li><strong>Layerwise linear correction converges at ~5.6</strong>: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this ceiling is truly final is the subject of <a href="/2026/08/22/closed-form-ceiling/">the next post</a>.</li>
 <li>A correction to the previous post: &quot;closed-form methods cannot simultaneously break collapse and lower loss&quot; was wrong — what was broken was the shared &quot;approximate $W$&quot; objective of every method tested then, not closed-form itself.</li>
+</ol>
+<hr>
+<h2 id="Appendix">Appendix</h2>
+<h3 id="Appendix-A-The-Plateau-—-Three-Negative-Results">Appendix A: The Plateau — Three Negative Results</h3>
+<p>Further optimization attempts all failed; the method converges at ~5.6:</p>
+<ol>
+<li><strong>Fixed-point iteration → 5.95 (worse)</strong>. The idea: the compressed student's drift has changed, so re-collect statistics with it and re-solve every layer, iterating toward self-consistency. In practice this destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. <strong>A single sequential sweep is the best approach.</strong></li>
+<li><strong>Singular-spectrum-driven per-layer rank allocation → 5.73 (slightly worse)</strong>. Give more rank to layers whose spectrum decays slowly (harder to compress), less to the rest. Uniform ranks are already near-optimal, and an allocation computed from a uniform run does not transfer to a new run (the drift pattern changes with the allocation).</li>
+<li><strong>λ-insensitive</strong>: $10^{-3}$ vs $10^{-4}$ differ by 0.01.</li>
 </ol>
 </div>
 <script>
@@ -2804,7 +2832,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -2968,7 +2996,116 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>最后一层 cos=0.95 看起来&quot;对齐得很好&quot;——但这是一个<strong>假象</strong>。不是模型对每个 token 都和教师对齐，而是<strong>所有 token 都坍缩到了同一个方向</strong>，这个固定方向恰好和教师的某个&quot;平均方向&quot; cos=0.95。</p>
-<h3 id="3-5-坍缩的微观机制：MLP-是凶手">3.5 坍缩的微观机制：MLP 是凶手</h3>
+<p>（更微观的追踪——多样性在网络每个子组件中如何被逐步耗尽、为什么 down_proj 是主要凶手——见附录 A；这一现象在 Transformer 理论文献中的对应见附录 B。）</p>
+<h3 id="4-打破坍缩的尝试">4. 打破坍缩的尝试</h3>
+<p>既然坍缩来自&quot;36 层反复保留同一组方向&quot;，一个自然的对策是强迫相邻层保留的方向互相错开：在每层截断时加一个正交惩罚项（表中的 0.3 是惩罚权重），或者干脆让 ASVD 和 plain SVD 逐层交替：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>val loss</th>
+<th>unique 预测</th>
+<th>top-1 占比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD（无约束）</td>
+<td>8.50</td>
+<td>1</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>正交约束 0.3</td>
+<td>12.80</td>
+<td>23</td>
+<td>93.6%</td>
+</tr>
+<tr>
+<td>交替 ASVD/plain SVD</td>
+<td>14.56</td>
+<td>41</td>
+<td>35.2%</td>
+</tr>
+<tr>
+<td>Plain SVD（无加权）</td>
+<td>18.65</td>
+<td>401</td>
+<td>15.9%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。</p>
+<p>进一步的 rank 重分配实验（在均匀 rank=384、$\alpha=0.5$ 变体上做，其自身基线为 10.83）显示，即使给关键组件多得多的参数，也无法接近坍缩态的 loss：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>参数量</th>
+<th>val loss</th>
+<th>是否坍缩</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>坍缩的 ASVD（$\alpha=1.0$ + 逐层 rank）</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>是（98.6% 逗号）</td>
+</tr>
+<tr>
+<td>均匀 rank=384，$\alpha=0.5$（重分配实验的基线）</td>
+<td>2.29B</td>
+<td>10.83</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ gate_proj 满秩</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ down_proj 满秩</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>否</td>
+</tr>
+<tr>
+<td>+ down_proj rank=768（预算匹配）</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>否</td>
+</tr>
+</tbody>
+</table>
+<p><strong>没有任何非坍缩配置能接近坍缩态的 8.50</strong>——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：在这一族配置里，<strong>坍缩得越彻底，loss 越低；打破坍缩，loss 就变差</strong>。</p>
+<p>原因回到第 2 节：在模型<strong>真的没有足够能力区分 token</strong> 的情况下（rank=384、85% 压缩率），坍缩到高频 token 就是 loss-最优的策略，打破坍缩等于强迫模型做它做不到的事。</p>
+<p>由于&quot;整个模型只预测逗号&quot;过于反直觉，我们对它做了独立复核：坍缩完全可复现，且对分解配置高度敏感——把 $\alpha$ 减半或改用均匀 rank，模型就停在&quot;高度退化但未坍缩&quot;的状态。复核细节见附录 C。</p>
+<h3 id="5-结论">5. 结论</h3>
+<ol>
+<li>
+<p><strong>val loss 不是模型质量的可靠指标</strong>——一个完全坍缩的模型（只输出逗号）可以比一个&quot;有预测多样性但不准&quot;的模型 loss 更低。</p>
+</li>
+<li>
+<p><strong>ASVD 的激活加权在极端压缩率下会导致 representation collapse</strong>——加权越强（$\alpha$ 越大）、关键层被 rank 分配饿得越狠，坍缩越彻底。</p>
+</li>
+<li>
+<p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。</p>
+</li>
+<li>
+<p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。同样，<strong>对比不同压缩方法时必须固定全部配置</strong>（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。</p>
+</li>
+</ol>
+<hr>
+<h2 id="附录">附录</h2>
+<h3 id="附录-A：坍缩的微观机制——MLP-是凶手">附录 A：坍缩的微观机制——MLP 是凶手</h3>
 <p>进一步的诊断实验追踪了 <strong>effective rank（有效秩，下称 erank）</strong> 在网络每个子组件中的变化。erank 衡量一批向量实际张开了多少个独立方向：hidden state 名义上是 4096 维，但如果所有 token 的向量都挤在少数几个方向上，erank 就只有个位数。它是&quot;表示多样性&quot;的直接读数。</p>
 <blockquote>
 <p><strong>测量对象说明</strong>：本节的追踪数据来自均匀 rank=384、$\alpha=0.5$ 的 ASVD 变体（val loss 10.83）。它没有完全坍缩成常数函数（保留了 546 个 unique 预测），但表示已高度退化：最终 erank=7，不同 token 输出向量的两两平均 cosine 相似度（下称 pcos，越接近 1 表示所有 token 的输出越趋同）高达 0.92——是观察&quot;多样性如何被逐层耗尽&quot;的合适对象。完全坍缩的 8.50 模型（$\alpha=1.0$ + 逐层 rank）是同一机制的更极端版本。</p>
@@ -3140,7 +3277,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p><strong>ASVD 的 MLP 对所有 token 输出几乎相同的向量</strong>（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。</p>
 <p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。</p>
 <p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留 $s_i$ 大的那些分量），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
-<h3 id="4-文献中的对应">4. 文献中的对应</h3>
+<h3 id="附录-B：与文献的对应">附录 B：与文献的对应</h3>
 <p>这个现象在 transformer 研究中已有理论解释：</p>
 <ul>
 <li><strong>Signal Propagation in Transformers (2022)</strong>：堆叠 self-attention 层导致 token 表示的 rank collapse</li>
@@ -3148,97 +3285,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <li><strong>BA-LoRA (2024)</strong>：在 LoRA 训练中识别出 representation collapse，解决方案是 diversity 正则化</li>
 </ul>
 <p>我们的情况属于&quot;value 矩阵选择不当&quot;的极端版本——低秩截断让所有层的投影方向系统性地对齐，满足了坍缩的条件。</p>
-<h3 id="5-打破坍缩的尝试">5. 打破坍缩的尝试</h3>
-<p>既然坍缩来自&quot;36 层反复保留同一组方向&quot;，一个自然的对策是强迫相邻层保留的方向互相错开：在每层截断时加一个正交惩罚项（表中的 0.3 是惩罚权重），或者干脆让 ASVD 和 plain SVD 逐层交替：</p>
-<table>
-<thead>
-<tr>
-<th>方法</th>
-<th>val loss</th>
-<th>unique 预测</th>
-<th>top-1 占比</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ASVD（无约束）</td>
-<td>8.50</td>
-<td>1</td>
-<td>100%</td>
-</tr>
-<tr>
-<td>正交约束 0.3</td>
-<td>12.80</td>
-<td>23</td>
-<td>93.6%</td>
-</tr>
-<tr>
-<td>交替 ASVD/plain SVD</td>
-<td>14.56</td>
-<td>41</td>
-<td>35.2%</td>
-</tr>
-<tr>
-<td>Plain SVD（无加权）</td>
-<td>18.65</td>
-<td>401</td>
-<td>15.9%</td>
-</tr>
-</tbody>
-</table>
-<p><strong>正交约束确实打破了坍缩</strong>（预测多样性从 1 到 23 到 401），但 <strong>val loss 同时变差</strong>。</p>
-<p>进一步的 rank 重分配实验（在均匀 rank=384、$\alpha=0.5$ 变体上做，其自身基线为 10.83）显示，即使给关键组件多得多的参数，也无法接近坍缩态的 loss：</p>
-<table>
-<thead>
-<tr>
-<th>配置</th>
-<th>参数量</th>
-<th>val loss</th>
-<th>是否坍缩</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>坍缩的 ASVD（$\alpha=1.0$ + 逐层 rank）</td>
-<td>2.29B</td>
-<td><strong>8.50</strong></td>
-<td>是（98.6% 逗号）</td>
-</tr>
-<tr>
-<td>均匀 rank=384，$\alpha=0.5$（重分配实验的基线）</td>
-<td>2.29B</td>
-<td>10.83</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ gate_proj 满秩</td>
-<td>3.88B</td>
-<td>14.22</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ down_proj 满秩</td>
-<td>3.88B</td>
-<td>11.32</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ down_proj rank=1024</td>
-<td>2.67B</td>
-<td>11.33</td>
-<td>否</td>
-</tr>
-<tr>
-<td>+ down_proj rank=768（预算匹配）</td>
-<td>2.29B</td>
-<td>12.31</td>
-<td>否</td>
-</tr>
-</tbody>
-</table>
-<p><strong>没有任何非坍缩配置能接近坍缩态的 8.50</strong>——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：在这一族配置里，<strong>坍缩得越彻底，loss 越低；打破坍缩，loss 就变差</strong>。</p>
-<p>原因回到第 2 节：在模型<strong>真的没有足够能力区分 token</strong> 的情况下（rank=384、85% 压缩率），坍缩到高频 token 就是 loss-最优的策略，打破坍缩等于强迫模型做它做不到的事。</p>
-<h3 id="5-5-验证：坍缩是真实的，但对配置敏感">5.5 验证：坍缩是真实的，但对配置敏感</h3>
+<h3 id="附录-C：独立复核——坍缩可复现，但对配置敏感">附录 C：独立复核——坍缩可复现，但对配置敏感</h3>
 <p>由于&quot;整个模型只预测逗号&quot;的结论过于反直觉，我们对它做了独立的复核：重新评估保存的 checkpoint、在 held-out 数据上复测、检查输出分布的位置间 KL、并与信息论下界对照。结论：<strong>坍缩完全可复现</strong>（val loss 8.5008、逗号 98.6%、位置间 KL=0.007、top-1 prob 0.095 ≈ 常数预测器）。</p>
 <p>但复核也暴露了一个重要事实：<strong>坍缩对分解配置高度敏感</strong>——</p>
 <table>
@@ -3267,22 +3314,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tr>
 </tbody>
 </table>
-<p>只有&quot;更强的激活加权（$\alpha=1.0$）+ 被饿死的 Block 0（rank 32）&quot;这个组合触发了完全坍缩。把 $\alpha$ 减半或改用均匀 rank，模型就停在&quot;高度退化但未坍缩&quot;的状态——而 loss 反而更差。这与第 5 节的 tradeoff 完全一致：<strong>在这组变体里，坍缩得越彻底，loss 越低</strong>（8.50 &lt; 9.66 &lt; 10.83）。</p>
-<h3 id="6-结论">6. 结论</h3>
-<ol>
-<li>
-<p><strong>val loss 不是模型质量的可靠指标</strong>——一个完全坍缩的模型（只输出逗号）可以比一个&quot;有预测多样性但不准&quot;的模型 loss 更低。</p>
-</li>
-<li>
-<p><strong>ASVD 的激活加权在极端压缩率下会导致 representation collapse</strong>——加权越强（$\alpha$ 越大）、关键层被 rank 分配饿得越狠，坍缩越彻底。</p>
-</li>
-<li>
-<p><strong>这个 collapse 是 loss-optimal 的退化</strong>——在当前的参数预算下，模型确实没有能力做好 token 区分，坍缩到高频 token 是理性的&quot;放弃策略&quot;。定量上：坍缩模型的 8.50 距离常数预测器的信息论下界 H(unigram)=7.51 只有 1 nat，且打败了所有实测的非坍缩变体（9.66~14.2）。</p>
-</li>
-<li>
-<p><strong>在评估压缩模型时，除了 val loss 还必须检查预测多样性</strong>——否则可能被&quot;坍缩到高频 token&quot;的假象误导。同样，<strong>对比不同压缩方法时必须固定全部配置</strong>（加权强度 $\alpha$、rank 分配方式）——我们自己就曾把两个不同配置的模型（8.50 与 10.83）误当作同一个基线。</p>
-</li>
-</ol>
+<p>只有&quot;更强的激活加权（$\alpha=1.0$）+ 被饿死的 Block 0（rank 32）&quot;这个组合触发了完全坍缩。把 $\alpha$ 减半或改用均匀 rank，模型就停在&quot;高度退化但未坍缩&quot;的状态——而 loss 反而更差。这与正文第 4 节的 tradeoff 完全一致：<strong>在这组变体里，坍缩得越彻底，loss 越低</strong>（8.50 &lt; 9.66 &lt; 10.83）。</p>
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
@@ -3431,7 +3463,116 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>The final cos=0.95 looks like &quot;good alignment&quot; — but it is an <strong>illusion</strong>. It is not that each token aligns with its teacher counterpart, but that <strong>all tokens have collapsed to the same direction</strong>, and that fixed direction happens to have cos=0.95 with some &quot;average direction&quot; of the teacher.</p>
-<h3 id="3-5-Microscopic-Mechanism-The-MLP-Is-the-Killer">3.5 Microscopic Mechanism: The MLP Is the Killer</h3>
+<p>(For the finer-grained trace — how diversity gets depleted in each sub-component, and why down_proj is the main culprit — see Appendix A; the correspondence with the Transformer theory literature is in Appendix B.)</p>
+<h3 id="4-Attempts-to-Break-the-Collapse">4. Attempts to Break the Collapse</h3>
+<p>Since the collapse comes from &quot;36 layers repeatedly keeping the same set of directions,&quot; a natural countermeasure is to force adjacent layers to keep different directions: add an orthogonality penalty during each layer's truncation (0.3 in the table is the penalty weight), or simply alternate ASVD and plain SVD across layers:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>val loss</th>
+<th>Unique predictions</th>
+<th>Top-1 fraction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ASVD (no constraint)</td>
+<td>8.50</td>
+<td>1</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>Orthogonality 0.3</td>
+<td>12.80</td>
+<td>23</td>
+<td>93.6%</td>
+</tr>
+<tr>
+<td>Alternating ASVD/plain</td>
+<td>14.56</td>
+<td>41</td>
+<td>35.2%</td>
+</tr>
+<tr>
+<td>Plain SVD (no weighting)</td>
+<td>18.65</td>
+<td>401</td>
+<td>15.9%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>.</p>
+<p>Further rank-reallocation experiments (run on the uniform rank=384, $\alpha=0.5$ variant, whose own baseline is 10.83) show that even with far more parameters for key components, no configuration approaches the collapsed model's loss:</p>
+<table>
+<thead>
+<tr>
+<th>Configuration</th>
+<th>Params</th>
+<th>val loss</th>
+<th>Collapsed?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Collapsed ASVD ($\alpha=1.0$ + per-layer ranks)</td>
+<td>2.29B</td>
+<td><strong>8.50</strong></td>
+<td>Yes (98.6% comma)</td>
+</tr>
+<tr>
+<td>Uniform rank=384, $\alpha=0.5$ (baseline for the boosts)</td>
+<td>2.29B</td>
+<td>10.83</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ gate_proj full rank</td>
+<td>3.88B</td>
+<td>14.22</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ down_proj full rank</td>
+<td>3.88B</td>
+<td>11.32</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ down_proj rank=1024</td>
+<td>2.67B</td>
+<td>11.33</td>
+<td>No</td>
+</tr>
+<tr>
+<td>+ down_proj rank=768 (budget-matched)</td>
+<td>2.29B</td>
+<td>12.31</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<p><strong>No non-collapsed configuration comes close to the collapsed 8.50</strong> — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff: within this family of configurations, <strong>the more complete the collapse, the lower the loss; breaking the collapse makes the loss worse</strong>.</p>
+<p>The reason is Section 2 again: when the model <strong>genuinely lacks the capacity to distinguish tokens</strong> (rank 384 at 85% compression), collapsing to frequent tokens IS the loss-optimal strategy, and breaking the collapse forces the model to attempt what it cannot do.</p>
+<p>Because &quot;the whole model predicts only commas&quot; is so counter-intuitive, we re-verified it independently: the collapse is fully reproducible, and highly sensitive to the factorization configuration — halving $\alpha$ or switching to uniform ranks leaves the model severely degenerate but not collapsed. Details in Appendix C.</p>
+<h3 id="5-Conclusions">5. Conclusions</h3>
+<ol>
+<li>
+<p><strong>Val loss is not a reliable indicator of model quality</strong> — a fully collapsed model (only outputs comma) can have lower loss than a model with prediction diversity but poor accuracy.</p>
+</li>
+<li>
+<p><strong>ASVD's activation weighting causes representation collapse at extreme compression ratios</strong> — the stronger the weighting (larger $\alpha$) and the more severely key layers are starved by rank allocation, the more complete the collapse.</p>
+</li>
+<li>
+<p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot; Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).</p>
+</li>
+<li>
+<p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead. Likewise, <strong>when comparing compression methods, every configuration knob must be held fixed</strong> (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.</p>
+</li>
+</ol>
+<hr>
+<h2 id="Appendix">Appendix</h2>
+<h3 id="Appendix-A-The-Microscopic-Mechanism-—-the-MLP-Is-the-Killer">Appendix A: The Microscopic Mechanism — the MLP Is the Killer</h3>
 <p>Further diagnostic experiments traced the <strong>effective rank (erank)</strong> through every sub-component of the network. Erank measures how many independent directions a batch of vectors actually spans: the hidden state is nominally 4096-dimensional, but if all tokens' vectors crowd into a few directions, the erank is in the single digits. It is a direct readout of representation diversity.</p>
 <blockquote>
 <p><strong>What was measured</strong>: the traces in this section come from the uniform rank=384, $\alpha=0.5$ ASVD variant (val loss 10.83). It does not fully collapse into a constant function (it retains 546 unique predictions), but its representations are severely degenerate: final erank=7, and the mean pairwise cosine similarity between different tokens' output vectors (hereafter pcos; closer to 1 means the outputs are more alike) reaches 0.92 — a suitable subject for observing how token diversity gets depleted layer by layer. The fully collapsed 8.50 model ($\alpha=1.0$ + per-layer ranks) is a more extreme instance of the same mechanism.</p>
@@ -3603,7 +3744,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p><strong>ASVD's MLP outputs are nearly identical across all tokens</strong> (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).</p>
 <p>In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.</p>
 <p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (the components with large $s_i$) while discarding the <strong>token-specific differences</strong>.</p>
-<h3 id="4-Connection-to-Literature">4. Connection to Literature</h3>
+<h3 id="Appendix-B-Connection-to-the-Literature">Appendix B: Connection to the Literature</h3>
 <p>This phenomenon has theoretical explanations in transformer research:</p>
 <ul>
 <li><strong>Signal Propagation in Transformers (2022)</strong>: Stacking self-attention layers causes rank collapse of token representations</li>
@@ -3611,97 +3752,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <li><strong>BA-LoRA (2024)</strong>: Identifies representation collapse in LoRA training; solution is diversity regularization</li>
 </ul>
 <p>Our case is an extreme version of &quot;improper value matrices&quot; — low-rank truncation systematically aligns all layers' projection directions, fulfilling the conditions for collapse.</p>
-<h3 id="5-Attempts-to-Break-the-Collapse">5. Attempts to Break the Collapse</h3>
-<p>Since the collapse comes from &quot;36 layers repeatedly keeping the same set of directions,&quot; a natural countermeasure is to force adjacent layers to keep different directions: add an orthogonality penalty during each layer's truncation (0.3 in the table is the penalty weight), or simply alternate ASVD and plain SVD across layers:</p>
-<table>
-<thead>
-<tr>
-<th>Method</th>
-<th>val loss</th>
-<th>Unique predictions</th>
-<th>Top-1 fraction</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>ASVD (no constraint)</td>
-<td>8.50</td>
-<td>1</td>
-<td>100%</td>
-</tr>
-<tr>
-<td>Orthogonality 0.3</td>
-<td>12.80</td>
-<td>23</td>
-<td>93.6%</td>
-</tr>
-<tr>
-<td>Alternating ASVD/plain</td>
-<td>14.56</td>
-<td>41</td>
-<td>35.2%</td>
-</tr>
-<tr>
-<td>Plain SVD (no weighting)</td>
-<td>18.65</td>
-<td>401</td>
-<td>15.9%</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Orthogonality constraints do break the collapse</strong> (diversity goes from 1 to 23 to 401), but <strong>val loss simultaneously worsens</strong>.</p>
-<p>Further rank-reallocation experiments (run on the uniform rank=384, $\alpha=0.5$ variant, whose own baseline is 10.83) show that even with far more parameters for key components, no configuration approaches the collapsed model's loss:</p>
-<table>
-<thead>
-<tr>
-<th>Configuration</th>
-<th>Params</th>
-<th>val loss</th>
-<th>Collapsed?</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Collapsed ASVD ($\alpha=1.0$ + per-layer ranks)</td>
-<td>2.29B</td>
-<td><strong>8.50</strong></td>
-<td>Yes (98.6% comma)</td>
-</tr>
-<tr>
-<td>Uniform rank=384, $\alpha=0.5$ (baseline for the boosts)</td>
-<td>2.29B</td>
-<td>10.83</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ gate_proj full rank</td>
-<td>3.88B</td>
-<td>14.22</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ down_proj full rank</td>
-<td>3.88B</td>
-<td>11.32</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ down_proj rank=1024</td>
-<td>2.67B</td>
-<td>11.33</td>
-<td>No</td>
-</tr>
-<tr>
-<td>+ down_proj rank=768 (budget-matched)</td>
-<td>2.29B</td>
-<td>12.31</td>
-<td>No</td>
-</tr>
-</tbody>
-</table>
-<p><strong>No non-collapsed configuration comes close to the collapsed 8.50</strong> — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff: within this family of configurations, <strong>the more complete the collapse, the lower the loss; breaking the collapse makes the loss worse</strong>.</p>
-<p>The reason is Section 2 again: when the model <strong>genuinely lacks the capacity to distinguish tokens</strong> (rank 384 at 85% compression), collapsing to frequent tokens IS the loss-optimal strategy, and breaking the collapse forces the model to attempt what it cannot do.</p>
-<h3 id="5-5-Verification-The-Collapse-Is-Real-but-Config-Sensitive">5.5 Verification: The Collapse Is Real, but Config-Sensitive</h3>
+<h3 id="Appendix-C-Independent-Verification-—-Reproducible-but-Config-Sensitive">Appendix C: Independent Verification — Reproducible, but Config-Sensitive</h3>
 <p>Because &quot;the whole model predicts only commas&quot; is so counter-intuitive, we independently re-verified it: re-evaluating the saved checkpoint, re-measuring on held-out data, checking pairwise KL between positions, and comparing against the information-theoretic floor. Verdict: <strong>the collapse is fully reproducible</strong> (val loss 8.5008, comma at 98.6%, cross-position KL = 0.007, top-1 prob 0.095 ≈ a constant predictor).</p>
 <p>The verification also exposed an important fact: <strong>collapse is highly sensitive to the factorization configuration</strong> —</p>
 <table>
@@ -3730,22 +3781,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tr>
 </tbody>
 </table>
-<p>Only the combination &quot;stronger activation weighting ($\alpha=1.0$) + a starved Block 0 (rank 32)&quot; triggers full collapse. Halving $\alpha$ or switching to uniform ranks leaves the model in a &quot;severely degenerate but not collapsed&quot; state — with worse loss. This is fully consistent with the tradeoff in Section 5: <strong>within this family of variants, the more complete the collapse, the lower the loss</strong> (8.50 &lt; 9.66 &lt; 10.83).</p>
-<h3 id="6-Conclusions">6. Conclusions</h3>
-<ol>
-<li>
-<p><strong>Val loss is not a reliable indicator of model quality</strong> — a fully collapsed model (only outputs comma) can have lower loss than a model with prediction diversity but poor accuracy.</p>
-</li>
-<li>
-<p><strong>ASVD's activation weighting causes representation collapse at extreme compression ratios</strong> — the stronger the weighting (larger $\alpha$) and the more severely key layers are starved by rank allocation, the more complete the collapse.</p>
-</li>
-<li>
-<p><strong>This collapse is a loss-optimal degeneration</strong> — at the given parameter budget, the model genuinely cannot distinguish tokens well, so collapsing to the most frequent token is a rational &quot;give-up strategy.&quot; Quantitatively: the collapsed model's 8.50 sits just 1 nat above the constant-predictor floor H(unigram)=7.51, and beats every non-collapsed variant we measured (9.66–14.2).</p>
-</li>
-<li>
-<p><strong>When evaluating compressed models, prediction diversity must be checked alongside val loss</strong> — otherwise the &quot;collapse to frequent token&quot; illusion may mislead. Likewise, <strong>when comparing compression methods, every configuration knob must be held fixed</strong> (weighting strength $\alpha$, rank allocation scheme) — we ourselves once conflated two differently-configured models (8.50 and 10.83) as the same baseline.</p>
-</li>
-</ol>
+<p>Only the combination &quot;stronger activation weighting ($\alpha=1.0$) + a starved Block 0 (rank 32)&quot; triggers full collapse. Halving $\alpha$ or switching to uniform ranks leaves the model in a &quot;severely degenerate but not collapsed&quot; state — with worse loss. This is fully consistent with the tradeoff in Section 4 of the main text: <strong>within this family of variants, the more complete the collapse, the lower the loss</strong> (8.50 &lt; 9.66 &lt; 10.83).</p>
 </div>
 <script>
 function switchLang(lang) {
@@ -3825,7 +3861,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -4490,7 +4526,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4587,7 +4623,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4685,7 +4721,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">

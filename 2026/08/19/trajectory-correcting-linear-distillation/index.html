@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-19T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-03T03:28:27.232Z">
+<meta property="article:modified_time" content="2026-09-03T04:32:35.952Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -174,7 +174,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9A%E8%BD%A8%E8%BF%B9%E7%9F%AB%E6%AD%A3%E7%BA%BF%E6%80%A7%E8%92%B8%E9%A6%8F%E2%80%94%E2%80%94%E7%AA%81%E7%A0%B4%E9%97%AD%E5%BC%8F%E6%96%B9%E6%B3%95%E7%9A%84%E8%BE%B9%E7%95%8C"><span class="nav-text">低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E9%97%AE%E9%A2%98%EF%BC%9A%E9%97%AD%E5%BC%8F%E6%96%B9%E6%B3%95%E5%8D%A1%E5%9C%A8%E4%B8%80%E5%A0%B5-%E5%9D%8D%E7%BC%A9%E5%A2%99-%E4%B8%8A"><span class="nav-text">1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%B4%9E%E5%AF%9F%EF%BC%9A%E9%94%99%E7%9A%84%E4%B8%8D%E6%98%AF%E4%BD%8E%E7%A7%A9%EF%BC%8C%E6%98%AF%E9%80%90%E5%B1%82%E7%9B%AE%E6%A0%87"><span class="nav-text">2. 洞察：错的不是低秩，是逐层目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%96%B9%E6%B3%95%EF%BC%9A%E9%80%90%E5%B1%82%E4%BB%BF%E5%B0%84%E5%B2%AD%E5%9B%9E%E5%BD%92"><span class="nav-text">3. 方法：逐层仿射岭回归</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E6%9E%9C"><span class="nav-text">4. 结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E6%96%B9%E6%B3%95%E7%9A%84%E5%B9%B3%E5%8F%B0%EF%BC%9A%E4%B8%89%E4%B8%AA%E8%B4%9F%E7%BB%93%E6%9E%9C"><span class="nav-text">5. 方法的平台：三个负结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E5%89%A9%E4%B8%8B%E7%9A%84%E5%B7%AE%E8%B7%9D%E5%9C%A8%E5%93%AA%EF%BC%9AR%C2%B2-%E8%AF%8A%E6%96%AD"><span class="nav-text">6. 剩下的差距在哪：R² 诊断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E7%BB%93%E8%AE%BA"><span class="nav-text">7. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-%E2%80%94-Breaking-the-Closed-Form-Frontier"><span class="nav-text">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-The-Problem-A-Collapse-Wall-for-Closed-Form-Methods"><span class="nav-text">1. The Problem: A &quot;Collapse Wall&quot; for Closed-Form Methods</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-The-Insight-Low-Rank-Isn-t-Wrong-%E2%80%94-the-Layerwise-Objective-Is"><span class="nav-text">2. The Insight: Low Rank Isn&#39;t Wrong — the Layerwise Objective Is</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Method-Layerwise-Affine-Ridge-Regression"><span class="nav-text">3. The Method: Layerwise Affine Ridge Regression</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Results"><span class="nav-text">4. Results</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-The-Plateau-Three-Negative-Results"><span class="nav-text">5. The Plateau: Three Negative Results</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Where-the-Remaining-Gap-Lives-the-R%C2%B2-Diagnostic"><span class="nav-text">6. Where the Remaining Gap Lives: the R² Diagnostic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-Conclusions"><span class="nav-text">7. Conclusions</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9A%E8%BD%A8%E8%BF%B9%E7%9F%AB%E6%AD%A3%E7%BA%BF%E6%80%A7%E8%92%B8%E9%A6%8F%E2%80%94%E2%80%94%E7%AA%81%E7%A0%B4%E9%97%AD%E5%BC%8F%E6%96%B9%E6%B3%95%E7%9A%84%E8%BE%B9%E7%95%8C"><span class="nav-text">低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E9%97%AE%E9%A2%98%EF%BC%9A%E9%97%AD%E5%BC%8F%E6%96%B9%E6%B3%95%E5%8D%A1%E5%9C%A8%E4%B8%80%E5%A0%B5-%E5%9D%8D%E7%BC%A9%E5%A2%99-%E4%B8%8A"><span class="nav-text">1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%B4%9E%E5%AF%9F%EF%BC%9A%E9%94%99%E7%9A%84%E4%B8%8D%E6%98%AF%E4%BD%8E%E7%A7%A9%EF%BC%8C%E6%98%AF%E9%80%90%E5%B1%82%E7%9B%AE%E6%A0%87"><span class="nav-text">2. 洞察：错的不是低秩，是逐层目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%96%B9%E6%B3%95%EF%BC%9A%E9%80%90%E5%B1%82%E4%BB%BF%E5%B0%84%E5%B2%AD%E5%9B%9E%E5%BD%92"><span class="nav-text">3. 方法：逐层仿射岭回归</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E6%9E%9C"><span class="nav-text">4. 结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%89%A9%E4%B8%8B%E7%9A%84%E5%B7%AE%E8%B7%9D%E5%9C%A8%E5%93%AA%EF%BC%9AR%C2%B2-%E8%AF%8A%E6%96%AD"><span class="nav-text">5. 剩下的差距在哪：R² 诊断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E7%BB%93%E8%AE%BA"><span class="nav-text">6. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%96%B9%E6%B3%95%E7%9A%84%E5%B9%B3%E5%8F%B0%E2%80%94%E2%80%94%E4%B8%89%E4%B8%AA%E8%B4%9F%E7%BB%93%E6%9E%9C"><span class="nav-text">附录 A：方法的平台——三个负结果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-%E2%80%94-Breaking-the-Closed-Form-Frontier"><span class="nav-text">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-The-Problem-A-Collapse-Wall-for-Closed-Form-Methods"><span class="nav-text">1. The Problem: A &quot;Collapse Wall&quot; for Closed-Form Methods</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-The-Insight-Low-Rank-Isn-t-Wrong-%E2%80%94-the-Layerwise-Objective-Is"><span class="nav-text">2. The Insight: Low Rank Isn&#39;t Wrong — the Layerwise Objective Is</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Method-Layerwise-Affine-Ridge-Regression"><span class="nav-text">3. The Method: Layerwise Affine Ridge Regression</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Results"><span class="nav-text">4. Results</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Where-the-Remaining-Gap-Lives-the-R%C2%B2-Diagnostic"><span class="nav-text">5. Where the Remaining Gap Lives: the R² Diagnostic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Conclusions"><span class="nav-text">6. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Plateau-%E2%80%94-Three-Negative-Results"><span class="nav-text">Appendix A: The Plateau — Three Negative Results</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 04:32:35" itemprop="dateModified" datetime="2026-09-03T04:32:35+00:00">2026-09-03</time>
     </span>
 
   
@@ -414,14 +414,8 @@
 <p>完整版图：</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \underbrace{7.51}_{\text{常数下界}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{训练}} \to \underbrace{2.11}_{\text{教师}}$$</p>
 <p>5.60 <strong>低于常数预测器的信息论下界 7.51</strong>——模型真正携带了从上下文到下一个 token 的互信息，这是所有闭式方法中的第一次。预测行为完全健康：top-1 是正确的高频词 &quot; the&quot;（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。</p>
-<h3 id="5-方法的平台：三个负结果">5. 方法的平台：三个负结果</h3>
-<p>进一步的优化尝试全部失败，方法在 ~5.6 收敛：</p>
-<ol>
-<li><strong>不动点迭代 → 5.95（变差）</strong>。想法是&quot;压缩后的学生漂移变了，那就用它重新采集统计、把所有层再解一遍，迭代到自洽&quot;。实测反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍顺序处理就是最优做法。</strong></li>
-<li><strong>按奇异值谱分配 per-layer rank → 5.73（略差）</strong>。给谱衰减慢（更难压）的层多分 rank、衰减快的少分。均匀 rank 已接近最优；从均匀运行算出的分配也无法迁移到新运行（漂移模式随分配改变）。</li>
-<li><strong>λ 不敏感</strong>：$10^{-3}$ 与 $10^{-4}$ 差 0.01。</li>
-</ol>
-<h3 id="6-剩下的差距在哪：R²-诊断">6. 剩下的差距在哪：R² 诊断</h3>
+<p>方法在 ~5.6 收敛：进一步的精巧化尝试（不动点迭代重解、按奇异值谱分配 rank、调 $\lambda$）全部没有收益，细节见附录 A。这个平台是怎么来的、剩下的差距是什么性质——是下一节的问题。</p>
+<h3 id="5-剩下的差距在哪：R²-诊断">5. 剩下的差距在哪：R² 诊断</h3>
 <p>逐层测量&quot;教师输入能从学生输入线性恢复的比例&quot;（回归的 $R^2$）：</p>
 <table>
 <thead>
@@ -450,12 +444,21 @@
 </tbody>
 </table>
 <p>中段网络的漂移有一半以上是<strong>非线性</strong>的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：<strong>逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移</strong>，原理上需要非线性矫正器或全局优化（训练）才能跨越。</p>
-<h3 id="7-结论">7. 结论</h3>
+<h3 id="6-结论">6. 结论</h3>
 <ol>
 <li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.60。</li>
 <li><strong>闭式方法的正确姿势是回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
 <li><strong>逐层线性矫正在 ~5.6 收敛</strong>：漂移中线性可恢复的部分已经榨干，剩余差距是非线性的。这个&quot;天花板&quot;是否真的到头，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
 <li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
+</ol>
+<hr>
+<h2 id="附录">附录</h2>
+<h3 id="附录-A：方法的平台——三个负结果">附录 A：方法的平台——三个负结果</h3>
+<p>进一步的优化尝试全部失败，方法在 ~5.6 收敛：</p>
+<ol>
+<li><strong>不动点迭代 → 5.95（变差）</strong>。想法是&quot;压缩后的学生漂移变了，那就用它重新采集统计、把所有层再解一遍，迭代到自洽&quot;。实测反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍顺序处理就是最优做法。</strong></li>
+<li><strong>按奇异值谱分配 per-layer rank → 5.73（略差）</strong>。给谱衰减慢（更难压）的层多分 rank、衰减快的少分。均匀 rank 已接近最优；从均匀运行算出的分配也无法迁移到新运行（漂移模式随分配改变）。</li>
+<li><strong>λ 不敏感</strong>：$10^{-3}$ 与 $10^{-4}$ 差 0.01。</li>
 </ol>
 </div>
 <!-- English Version -->
@@ -583,14 +586,8 @@
 <p>The full landscape:</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{collapse illusion}} \to \underbrace{7.51}_{\text{constant floor}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{trained}} \to \underbrace{2.11}_{\text{teacher}}$$</p>
 <p>5.60 is <strong>below the constant-predictor floor of 7.51</strong> — the model genuinely carries mutual information from context to next token, a first among all closed-form methods. Its behavior is healthy: top-1 is the correct high-frequency word &quot; the&quot; (same as the teacher), and the KL divergence between output distributions at different positions is 5.4, i.e. predictions really do vary with context (the collapsed model: 0.007, the same distribution everywhere).</p>
-<h3 id="5-The-Plateau-Three-Negative-Results">5. The Plateau: Three Negative Results</h3>
-<p>Further optimization attempts all failed; the method converges at ~5.6:</p>
-<ol>
-<li><strong>Fixed-point iteration → 5.95 (worse)</strong>. The idea: the compressed student's drift has changed, so re-collect statistics with it and re-solve every layer, iterating toward self-consistency. In practice this destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. <strong>A single sequential sweep is the best approach.</strong></li>
-<li><strong>Singular-spectrum-driven per-layer rank allocation → 5.73 (slightly worse)</strong>. Give more rank to layers whose spectrum decays slowly (harder to compress), less to the rest. Uniform ranks are already near-optimal, and an allocation computed from a uniform run does not transfer to a new run (the drift pattern changes with the allocation).</li>
-<li><strong>λ-insensitive</strong>: $10^{-3}$ vs $10^{-4}$ differ by 0.01.</li>
-</ol>
-<h3 id="6-Where-the-Remaining-Gap-Lives-the-R²-Diagnostic">6. Where the Remaining Gap Lives: the R² Diagnostic</h3>
+<p>The method converges at ~5.6: further refinements (fixed-point re-solving, spectrum-driven rank allocation, tuning $\lambda$) all fail to pay — details in Appendix A. Where this plateau comes from, and what the remaining gap is made of, is the next section's question.</p>
+<h3 id="5-Where-the-Remaining-Gap-Lives-the-R²-Diagnostic">5. Where the Remaining Gap Lives: the R² Diagnostic</h3>
 <p>Per layer, measure the fraction of the teacher input linearly recoverable from the student input (the regression $R^2$):</p>
 <table>
 <thead>
@@ -619,12 +616,21 @@
 </tbody>
 </table>
 <p>More than half of the mid-network drift is <strong>nonlinear</strong>, worst at the SwiGLU gate×up product — multiplying two quantities that each carry error produces squared and cross terms, components no linear operator can undo. This explains the 5.6 plateau: <strong>layerwise linear correction has extracted all the linearly recoverable drift; the remaining 1.8-nat gap (from 5.60 to the trained 3.79) is nonlinear drift</strong>, requiring nonlinear correctors or global optimization (training) to cross.</p>
-<h3 id="7-Conclusions">7. Conclusions</h3>
+<h3 id="6-Conclusions">6. Conclusions</h3>
 <ol>
 <li><strong>The bottleneck of low-rank compression is not expressiveness but the optimization objective.</strong> A 3.79 point exists in the rank-384 space; &quot;approximate $W$ per layer&quot; cannot find it, while &quot;correct the trajectory per layer&quot; reaches 5.60.</li>
 <li><strong>The right closed-form primitive is regression, not factorization</strong>: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.</li>
 <li><strong>Layerwise linear correction converges at ~5.6</strong>: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this ceiling is truly final is the subject of <a href="/2026/08/22/closed-form-ceiling/">the next post</a>.</li>
 <li>A correction to the previous post: &quot;closed-form methods cannot simultaneously break collapse and lower loss&quot; was wrong — what was broken was the shared &quot;approximate $W$&quot; objective of every method tested then, not closed-form itself.</li>
+</ol>
+<hr>
+<h2 id="Appendix">Appendix</h2>
+<h3 id="Appendix-A-The-Plateau-—-Three-Negative-Results">Appendix A: The Plateau — Three Negative Results</h3>
+<p>Further optimization attempts all failed; the method converges at ~5.6:</p>
+<ol>
+<li><strong>Fixed-point iteration → 5.95 (worse)</strong>. The idea: the compressed student's drift has changed, so re-collect statistics with it and re-solve every layer, iterating toward self-consistency. In practice this destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. <strong>A single sequential sweep is the best approach.</strong></li>
+<li><strong>Singular-spectrum-driven per-layer rank allocation → 5.73 (slightly worse)</strong>. Give more rank to layers whose spectrum decays slowly (harder to compress), less to the rest. Uniform ranks are already near-optimal, and an allocation computed from a uniform run does not transfer to a new run (the drift pattern changes with the allocation).</li>
+<li><strong>λ-insensitive</strong>: $10^{-3}$ vs $10^{-4}$ differ by 0.01.</li>
 </ol>
 </div>
 <script>
