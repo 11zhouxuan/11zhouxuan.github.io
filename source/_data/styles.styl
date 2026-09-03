@@ -365,6 +365,10 @@ code, pre {
 // LaTeX booktabs tables: horizontal rules only, no zebra striping
 .post-body table {
   border: none !important;
+  border-top: 2px solid #2f3e4e !important;
+  border-bottom: 2px solid #2f3e4e !important;
+  margin: 1.8em auto;
+  font-size: 0.95em;
 }
 
 .post-body table th,
@@ -376,7 +380,13 @@ code, pre {
 }
 
 .post-body table thead th {
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid #2f3e4e !important;
+  font-weight: 600;
+  padding: 0.55em 0.9em !important;
+}
+
+.post-body table td {
+  padding: 0.5em 0.9em !important;
 }
 
 .post-body table tbody tr,
@@ -423,4 +433,25 @@ code, pre {
   color: #9aa0a6;
   font-size: 1.1em;
   letter-spacing: 0.6em;
+}
+
+
+// Algorithm floats: blockquotes containing an ordered list get the LaTeX
+// algorithm-environment look; plain note blockquotes keep the quiet style.
+.post-body blockquote:has(ol) {
+  background: #fbfcfe !important;
+  border-radius: 0;
+  border-top: 2.5px solid #2f3e4e !important;
+  border-bottom: 2.5px solid #2f3e4e !important;
+  padding: 0.75em 1.2em 0.9em;
+}
+
+.post-body blockquote:has(ol) > p:first-child {
+  border-bottom: 1px solid #d8dde3;
+  padding-bottom: 0.55em;
+  margin-bottom: 0.9em;
+}
+
+.post-body blockquote:has(ol) > p:first-child strong {
+  font-size: 1.05em;
 }
