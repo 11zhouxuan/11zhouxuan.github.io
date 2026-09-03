@@ -2,6 +2,7 @@
 title: "Low-Rank Compression Series (0): A Primer — Everything You Need to Read This Series"
 date: 2026-08-30 08:00:00
 mathjax: true
+sticky: 60
 tags: [primer, LLM, compression, linear-algebra, tutorial]
 ---
 

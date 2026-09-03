@@ -2,6 +2,7 @@
 title: "Low-Rank Compression Series (5): The Ceiling That Kept Moving — Sparse Residuals, a Better Metric, and Calibration Data"
 date: 2026-08-30
 mathjax: true
+sticky: 10
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, calibration]
 ---
 

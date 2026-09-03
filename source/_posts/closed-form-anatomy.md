@@ -2,6 +2,7 @@
 title: "Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap"
 date: 2026-08-25
 mathjax: true
+sticky: 20
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bound, rank-allocation]
 ---
 

@@ -2,6 +2,7 @@
 title: "Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier"
 date: 2026-08-22
 mathjax: true
+sticky: 30
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bound]
 ---
 

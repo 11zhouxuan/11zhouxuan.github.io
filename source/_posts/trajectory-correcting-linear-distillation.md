@@ -2,6 +2,7 @@
 title: "Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier"
 date: 2026-08-19
 mathjax: true
+sticky: 40
 tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-regression]
 ---
 
@@ -26,13 +27,10 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-reg
 | Plain SVD | 18.65 | 噪声压倒信号 |
 | ASVD（$\alpha=0.5$，均匀 rank） | 10.83 | 高度退化，但未坍缩 |
 | ASVD（$\alpha=1.0$，逐矩阵分配 rank） | 8.50 | **完全坍缩成常数函数**（98.6% 预测逗号） |
-| 参考线：完全不看上下文能做到的最好成绩 | 7.51 | 任何低于此值的 loss 都证明模型在利用上下文 |
 
 两行 ASVD 是同一方法的不同配置：把加权指数从 0.5 提到 1.0、均匀 rank 换成逐矩阵分配（最小的矩阵被饿到 rank 32），模型就从"高度退化"滑进"完全坍缩"。
 
-最后一行 7.51 不是某个模型，而是一条**参考线**，它回答的问题是："如果完全不看前文、每个位置都输出同一张固定的概率表，最好能考多少分？"这类模型里成绩最好的，是把那张固定概率表设成语料的真实词频（逗号给 3.6%、" the" 给 5%……）——可以证明再怎么调也不可能更低，最优成绩恰好是 7.51（推导见第一篇第 2 节）。于是这条线成了试金石：**loss 低于 7.51，模型一定在真正利用上下文；高于 7.51，说明它连"背词频"这件事都还没做满**。
-
-8.50 看似最好，实为假象：它是"放弃预测、输出接近词频分布"的退化策略，离常数预测器的下界只有 1 nat。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。
+8.50 看似最好，实为假象：上一篇已经证明它是"放弃预测、只按词频输出"的常数函数。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。
 
 但有一个关键事实说明这堵墙不是低秩本身的极限：**从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构**。也就是说，rank-384 参数空间里存在好得多的点，只是"逐层逼近 $W$"这类局部目标找不到它。
 
@@ -97,9 +95,9 @@ $$(M^\*, b^\*) = \arg\min\_{M, b}\ \mathbb{E}\big\lVert W\_\ell x\_t - M x\_s - 
 
 完整版图：
 
-$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \underbrace{7.51}\_{\text{常数下界}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{训练}} \to \underbrace{2.11}\_{\text{教师}}$$
+$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{训练}} \to \underbrace{2.11}\_{\text{教师}}$$
 
-5.60 **低于常数预测器的信息论下界 7.51**——模型真正携带了从上下文到下一个 token 的互信息，这是所有闭式方法中的第一次。预测行为完全健康：top-1 是正确的高频词 " the"（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。
+与坍缩模型有本质区别：预测行为完全健康——top-1 是正确的高频词 " the"（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。这是所有闭式方法中第一个真正在利用上下文的模型。
 
 方法在 ~5.6 收敛：进一步的精巧化尝试（不动点迭代重解、按奇异值谱分配 rank、调 $\lambda$）全部没有收益，细节见附录 A。这个平台是怎么来的、剩下的差距是什么性质——是下一节的问题。
 
@@ -155,13 +153,10 @@ In the [previous post](/2026/08/17/representation-collapse-in-low-rank-compressi
 | Plain SVD | 18.65 | Noise overwhelms signal |
 | ASVD ($\alpha=0.5$, uniform ranks) | 10.83 | Severely degenerate, but not collapsed |
 | ASVD ($\alpha=1.0$, per-matrix ranks) | 8.50 | **Fully collapsed to a constant function** (98.6% commas) |
-| Reference line: the best possible score without looking at context | 7.51 | any loss below this proves the model uses context |
 
 The two ASVD rows are the same method under different configurations: raising the weighting exponent from 0.5 to 1.0 and swapping uniform ranks for per-matrix allocation (the smallest matrix starved to rank 32) slides the model from "severely degenerate" into "fully collapsed."
 
-The last row, 7.51, is not a model but a **reference line**. It answers the question: "if you never look at the preceding text and emit one fixed probability table at every position, what is the best score you can possibly get?" The best member of that family sets the fixed table to the corpus word frequencies (3.6% to the comma, 5% to " the", ...) — and one can prove no tuning does better; the optimum is exactly 7.51 (derivation in part 1, Section 2). That makes the line a litmus test: **a loss below 7.51 means the model genuinely uses context; a loss above it means the model has not even finished memorizing word frequencies**.
-
-The 8.50 is an illusion: a "give up and emit the word-frequency distribution" strategy sitting 1 nat above the constant-predictor floor. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.
+The 8.50 is an illusion: part 1 showed it is a constant function that gave up predicting and just emits word frequencies. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.
 
 One fact showed the wall is not intrinsic to low rank: **end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure**. A far better point exists in the same parameter space; layerwise "approximate $W$" objectives simply cannot find it.
 
@@ -226,9 +221,9 @@ Why each step:
 
 The full landscape:
 
-$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{collapse illusion}} \to \underbrace{7.51}\_{\text{constant floor}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{trained}} \to \underbrace{2.11}\_{\text{teacher}}$$
+$$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{collapse illusion}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{trained}} \to \underbrace{2.11}\_{\text{teacher}}$$
 
-5.60 is **below the constant-predictor floor of 7.51** — the model genuinely carries mutual information from context to next token, a first among all closed-form methods. Its behavior is healthy: top-1 is the correct high-frequency word " the" (same as the teacher), and the KL divergence between output distributions at different positions is 5.4, i.e. predictions really do vary with context (the collapsed model: 0.007, the same distribution everywhere).
+The contrast with the collapsed model is essential: the behavior is healthy — top-1 is the correct high-frequency word " the" (same as the teacher), and the KL divergence between output distributions at different positions is 5.4, i.e. predictions really do vary with context (the collapsed model: 0.007, the same distribution everywhere). This is the first closed-form method that genuinely uses context.
 
 The method converges at ~5.6: further refinements (fixed-point re-solving, spectrum-driven rank allocation, tuning $\lambda$) all fail to pay — details in Appendix A. Where this plateau comes from, and what the remaining gap is made of, is the next section's question.
 

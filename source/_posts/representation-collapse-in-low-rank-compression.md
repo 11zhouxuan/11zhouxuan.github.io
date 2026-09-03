@@ -2,6 +2,7 @@
 title: "Low-Rank Compression Series (1): Representation Collapse — When Low Loss Means a Broken Model"
 date: 2026-08-17
 mathjax: true
+sticky: 50
 tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, MLP]
 ---
 
