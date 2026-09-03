@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #2195c2;
+  background: #3deeaf;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3051,29 +3051,63 @@ pre {
 .post-body p,
 .post-body li,
 .post-body td,
-.post-body blockquote {
-  font-family: "STIX Two Text", "Source Serif 4", Georgia, "Noto Serif SC", "Songti SC", "SimSun", "Source Han Serif SC", serif;
+.post-body th,
+.post-body blockquote,
+.post-title,
+.post-body h1,
+.post-body h2,
+.post-body h3,
+.post-body h4 {
+  font-family: "Computer Modern Serif", "STIX Two Text", Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
+}
+.post-body {
+  font-size: 1.08em;
+  line-height: 1.8;
 }
 .post-body h1,
 .post-body h2,
 .post-body h3,
 .post-body h4,
-.post-body th,
 .post-title {
-  font-family: -apple-system, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-  letter-spacing: 0.02em;
-  font-weight: 600;
+  font-weight: bold;
+  letter-spacing: 0;
+}
+.post-body table {
+  border: none !important;
+  border-top: 2px solid #333 !important;
+  border-bottom: 2px solid #333 !important;
+}
+.post-body table th,
+.post-body table td {
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  background: none !important;
+}
+.post-body table thead th {
+  border-bottom: 1px solid #333 !important;
+}
+.post-body table tbody tr,
+.post-body table tbody tr:nth-of-type(even),
+.post-body table tbody tr:hover,
+.post-body table tbody tr:nth-of-type(even) td,
+.post-body table tbody tr:hover td {
+  background: none !important;
 }
 .post-body blockquote {
   color: #555 !important;
-  background-color: #fcfcfd;
-  border-left: 3px solid #1565c0;
+  background: none !important;
+  border-left: none !important;
+  border-top: 1.5px solid #333;
+  border-bottom: 1.5px solid #333;
+  border-radius: 0;
+  padding: 0.7em 0.5em;
+  margin: 1.4em 0;
 }
 .post-body blockquote p,
-.post-body blockquote li,
-.post-body blockquote strong {
+.post-body blockquote li {
   color: #555 !important;
 }
 .post-body blockquote strong {
-  color: #333 !important;
+  color: #222 !important;
 }
