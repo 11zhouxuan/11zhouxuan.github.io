@@ -57,13 +57,23 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
 
-**把本篇新增的部分写成公式**。在第二篇的逐层回归（每层解 $\min \mathbb{E}\lVert W x\_t - M x\_s - b\rVert^2$ 后截断到 rank $r$）之外，本篇新增两类回归，它们的共同点是**没有 rank 约束**——这正是"免税"的形式化含义，最优解不需要截断、不损失精度：
+本篇的完整方法是在第二篇算法 1 的基础上做两处扩展：
 
-$$\underbrace{h \leftarrow P\_k h + b\_k}\_{\text{每 }K\text{ 个 block 一个残差流矫正器}}, \qquad (P\_k, b\_k) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2, \qquad P\_k \in \mathbb{R}^{4096 \times 4096}\ \text{满秩}$$
+> **算法 2：免税矫正器（对算法 1 的两处扩展）**
+>
+> **扩展 1——残差流矫正器**：在算法 1 的循环中，每当一个 block 的 7 个矩阵全部替换完毕、且该 block 编号是 $K$ 的倍数（本文 $K=3$，全网共 11 个矫正器），追加执行：
+>
+> 1. 教师与当前学生在 $D$ 上配对前向，在该 block 出口采集教师残差流 $h\_t$ 与学生残差流 $h\_s$，累积均值与协方差
+> 2. 解全秩回归 $(P, b) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2$（$P \in \mathbb{R}^{4096 \times 4096}$，闭式解与算法 1 第 2 步同构）
+> 3. 在该 block 后插入矫正步 $h \mapsto Ph + b$；此后的统计采集自动包含它的效果，矫正链保持自洽
+>
+> **扩展 2——lm_head 矫正**：循环结束后，在 final RMSNorm 出口采集 $x\_t, x\_s$，同样解全秩回归 $P$，把它吸收进未压缩的输出头：$W\_{lm}' = W\_{lm}P$、$b\_{lm} = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$——形状与计算量不变，零新增参数（除 0.15M 的 bias）
+>
+> **预算配平**：11 个矫正器共约 185M 参数，由全网 rank 从 384 降到 316 支付，总参数量保持 2.29B
+>
+> **输出**：学生模型 = 低秩层 + 11 个残差流矫正器 + 矫正后的 lm_head（val loss = **5.10**）
 
-$$\underbrace{W\_{lm}' = W\_{lm} P, \quad b = W\_{lm}(\bar{x}\_t - P \bar{x}\_s)}\_{\text{lm\_head 矫正：}P\text{ 吸收进头部权重，零新增参数}}$$
-
-预算配平：矫正器的参数由全网 rank 从 384 降到 316 来支付。与逐层回归的关键区别一目了然：那里的 $M^\*$ 必须截断（付截断税），这里的 $P$ 保持满秩（免税）。
+与算法 1 逐矩阵回归的关键区别一目了然：那里的 $M^\*$ 必须截断到 rank $r$（付截断税），这里的 $P$ 保持满秩——**没有 rank 约束、最优解不损失精度，这正是"免税"的形式化含义**。
 
 ### 3. oracle 上界：逐层范式的地板在 ~4.0
 
@@ -185,13 +195,23 @@ This generalizes into a principle: **spend budget where corrections are truncati
 
 Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
 
-**This post's additions, written as formulas.** On top of part 2's layerwise regression (solve $\min \mathbb{E}\lVert W x\_t - M x\_s - b\rVert^2$ per layer, then truncate to rank $r$), this post adds two families of regressions whose common trait is having **no rank constraint** — the formal meaning of "tax-free": their optima need no truncation and lose no accuracy:
+The complete method of this post is Algorithm 1 from part 2 plus two extensions:
 
-$$\underbrace{h \leftarrow P\_k h + b\_k}\_{\text{one residual-stream corrector every }K\text{ blocks}}, \qquad (P\_k, b\_k) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2, \qquad P\_k \in \mathbb{R}^{4096 \times 4096}\ \text{full rank}$$
+> **Algorithm 2: Tax-Free Correctors (two extensions of Algorithm 1)**
+>
+> **Extension 1 — residual-stream correctors**: inside Algorithm 1's loop, whenever a block's 7 matrices have all been replaced and the block index is a multiple of $K$ ($K=3$ here, 11 correctors in total), additionally:
+>
+> 1. Run teacher and the current student on $D$ in paired forwards; at that block's exit collect the teacher residual stream $h\_t$ and student residual stream $h\_s$; accumulate means and covariances
+> 2. Solve the full-rank regression $(P, b) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2$ ($P \in \mathbb{R}^{4096 \times 4096}$; the closed-form solution mirrors Algorithm 1, step 2)
+> 3. Insert the correction $h \mapsto Ph + b$ after that block; later statistics automatically include its effect, keeping the corrector chain self-consistent
+>
+> **Extension 2 — lm_head fix**: after the loop, collect $x\_t, x\_s$ at the final RMSNorm's exit, solve the same full-rank regression $P$, and absorb it into the uncompressed output head: $W\_{lm}' = W\_{lm}P$, $b\_{lm} = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$ — same shape, same FLOPs, zero new parameters (besides a 0.15M bias)
+>
+> **Budget balance**: the 11 correctors cost about 185M parameters, paid for by lowering all ranks from 384 to 316; the total stays at 2.29B
+>
+> **Output**: student model = low-rank layers + 11 residual-stream correctors + corrected lm_head (val loss = **5.10**)
 
-$$\underbrace{W\_{lm}' = W\_{lm} P, \quad b = W\_{lm}(\bar{x}\_t - P \bar{x}\_s)}\_{\text{lm\_head fix: }P\text{ absorbed into the head, zero new parameters}}$$
-
-Budget balance: the correctors' parameters are paid for by lowering all ranks from 384 to 316. The contrast with the layerwise regression is immediate: there, $M^\*$ must be truncated (pays the tax); here, $P$ stays full-rank (tax-free).
+The contrast with Algorithm 1's per-matrix regression is immediate: there, $M^\*$ must be truncated to rank $r$ (pays the truncation tax); here, $P$ stays full-rank — **no rank constraint, no accuracy lost at the optimum, which is exactly what "tax-free" formalizes**.
 
 ### 3. The Oracle Bound: the Layerwise Paradigm's Floor Is ~4.0
 
