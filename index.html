@@ -256,7 +256,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
 
   
@@ -419,7 +419,7 @@
 <li>每个 block 里有两个部分，共 <strong>7 个大矩阵</strong>（每个矩阵就是一次线性变换）：
 <ul>
 <li><strong>注意力（attention）</strong>：让每个位置&quot;回头看&quot;前文。四个矩阵各司其职——<strong>q</strong>（query，我在找什么）、<strong>k</strong>（key，每个位置能提供什么）、<strong>v</strong>（value，实际取回的内容）、<strong>o</strong>（output，把取回的内容整理后写回主线）。q 和 k 只负责算&quot;该看哪里&quot;（它们的点积经 softmax 变成注意力权重），v 和 o 负责&quot;搬运内容&quot;——系列正文把前者叫<strong>模式通路</strong>、后者叫<strong>内容通路</strong>，区别就在这里。</li>
-<li><strong>MLP</strong>：一个两层的非线性变换。三个矩阵：<strong>gate</strong> 和 <strong>up</strong> 把 4096 维升到 12288 维（gate 那一路过一个非线性函数后与 up 那一路<strong>逐元素相乘</strong>——这个结构叫 SwiGLU，那个乘法在系列里反复出场），<strong>down</strong> 再降回 4096 维写回主线。</li>
+<li><strong>MLP</strong>（多层感知机；Transformer 文献里也常叫 FFN，前馈网络——同一个组件的两种名字，本系列跟随代码命名用 MLP）：一个两层的非线性变换。三个矩阵：<strong>gate</strong> 和 <strong>up</strong> 把 4096 维升到 12288 维（gate 那一路过一个非线性函数后与 up 那一路<strong>逐元素相乘</strong>——这个结构叫 SwiGLU，那个乘法在系列里反复出场），<strong>down</strong> 再降回 4096 维写回主线。</li>
 </ul>
 </li>
 <li><strong>RMSNorm</strong>：每个部分入口处的归一化层，把向量除以它自身的均方根（root mean square），防止数值越滚越大。注意它是个<strong>除法</strong>——分母由向量里幅度最大的那些分量主导，这个细节在系列第 4、5 篇会变得重要。</li>
@@ -721,7 +721,7 @@
 <li>Each block has two parts, totaling <strong>7 large matrices</strong> (each is one linear map):
 <ul>
 <li><strong>Attention</strong> lets each position look back at the context. Four matrices: <strong>q</strong> (query: what am I looking for), <strong>k</strong> (key: what each position offers), <strong>v</strong> (value: the content actually fetched), <strong>o</strong> (output: reorganize and write back). q and k only decide <em>where to look</em> (their dot products go through softmax into attention weights); v and o <em>carry the content</em>. The series calls the former the <strong>pattern pathway</strong> and the latter the <strong>content pathway</strong>.</li>
-<li><strong>MLP</strong>: a two-layer nonlinear map. Three matrices: <strong>gate</strong> and <strong>up</strong> lift 4096 → 12288 dims (the gate path passes a nonlinearity and is <strong>elementwise-multiplied</strong> with the up path — the SwiGLU structure; that multiplication recurs throughout the series), then <strong>down</strong> projects back to 4096.</li>
+<li><strong>MLP</strong> (multi-layer perceptron; the Transformer literature often calls it the FFN, feed-forward network — two names for the same component; this series follows the code naming and says MLP): a two-layer nonlinear map. Three matrices: <strong>gate</strong> and <strong>up</strong> lift 4096 → 12288 dims (the gate path passes a nonlinearity and is <strong>elementwise-multiplied</strong> with the up path — the SwiGLU structure; that multiplication recurs throughout the series), then <strong>down</strong> projects back to 4096.</li>
 </ul>
 </li>
 <li><strong>RMSNorm</strong>: the normalization at each part's entrance — divide the vector by its own root-mean-square. Note it is a <strong>division</strong>, with a denominator dominated by the largest components; this detail becomes important in parts 4-5.</li>
@@ -958,7 +958,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
 
   
@@ -1409,7 +1409,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
 
   
@@ -1948,7 +1948,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
 
   
@@ -2371,7 +2371,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
 
   
@@ -2804,7 +2804,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
 
   
@@ -3023,7 +3023,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>惊人的发现：<strong>Plain SVD 在中间层比 ASVD 坍缩得更严重</strong>（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。</p>
-<p><strong>SwiGLU MLP 是逐层坍缩的主要驱动力。</strong> 逐 block 分解显示：</p>
+<p><strong>SwiGLU MLP（即 Transformer 里的前馈网络 FFN）是逐层坍缩的主要驱动力。</strong> 逐 block 分解显示：</p>
 <table>
 <thead>
 <tr>
@@ -3486,7 +3486,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>Surprising finding: <strong>Plain SVD collapses MORE severely in intermediate layers</strong> (Block 3 erank=4.5 vs ASVD's 233), yet plain SVD recovers to erank=111 while ASVD collapses to 7.</p>
-<p><strong>The SwiGLU MLP drives the per-block collapse.</strong> Per-block decomposition:</p>
+<p><strong>The SwiGLU MLP (i.e. the Transformer's feed-forward network, FFN) drives the per-block collapse.</strong> Per-block decomposition:</p>
 <table>
 <thead>
 <tr>
@@ -3825,7 +3825,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
 
   
@@ -4490,7 +4490,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4587,7 +4587,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4685,7 +4685,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 03:20:28" itemprop="dateModified" datetime="2026-09-03T03:20:28+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 03:28:27" itemprop="dateModified" datetime="2026-09-03T03:28:27+00:00">2026-09-03</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
