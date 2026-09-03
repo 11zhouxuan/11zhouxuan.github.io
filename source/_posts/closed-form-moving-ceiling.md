@@ -99,7 +99,7 @@ SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.07（4.98�
 
 $$\text{oracle}\_{\text{新范式}} = 3.75 \quad (<\ 3.79\_{\text{端到端蒸馏训练}})$$
 
-**闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。** 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，**当前纪录与训练之间的差距大头已经从"税"换成了"漂移"**。而漂移矫正器是全秩的、吃不到度量收益（第 3 节的推论），这 1.2 nat 仍锁在非线性后面：部分清洁实验（early/cliff）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。
+**闭式构造的层已经好到：只要输入干净，就能追平一个真训练过的模型。** 与旧范式对照：oracle 地板从 4.15 降到 3.75（稀疏+度量削掉了 0.4 的税本身）；可矫正漂移余量从 0.98 扩到 1.20 nat——层越好，漂移的相对代价越大，**当前纪录与训练之间的差距大头已经从"税"换成了"漂移"**。而漂移矫正器是全秩的、吃不到度量收益（第 3 节的推论），这 1.2 nat 仍锁在非线性后面：部分清洁实验（只把前半段或 block 16 附近的输入换成教师的干净值）的伤害从旧范式的 −0.4 恶化到 −1.2，自洽链更紧了。
 
 ### 7. 结论
 
@@ -228,7 +228,7 @@ Re-running the oracle decomposition (swap all sublayer inputs with the teacher's
 
 $$\text{oracle}\_{\text{new}} = 3.75 \quad (<\ 3.79\_{\text{end-to-end distilled}})$$
 
-**The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.** Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. **The gap between the current record and training is now mostly drift, not tax.** And drift correctors are full-rank, hence unable to collect the metric's gain (the corollary in Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (early/cliff) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.
+**The closed-form layers are now good enough that, given clean inputs, they would match an actually-trained model.** Against the old paradigm: the oracle floor dropped 4.15 → 3.75 (sparse+metric shaved 0.4 off the tax itself), while the correctable-drift headroom grew 0.98 → 1.20 nats — the better the layers, the relatively costlier the drift. **The gap between the current record and training is now mostly drift, not tax.** And drift correctors are full-rank, hence unable to collect the metric's gain (the corollary in Section 3); that 1.2 nats stays locked behind the nonlinearities — partial-cleaning experiments (cleaning only the early blocks or the region around block 16) now HURT by −1.2 (vs −0.4 in the old paradigm): the self-consistent chain got tighter.
 
 ### 7. Conclusions
 

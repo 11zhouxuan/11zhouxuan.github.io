@@ -26,9 +26,11 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 ### 1. 差距的三个组成部分：5.06 到 2.11 之间差在哪里
 
-在动手之前先回答一个架构级的问题：闭式为什么恰好卡在 5 附近？把全部实验证据（oracle 地板、悬崖诊断、消融）拼起来，从教师到闭式的 ~2.9 nat 可以拆成三个**互相独立、机制不同**的组成部分：
+在动手之前先回答一个架构级的问题：闭式为什么恰好卡在 5 附近？把全部实验证据（oracle 地板、block-16 诊断、消融）拼起来，从教师到闭式的 ~2.9 nat 可以拆成三个**互相独立、机制不同**的组成部分：
 
 $$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{②漂移残余} \approx 0.9} 5.06 \qquad 3.2\_{\text{训练}} \xleftarrow{\text{③重组收益}}$$
+
+（"oracle 地板"来自一个允许作弊的诊断实验：运行时把每个子层的输入替换成教师的干净值，于是每层只贡献自己的局部截断误差。这个作弊模型的 loss（测得 4.15）就是"每层模仿教师对应层"这条路线无论怎么矫正都到不了的下限——任何矫正器最多把输入还原干净，不可能做得比干净输入更好。）
 
 **① 截断税（最大头）**：即使每个子层都收到教师的干净输入，rank-384 的局部截断误差之和也要付 ~2 nat。为什么这么贵？白化谱给出答案——下表是 rank 384 下各类矩阵保留的能量（白化坐标里奇异值平方和的占比，即最优截断能留住多大比例的"有效信号"）：
 
@@ -46,7 +48,7 @@ $$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrig
 
 **② 漂移残余**：实际 5.06 与 oracle 4.15 之间，是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta\_g\delta\_u$ 二阶项和 RMSNorm 的除法（附录 B 有它的精确机制）。
 
-**③ 重组收益**：训练（3.2）打穿 oracle 地板（4.15）的唯一解释——残差架构下最终计算是 36 个 block 贡献的**和**，同一个总函数有无数种拆成 36 份的方式，梯度下降找到了比"模仿教师原有分工"更适合 rank-384 的新分工。逐层模仿的目标从定义上就拿不到这部分收益。
+**③ 重组收益**：训练不受这个地板约束，因为它从不要求每层模仿教师对应层——残差架构下最终计算是 36 个 block 贡献的**和**，同一个总函数有无数种拆成 36 份的方式，梯度下降可以找到比"模仿教师原有分工"更适合 rank-384 的新分工。逐层模仿的目标从定义上就拿不到这部分收益。
 
 三个组成部分对应三个不同的瓶颈。本篇的四个实验方向全部发生在 ① 和 ② 的边界上。
 
@@ -83,11 +85,11 @@ $$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_
 | 只换 gate/up 入口 | 4.57 | +0.56 |
 | **只换 block 18-35** | **4.14** | **+0.99 ≈ 完整 oracle！** |
 | 只换 block 0-17 | 5.53 | **−0.40（变差）** |
-| 只换 block 12-19（悬崖区） | 5.49 | −0.36（变差） |
+| 只换 block 12-19（block 16 附近） | 5.49 | −0.36（变差） |
 
 两个重磅结论：
 
-**其一：截断税几乎全部集中在后半段。** 只把 block 18-35 的输入换干净，loss 就到了完整 oracle 的水平——意味着前半段的局部截断误差对 logits 的直接贡献只有 ~0.01 nat，它的全部危害走"制造漂移"这条间接通道；而漂移是（部分）可矫正的，后半段的截断税则无药可救。**推论：边际 rank 在后半段的价值远高于前半段。** 我们此前试过的恰好是反方向（front-load，5.38 失败——当时的理论"减少流入悬崖的漂移"错得离谱）。
+**其一：截断税几乎全部集中在后半段。** 只把 block 18-35 的输入换干净，loss 就到了完整 oracle 的水平——意味着前半段的局部截断误差对 logits 的直接贡献只有 ~0.01 nat，它的全部危害走"制造漂移"这条间接通道；而漂移是（部分）可矫正的，后半段的截断税则无药可救。**推论：边际 rank 在后半段的价值远高于前半段。** 我们此前试过的恰好是反方向（front-load，5.38 失败——当时的理论"减少流进 block 16 的漂移"错得离谱）。
 
 **其二：局部"清洁"上游反而伤害下游（−0.40）。** 顺序管线里每一层和矫正器都是**适配上游特定误差模式**拟合的，突然给它们干净的中间值，下游的补偿全部失配。这是矫正链自洽性的第三次独立验证（前两次：不动点迭代 5.95、跨层联合优化的文献负结果）。
 
@@ -137,7 +139,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 
 顺着第三篇"免税矫正器"的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。**双双打平。** 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向**天然优先服务它们**——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。
 
-但测量顺带揭示了"②漂移残余"的精确机制：**RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放**。这是一个把局部小误差全局化的耦合器，也是此前"悬崖"（block 16 一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。
+但测量顺带揭示了"②漂移残余"的精确机制：**RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放**。这是一个把局部小误差全局化的耦合器，也是第三篇发现的 block 16 放大器（一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。
 
 ### 附录 C：实验方向三——rms-lift 非线性矫正器，机制证实、收益归零
 
@@ -148,7 +150,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 | 配置 | val loss | 判决 |
 |---|---|---|
 | 线性矫正器（基线） | 5.06 | |
-| rms-lift 全秩（**+8% 参数**） | **4.99** | 闭式首次低于 5.0；悬崖后矫正器 R² 0.36→0.66 |
+| rms-lift 全秩（**+8% 参数**） | **4.99** | 闭式首次低于 5.0；block 16 之后的矫正器 R² 0.36→0.66 |
 | rms-lift 截断 rank-256（等预算） | 5.07 | 打平 |
 
 **机制证实，收益归零**：乘性漂移确实可修（R² 提升与低于 5.0 为证），但修复它的参数效率与直接加 rank 恰好持平——等预算下没有额外便宜可占。这与免税矫正器原理形成闭环：lm_head 和线性残差矫正器赢在修复"没人管的漂移"，而 lift 的非线性部分在修复"已被线性工具照顾过的残余"，边际收益自然持平。
@@ -171,9 +173,11 @@ Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by ra
 
 ### 1. Three Components of the Gap: What Separates 5.06 from 2.11
 
-Before running anything, an architecture-level question: why is closed-form stuck near 5? Assembling all the evidence (oracle bound, cliff diagnosis, ablations), the ~2.9 nats from teacher to closed-form split into three **independent components with distinct mechanisms**:
+Before running anything, an architecture-level question: why is closed-form stuck near 5? Assembling all the evidence (oracle floor, block-16 diagnosis, ablations), the ~2.9 nats from teacher to closed-form split into three **independent components with distinct mechanisms**:
 
 $$2.11 \xrightarrow{\text{① truncation tax} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{② drift residue} \approx 0.9} 5.06 \qquad 3.2\_{\text{trained}} \xleftarrow{\text{③ reorganization gain}}$$
+
+(The "oracle floor" comes from a diagnostic experiment that is allowed to cheat: at runtime, every sublayer's input is replaced with the teacher's clean value, so each layer contributes only its own local truncation error. This cheating model's loss — measured at 4.15 — is a lower limit that the "each layer imitates its teacher counterpart" route can never beat, however good the correction: no corrector can do better than restoring the inputs to clean.)
 
 **① Truncation tax (the bulk)**: even if every sublayer received the teacher's clean input, the summed local truncation errors of rank 384 cost ~2 nats. Why so expensive? The whitened spectra answer — the table shows the energy retained at rank 384 per matrix family (the share of squared singular values in whitened coordinates, i.e. how much of the usable signal an optimal truncation can keep):
 
@@ -191,7 +195,7 @@ The network splits into two pathways: the **pattern pathway** (q/k → softmax) 
 
 **② Drift residue**: the gap between the practical 5.06 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta\_g\delta\_u$ term and RMSNorm's division (its precise mechanism in Appendix B).
 
-**③ Reorganization gain**: the only explanation for training (3.2) breaking the oracle (4.15) — in a residual architecture the final computation is a **sum** of 36 block contributions; the same total function admits infinitely many decompositions, and gradient descent found one better suited to rank 384 than the teacher's own. Layerwise-imitation objectives cannot capture this gain by definition.
+**③ Reorganization gain**: training is not bound by this floor, because it never asks each layer to imitate its teacher counterpart — in a residual architecture the final computation is a **sum** of 36 block contributions; the same total function admits infinitely many decompositions, and gradient descent can find one better suited to rank 384 than the teacher's own. Layerwise-imitation objectives cannot capture this gain by definition.
 
 Three components, three different bottlenecks. All four experimental directions below operate on the boundary between ① and ②.
 
@@ -228,11 +232,11 @@ Directions 2 and 3 are both clean negatives, each revealing a mechanism — deta
 | gate/up entrances only | 4.57 | +0.56 |
 | **blocks 18-35 only** | **4.14** | **+0.99 ≈ the full oracle!** |
 | blocks 0-17 only | 5.53 | **−0.40 (worse)** |
-| blocks 12-19 only (cliff zone) | 5.49 | −0.36 (worse) |
+| blocks 12-19 only (around block 16) | 5.49 | −0.36 (worse) |
 
 Two heavyweight conclusions:
 
-**First: the truncation tax lives almost entirely in the second half.** Cleaning only blocks 18-35's inputs reaches the full oracle — meaning the first half's local truncation errors contribute ~0.01 nat directly to the logits; all their harm travels the indirect "manufacture drift" channel, and drift is (partially) correctable, while the second half's tax is incurable. **Corollary: marginal rank is worth far more in late blocks.** Our earlier attempt was the exact opposite direction (front-loading, 5.38, fail — its rationale "reduce drift flowing into the cliff" was badly wrong).
+**First: the truncation tax lives almost entirely in the second half.** Cleaning only blocks 18-35's inputs reaches the full oracle — meaning the first half's local truncation errors contribute ~0.01 nat directly to the logits; all their harm travels the indirect "manufacture drift" channel, and drift is (partially) correctable, while the second half's tax is incurable. **Corollary: marginal rank is worth far more in late blocks.** Our earlier attempt was the exact opposite direction (front-loading, 5.38, fail — its rationale "reduce drift flowing into block 16" was badly wrong).
 
 **Second: locally "cleaning" upstream hurts downstream (−0.40).** In a sequential pipeline every layer and corrector is fit to its upstream's specific error pattern; hand them clean intermediates and downstream compensations misfire en masse. This is the third independent proof of corrector-chain self-consistency (after fixed-point iteration 5.95, and the literature's cross-layer joint-optimization negative).
 
@@ -282,7 +286,7 @@ Measuring the teacher's output-side outliers revealed that massive activations (
 
 Following part 3's tax-free-corrector principle we ran two equal-budget passthrough experiments: exempt the massive input COLUMNS from SVD truncation (top-24 per layer, kept exact), and exempt the massive output ROWS (top-8 of o/down). **Both washed out.** The conclusion is worth more than a win: the whitened SVD's objective is dominated by those very rows/columns, so the top singular directions **serve them first** — massive channels pay no truncation tax to begin with. A clean contrast with the lm_head/residual-corrector successes: those fixed whole matrices nobody was correcting; these are channels inside matrices that were already well served.
 
-But the measurement exposed the precise mechanism of ② (drift residue): **RMSNorm's denominator is dominated by those two dims — when they drift, all 4096 channels get multiplicatively rescaled.** It is a coupler that globalizes local errors, and the true identity of the earlier "cliff" (block 16 destroying residual R² by 0.54). The damage comes entirely from drift flowing at runtime, not from weight approximation — which is why every static weight-side arrangement (dense block, front-load, passthroughs; four failures) never touched it.
+But the measurement exposed the precise mechanism of ② (drift residue): **RMSNorm's denominator is dominated by those two dims — when they drift, all 4096 channels get multiplicatively rescaled.** It is a coupler that globalizes local errors, and the true identity of the block-16 amplifier found in part 3 (one layer destroying residual R² by 0.54). The damage comes entirely from drift flowing at runtime, not from weight approximation — which is why every static weight-side arrangement (dense block, front-load, passthroughs; four failures) never touched it.
 
 ### Appendix C: Direction 3 — rms-Lift Nonlinear Correctors, Mechanism Confirmed, Gain Zero
 
@@ -293,7 +297,7 @@ Two lessons arrived before the result. The first shot used the naive form $[h;\ 
 | Configuration | val loss | Verdict |
 |---|---|---|
 | Linear correctors (baseline) | 5.06 | |
-| rms-lift, full-rank ( **+8% params**) | **4.99** | first closed-form below 5.0; post-cliff corrector R² 0.36→0.66 |
+| rms-lift, full-rank ( **+8% params**) | **4.99** | first closed-form below 5.0; corrector R² after block 16 0.36→0.66 |
 | rms-lift, truncated to rank 256 (equal budget) | 5.07 | wash |
 
 **Mechanism confirmed, gain zero**: multiplicative drift is genuinely repairable (the R² gain and the sub-5.0 prove it), but the repair's parameter efficiency exactly matches just buying more rank — no extra bargain at equal budget. This closes the loop on the tax-free-corrector principle: lm_head and the linear residual correctors won by fixing drift nobody was managing; the lift's nonlinear part fixes residue the linear tools had already tended, so its marginal return is at par.

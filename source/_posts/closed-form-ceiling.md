@@ -1,9 +1,9 @@
 ---
-title: "Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier"
+title: "Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier"
 date: 2026-08-22
 mathjax: true
 sticky: 30
-tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bound]
+tags: [math, linear-algebra, LLM, compression, distillation, low-rank]
 ---
 
 <div class="lang-switch">
@@ -14,7 +14,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器
+## 低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -57,37 +57,31 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
 
-本篇的完整方法是在第二篇算法 1 的基础上做两处扩展：
+本篇的完整方法如下。第 1–4 步就是第二篇的算法 1，**加粗的第 5 步和循环后的收尾是本篇新增**：
 
-> **算法 2：免税矫正器（对算法 1 的两处扩展）**
+> **算法 2：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）**
 >
-> **扩展 1——残差流矫正器**：在算法 1 的循环中，每当一个 block 的 7 个矩阵全部替换完毕、且该 block 编号是 $K$ 的倍数（本文 $K=3$，全网共 11 个矫正器），追加执行：
+> **输入**：教师模型的全部权重矩阵 $W\_1, \dots, W\_N$，按前向顺序编号（$N = 252$：模型共 36 个 block，每个含 7 个）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$、矫正间隔 $K$（本文 $K = 3$；为配平矫正器的参数预算，$r$ 从 384 降到 316）
 >
-> 1. 教师与当前学生在 $D$ 上配对前向，在该 block 出口采集教师残差流 $h\_t$ 与学生残差流 $h\_s$，累积均值与协方差
-> 2. 解全秩回归 $(P, b) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2$（$P \in \mathbb{R}^{4096 \times 4096}$，闭式解与算法 1 第 2 步同构）
-> 3. 在该 block 后插入矫正步 $h \mapsto Ph + b$；此后的统计采集自动包含它的效果，矫正链保持自洽
+> **对 $\ell = 1, 2, \dots, N$ 依次执行**（循环体内的变量都属于当前的 $W\_\ell$，为简洁省略编号）：
 >
-> **扩展 2——lm_head 矫正**：循环结束后，在 final RMSNorm 出口采集 $x\_t, x\_s$，同样解全秩回归 $P$，把它吸收进未压缩的输出头：$W\_{lm}' = W\_{lm}P$、$b\_{lm} = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$——形状与计算量不变，零新增参数（除 0.15M 的 bias）
+> 1. 教师与当前学生（前 $\ell-1$ 个矩阵已替换）在 $D$ 上配对前向，在 $W\_\ell$ 的入口采集教师输入 $x\_t$ 与学生输入 $x\_s$，累积均值 $\bar{x}\_t, \bar{x}\_s$ 和中心化协方差 $\Sigma\_{ts}, \Sigma\_{ss}$
+> 2. 岭回归：$M^\* = W\_\ell \Sigma\_{ts} (\Sigma\_{ss} + \lambda I)^{-1}$
+> 3. 白化截断：$L = \mathrm{chol}(\Sigma\_{ss} + \lambda I)$，对 $M^\* L$ 做 SVD 保留前 $r$ 项得 $U\_r \Sigma\_r V\_r^T$，令 $A = U\_r \Sigma\_r$、$B = V\_r^T L^{-1}$
+> 4. 偏置：$b = W\_\ell \bar{x}\_t - AB\bar{x}\_s$；把 $W\_\ell$ 替换为 $x \mapsto ABx + b$
+> 5. **残差流矫正器（新增）**：若 $W\_\ell$ 是某个 block 的第 7 个矩阵、且该 block 编号是 $K$ 的倍数（全网共 11 处），在该 block 出口采集教师残差流 $h\_t$ 与学生残差流 $h\_s$，解全秩回归 $(P, b\_h) = \arg\min\ \mathbb{E}\lVert h\_t - P h\_s - b\_h \rVert^2$（$P \in \mathbb{R}^{4096 \times 4096}$，闭式解同第 2 步，**不截断**），在该 block 后插入矫正步 $h \mapsto Ph + b\_h$；此后的统计采集自动包含它的效果，矫正链保持自洽
 >
-> **预算配平**：11 个矫正器共约 185M 参数，由全网 rank 从 384 降到 316 支付，总参数量保持 2.29B
+> **循环结束后——lm_head 矫正（新增）**：在 final RMSNorm 出口采集 $x\_t, x\_s$，同样解全秩回归 $P$，把它吸收进未压缩的输出头：$W\_{lm}' = W\_{lm}P$、$b\_{lm} = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$——形状与计算量不变，零新增参数（除 0.15M 的 bias）
 >
-> **输出**：学生模型 = 低秩层 + 11 个残差流矫正器 + 矫正后的 lm_head（val loss = **5.10**）
+> **输出**：学生模型 = $N$ 个低秩层 + 11 个残差流矫正器 + 矫正后的 lm_head（val loss = **5.10**；矫正器共约 185M 参数，由 $r$ 的下调支付，总参数量保持 2.29B）
 
-与算法 1 逐矩阵回归的关键区别一目了然：那里的 $M^\*$ 必须截断到 rank $r$（付截断税），这里的 $P$ 保持满秩——**没有 rank 约束、最优解不损失精度，这正是"免税"的形式化含义**。
+新旧两类回归的关键区别一目了然：第 3 步的 $M^\*$ 必须截断到 rank $r$（付截断税），而第 5 步和收尾处的 $P$ 保持满秩——**没有 rank 约束、最优解不损失精度，这正是"免税"的形式化含义**。
 
-### 3. oracle 上界：逐层范式的地板在 ~4.0
+### 3. 剩余的差距在哪：几乎全在 block 16
 
-5.10 距离训练可达的 3.3 还有多远的闭式空间？我们直接测量"矫正器的理论极限"。做法是一个 **oracle 实验**——允许作弊、专门用来测理论上限的实验：运行时把每个子层的输入张量替换成教师的干净值（配对前向，替换 q/k/v 和 gate/up 的输入），于是每层只贡献自己的局部截断误差，误差在残差流中只加性累积、不再穿过非线性复合。
+5.10 之后我们继续追问：剩下的误差到底在哪里产生？做法很直接——沿着模型逐个 block 检查，问"走到这里为止，学生和教师的差距还有多少能用一个线性变换修回去"。答案非常集中：修不掉的部分几乎全部产生自**同一个位置**——block 16 的 FFN。
 
-这个作弊模型的 loss 是"rank-r 线性层 + 任意输入侧矫正器"整个家族的**地板**：无论矫正器是线性、分段还是任意非线性，它最多做到把输入还原干净——也就是最多做到 oracle 的水平，不可能更低。实测：
-
-$$\text{oracle} = 4.0 \sim 4.3$$
-
-即使漂移矫正做到神级，rank-384 局部截断误差之和也要付 4 个 nat。想到 2.5？对这个范式**严格不可达**。
-
-但同时出现了一个更深的事实：**训练（step 500 时 3.20）已经打穿了 oracle 界（4.0）**。逻辑上完全自洽：oracle 只约束"每层模仿教师对应层"的范式，而梯度训练**重组了各层的分工**——训练出的层不再是教师各层的逼近，而是一组全新的因子化方案，其复合效果超越逐层模仿的极限。这是第二篇"瓶颈在优化目标不在表达能力"论点的最强版本。
-
-剩余非线性漂移的来源也定位到了：几乎全部来自**单独一层**（block 16）——它是教师自带的非线性放大器，容量、分配、线性矫正三类手段全部无效，闭式极限因此锁定在 ~5.1（调查细节见附录 A）。
+这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个**非线性放大器**。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在 ~5.1 附近。
 
 ### 4. 训练判决：好的闭式 init 值 200+ 步训练
 
@@ -107,30 +101,35 @@ lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 �
 
 1. **闭式赛道的最终格局**（85% 压缩率，2.29B 同预算）：
 
-$$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to \underbrace{\approx 4.0}\_{\text{逐层范式 oracle 地板}} \to 3.20\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
+$$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
 
 2. **三条可迁移的原理**：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在**免截断税**的位置（lm\_head、残差流）；动手设计精巧特征之前，先**审计所有"没被压缩所以没人管"的环节**——收益最大的一击往往在盲区里。
 
-3. **闭式极限的成因链**：实际 5.10 → 理论 4.0 之间是 block-16 型非线性放大器锁死的空间（教师原生功能对输入漂移的放大，非压缩之过）；4.0 以下必须打破逐层模仿范式——目前只有全局优化（训练）做得到，而且它确实做到了（3.20 < 4.0）。
+3. **闭式极限的成因**：卡在 ~5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃"每层模仿教师对应层"的做法、直接优化最终 loss——这正是训练在做的事。
 
 4. **工程结论**：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把"可用模型"的到达时间提前数百步。
 
-实际的 5.10 和 oracle 地板 4.0 之间还隔着 1.1 nat。这段空间的结构是什么、还能挖出多少，是[第四篇](/2026/08/25/closed-form-anatomy/)的主题。
+5.10 是不是闭式的尽头？把剩下的差距拆开、看看还能从哪里再挤一点，是[第四篇](/2026/08/25/closed-form-anatomy/)的主题。
 
 
 ---
 
 ## 附录
 
-### 附录 A：悬崖调查——block 16 是非线性放大器
+### 附录 A：block 16 调查——闭式极限为什么停在 5.1
 
-逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自**单独一层**：
+**怎么测**。教师和学生读同样的文本，在每个 block 的出口比较两边的残差流，用回归的 $R^2$ 度量"学生的残差流还有多少能用一个线性变换拉回教师的样子"（$R^2$ 从 0 到 1，越接近 1 表示越能修回去）。
 
-$$R^2:\ \underbrace{0.815}\_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}\_{\text{一层砍掉 0.543}}$$
+**结果非常集中**。36 个 block 里，其余 35 个的每个子层对 $R^2$ 的影响都在 ±0.02 以内；唯独经过 block 16 的 FFN 时，$R^2$ 从 0.815 掉到 0.272——"修不回去"的部分有一大半产生在这一个位置。
 
-其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊：MLP 输出幅度是邻居的 2 倍，override ratio（MLP 输出相对残差流的幅度之比）0.60 vs 邻居的 0.25——这是文献中 massive activation 层（少数激活幅度异常大的层）的典型特征。
+**这个层在教师里本来就特殊**：它的 FFN 输出幅度是相邻层的 2 倍，输出大小达到残差流本身的 0.60 倍（邻居只有 0.25）。文献里把这类层叫 massive activation 层——少数激活值特别大的层，很多大模型里都存在。
 
-两个定点打击实验都失败了：block 16 MLP 全秩（连矫正都满血）→ 5.40，更差；前载 rank（0-16 用 480、17-35 用 298，减少流入悬崖的漂移）→ 5.38，也更差。结论：**悬崖不是压缩造成的，是教师自己的功能特性**——入口处 18% 的非线性残余误差被它的原生大幅度非线性计算放大成出口处 73% 的不可恢复纠缠。容量、分配、线性矫正三类武器全部无效；这 18% 对可负担的 rank 提升也不敏感。闭式极限就此锁定在 ~5.1。
+**两个针对它的补救实验都失败了**：
+
+- 完全不压缩 block 16 的 FFN（保留原始全秩权重）：5.40，比 5.10 更差；
+- 给前半段多分 rank（block 0–16 用 480、17–35 用 298），想让流进 block 16 的误差更小：5.38，也更差。
+
+**结论**：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在 ~5.1。
 
 ### 附录 B：不同 loss 水平的模型在生成什么
 
@@ -152,7 +151,7 @@ $$R^2:\ \underbrace{0.815}\_{\text{block 16 attention 后}} \xrightarrow{\ \text
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier
+## Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -195,37 +194,31 @@ This generalizes into a principle: **spend budget where corrections are truncati
 
 Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
 
-The complete method of this post is Algorithm 1 from part 2 plus two extensions:
+The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from part 2; **the bold step 5 and the post-loop finish are new in this post**:
 
-> **Algorithm 2: Tax-Free Correctors (two extensions of Algorithm 1)**
+> **Algorithm 2: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)**
 >
-> **Extension 1 — residual-stream correctors**: inside Algorithm 1's loop, whenever a block's 7 matrices have all been replaced and the block index is a multiple of $K$ ($K=3$ here, 11 correctors in total), additionally:
+> **Input**: all of the teacher's weight matrices $W\_1, \dots, W\_N$ in forward order ($N = 252$: 36 blocks with 7 matrices each), calibration data $D$, target rank $r$, regularization strength $\lambda$, corrector interval $K$ ($K = 3$ here; to pay for the correctors, $r$ drops from 384 to 316)
 >
-> 1. Run teacher and the current student on $D$ in paired forwards; at that block's exit collect the teacher residual stream $h\_t$ and student residual stream $h\_s$; accumulate means and covariances
-> 2. Solve the full-rank regression $(P, b) = \arg\min\_{P, b}\ \mathbb{E}\lVert h\_t - P h\_s - b \rVert^2$ ($P \in \mathbb{R}^{4096 \times 4096}$; the closed-form solution mirrors Algorithm 1, step 2)
-> 3. Insert the correction $h \mapsto Ph + b$ after that block; later statistics automatically include its effect, keeping the corrector chain self-consistent
+> **For $\ell = 1, 2, \dots, N$** (inside the loop, all variables belong to the current $W\_\ell$; the index is dropped for brevity):
 >
-> **Extension 2 — lm_head fix**: after the loop, collect $x\_t, x\_s$ at the final RMSNorm's exit, solve the same full-rank regression $P$, and absorb it into the uncompressed output head: $W\_{lm}' = W\_{lm}P$, $b\_{lm} = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$ — same shape, same FLOPs, zero new parameters (besides a 0.15M bias)
+> 1. Run teacher and the current student (matrices $1..\ell-1$ already replaced) on $D$ in paired forwards; at $W\_\ell$'s entrance collect the teacher input $x\_t$ and student input $x\_s$; accumulate the means $\bar{x}\_t, \bar{x}\_s$ and centered covariances $\Sigma\_{ts}, \Sigma\_{ss}$
+> 2. Ridge regression: $M^\* = W\_\ell \Sigma\_{ts} (\Sigma\_{ss} + \lambda I)^{-1}$
+> 3. Whitened truncation: $L = \mathrm{chol}(\Sigma\_{ss} + \lambda I)$; take the top-$r$ SVD of $M^\* L$ as $U\_r \Sigma\_r V\_r^T$; set $A = U\_r \Sigma\_r$, $B = V\_r^T L^{-1}$
+> 4. Bias: $b = W\_\ell \bar{x}\_t - AB\bar{x}\_s$; replace $W\_\ell$ with $x \mapsto ABx + b$
+> 5. **Residual-stream corrector (new)**: if $W\_\ell$ is the 7th matrix of its block and the block index is a multiple of $K$ (11 spots in total), collect the teacher residual stream $h\_t$ and student residual stream $h\_s$ at that block's exit, solve the full-rank regression $(P, b\_h) = \arg\min\ \mathbb{E}\lVert h\_t - P h\_s - b\_h \rVert^2$ ($P \in \mathbb{R}^{4096 \times 4096}$, closed form as in step 2, **no truncation**), and insert the correction $h \mapsto Ph + b\_h$ after that block; later statistics automatically include its effect, keeping the corrector chain self-consistent
 >
-> **Budget balance**: the 11 correctors cost about 185M parameters, paid for by lowering all ranks from 384 to 316; the total stays at 2.29B
+> **After the loop — lm_head fix (new)**: collect $x\_t, x\_s$ at the final RMSNorm's exit, solve the same full-rank regression $P$, and absorb it into the uncompressed output head: $W\_{lm}' = W\_{lm}P$, $b\_{lm} = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$ — same shape, same FLOPs, zero new parameters (besides a 0.15M bias)
 >
-> **Output**: student model = low-rank layers + 11 residual-stream correctors + corrected lm_head (val loss = **5.10**)
+> **Output**: student model = $N$ low-rank layers + 11 residual-stream correctors + corrected lm_head (val loss = **5.10**; the correctors cost about 185M parameters, paid for by the lower $r$; the total stays at 2.29B)
 
-The contrast with Algorithm 1's per-matrix regression is immediate: there, $M^\*$ must be truncated to rank $r$ (pays the truncation tax); here, $P$ stays full-rank — **no rank constraint, no accuracy lost at the optimum, which is exactly what "tax-free" formalizes**.
+The contrast between the two kinds of regression is immediate: the $M^\*$ of step 3 must be truncated to rank $r$ (pays the truncation tax), while the $P$ of step 5 and the finish stays full-rank — **no rank constraint, no accuracy lost at the optimum, which is exactly what "tax-free" formalizes**.
 
-### 3. The Oracle Bound: the Layerwise Paradigm's Floor Is ~4.0
+### 3. Where the Remaining Gap Lives: Almost Entirely in Block 16
 
-How much closed-form room remains between 5.10 and the 3.3 that training reaches? We measured the theoretical limit of correctors directly, with an **oracle experiment** — an experiment that is allowed to cheat, used purely to establish a theoretical bound: at runtime, swap every sublayer's input tensor for the teacher's clean value (paired forwards, swapping at the q/k/v and gate/up entrances), so each layer contributes only its own local truncation error, and errors accumulate additively in the residual stream without compounding through nonlinearities.
+After 5.10 we kept asking: where is the remaining error actually created? The probe is simple — walk through the model block by block and ask "up to this point, how much of the student–teacher gap can still be repaired by one linear map?" The answer is extremely concentrated: nearly all of the unrepairable part is created at **one spot** — block 16's FFN.
 
-This cheating model's loss is the **floor** for the entire family "rank-r linear layers + arbitrary input-side correctors": no corrector, however nonlinear, can do better than restoring the inputs to clean — that is, no better than the oracle. Measured:
-
-$$\text{oracle} = 4.0 \sim 4.3$$
-
-Even with god-tier drift correction, the summed local truncation errors of rank 384 cost 4 nats. A target of 2.5 is **provably unreachable** for this paradigm.
-
-Simultaneously, a deeper fact emerged: **training (3.20 at step 500) has already broken through the oracle bound (4.0)**. This is logically consistent and profound: the oracle only binds the "each layer imitates its teacher counterpart" paradigm, whereas gradient training **reorganizes the division of labor across layers** — the trained layers are no longer approximations of individual teacher layers but a new factorized solution whose composition beats what layerwise imitation permits. This is the strongest form of part 2's thesis that the bottleneck is the optimization objective, not expressiveness.
-
-The source of the remaining nonlinear drift is also located: nearly all of it comes from a **single layer** (block 16) — a nonlinear amplifier native to the teacher, immune to capacity, allocation and linear correction alike, which locks the closed-form limit at ~5.1 (investigation in Appendix A).
+That layer is special in the teacher to begin with: its output is twice its neighbors' magnitude, one of the massive-activation layers documented in the literature (a few layers with unusually large activations). It is hypersensitive to input error — a small unrepairable residue at its entrance comes out amplified into a large one: a **nonlinear amplifier**. Three rescues — leaving it uncompressed, reallocating rank, adding linear correction — all fail (details in Appendix A). The closed-form limit therefore stops near ~5.1.
 
 ### 4. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps
 
@@ -245,30 +238,35 @@ The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed
 
 1. **The final closed-form landscape** (85% compression, equal 2.29B budget):
 
-$$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champion}} \to \underbrace{\approx 4.0}\_{\text{layerwise oracle floor}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
+$$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champion}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
 2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget at **truncation-tax-free** spots (lm\_head, residual stream); before engineering clever features, **audit every "uncompressed, so unmanaged" station** — the biggest win tends to hide in the blind spot.
 
-3. **The causal chain of the ceiling**: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 < 4.0).
+3. **Why the ceiling sits where it does**: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning "each layer imitates its teacher counterpart" and optimizing the final loss directly — which is exactly what training does.
 
 4. **The engineering takeaway**: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.
 
-Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of [part 4](/2026/08/25/closed-form-anatomy/).
+Is 5.10 the end of the closed-form road? Taking the remaining gap apart to see where a little more can be squeezed out is the subject of [part 4](/2026/08/25/closed-form-anatomy/).
 
 
 ---
 
 ## Appendix
 
-### Appendix A: The Cliff — Block 16 Is a Nonlinear Amplifier
+### Appendix A: The Block-16 Investigation — Why the Closed-Form Limit Stops at 5.1
 
-Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a **single layer**:
+**How we measured.** Teacher and student read the same text; at every block's exit we compare the two residual streams and use a regression's $R^2$ to quantify "how much of the student's residual stream can be pulled back to the teacher's by one linear map" ($R^2$ runs from 0 to 1; closer to 1 means more repairable).
 
-$$R^2:\ \underbrace{0.815}\_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}\_{\text{one layer destroys 0.543}}$$
+**The result is extremely concentrated.** Of the 36 blocks, every sublayer in the other 35 moves $R^2$ by at most ±0.02; crossing block 16's FFN alone drops it from 0.815 to 0.272 — more than half of all the unrepairable error is created at this single spot.
 
-Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself: MLP output 2× its neighbors' magnitude, override ratio (the MLP output's magnitude relative to the residual stream) 0.60 vs their 0.25 — the signature of a massive-activation layer (one of the few layers with abnormally large activations, a documented phenomenon).
+**The layer is special in the teacher to begin with**: its FFN output is 2× its neighbors' magnitude and reaches 0.60 of the residual stream's own size (neighbors: 0.25). The literature calls these massive-activation layers — a few layers with unusually large activations, present in many large models.
 
-Two targeted interventions both failed: keeping block-16's MLP fully DENSE (full-rank lindist maps) → 5.40, worse; front-loading ranks (480 for blocks 0-16, 298 after, to reduce the drift flowing into the cliff) → 5.38, also worse. Conclusion: **the cliff is not caused by compression — it is the teacher's own function**: the ~18% nonlinear residue arriving at its input (insensitive to affordable rank increases) gets amplified by its native large-magnitude nonlinear computation into 73% unrecoverable entanglement at its output. Capacity, allocation, and linear correction are all powerless. The closed-form limit locks in at ~5.1.
+**Two targeted rescue attempts both failed**:
+
+- Leave block 16's FFN entirely uncompressed (original full-rank weights): 5.40, worse than 5.10;
+- Give the first half more rank (480 for blocks 0–16, 298 after) so that less error flows into block 16: 5.38, also worse.
+
+**Conclusion**: we did not break block 16 by compressing it — this teacher layer natively amplifies whatever error reaches it. At its entrance, about 18% of the error cannot be removed by any linear map; after its large-magnitude nonlinear computation, the unremovable share at the exit grows to 73%. Capacity, rank allocation, and linear correction all miss this mechanism, and the 18% barely responds to any rank increase we can afford. That is why the closed-form limit stops at ~5.1.
 
 ### Appendix B: What Models at Each Loss Level Actually Generate
 
@@ -297,7 +295,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——免税矫正器、oracle 上界与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors, an Oracle Bound, and a Nonlinear Amplifier'};
+  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
