@@ -29,7 +29,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 
 $$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{改动②：loss 敏感度度量}} \big(M^\* - AB - \underbrace{S}\_{\text{改动①：稀疏残差}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$
 
-其中 $y\_j$ 是该层输出向量的第 $j$ 个分量，$w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。**改动③**不在式子里而在式子的原料里：所有统计量（$\Sigma\_{ss}, \Sigma\_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有**改动④**（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见 5.5 节）。
+其中 $y\_j$ 是该层输出向量的第 $j$ 个分量，$w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。**改动③**不在式子里而在式子的原料里：所有统计量（$\Sigma\_{ss}, \Sigma\_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有**改动④**（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见第 5 节）。
 
 下面按发生顺序逐个讲这四处改动。
 
@@ -61,7 +61,7 @@ AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-n
 
 $$\min\_{AB}\ \lVert \mathrm{diag}(w) (M^\*-AB) L \rVert\_F^2$$
 
-SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.07（4.98），零参数成本**——lm_head 矫正以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个"邻近"的 artifact 上测一次即可（见第 5 节的迭代失败）。
+SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.07（4.98），零参数成本**——lm_head 矫正以来最大的免费午餐。两个工程细节决定成败：$w$ 必须做尺度归一 + clamp（[0.01, 100]）；且 $w$ 在一个"邻近"的 artifact 上测一次即可（见附录 A 的迭代失败）。
 
 ### 3. 超线性叠加：修正"小改进不叠加"
 
@@ -96,20 +96,9 @@ SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.07（4.98�
 1. **数量与多样性是两个独立的轴。** 数量的第一档收益最大（32→128 批：−0.15），它压的是采样方差；数量吃饱之后，批数不变、把 1 个 shard 换成 4 个仍有 −0.05——这是偏差-方差分解里的**偏差项**：同一个 shard 里加再多数据，分布的偏色一分不动，只有换数据源才能压掉。
 2. 两轴各自饱和：多样性 8 shards（256×8 与 256×16 打平）、数量 ~512 批（26 万→105 万 token 位置）仍有小幅收益。饱和点大约在"统计噪声降到单个算法改进量级（±0.01）"处，符合直觉。
 
-### 5. 失败清单：简单鲁棒版永远赢
+与四个胜利并排的还有四个干净的失败：每当我们把一个有效的简单机制"做精"（迭代重测梯度、完整协方差、更大稀疏份额、按损失分布图定向分配），结果都没有变好——**在校准数据有限的闭式世界里，参数量少的估计器赢**。清单和幅度见附录 A。
 
-与四个胜利并排的是四个干净的失败，它们共享一个模式——**每当我们把一个有效的简单机制"做精"，结果都更差**：
-
-| 精巧化尝试 | 结果 | 简单版 |
-|---|---|---|
-| 迭代 G（在新模型上重测梯度再重建） | 4.89 | 一次测量 4.88 |
-| 完整 G（k=64 特征子空间 + 对角） | 4.74 | 对角 G 4.73 |
-| S 份额加大到 32%（度量加持下"S 更聪明了"） | 4.90 | 21% 的 4.88 仍最优 |
-| 按损失分布图定向的矩阵类型×深度分配 | 5.08 | Fisher 阻尼图 5.05 |
-
-诚实标注幅度：严格协议下这些"变差"多在 0.01~0.03，部分已在折间波动之内。所以稳健的结论不是"精巧化有害"，而是**四个更贵、更复杂的版本没有一个带来收益**。机制各不相同（迭代破坏自洽链、特征子空间对少量校准 batch 过拟合、oracle 收益不等于真实边际价值），但工程结论一致：**在校准数据有限的闭式世界里，参数量少的估计器赢**——对角赢完整、单遍赢迭代、阻尼赢全量。每个"更准的模型"都要用同样的几十到几百个 batch 去喂，多出来的自由度全变成噪声。
-
-### 5.5 换度量的最后一笔收益：rms-lift 的平反
+### 5. 换度量的最后一笔收益：rms-lift 的平反
 
 第四篇里，rms-lift 非线性矫正器在等预算下与直接加 rank 打平，被判"机制证实、收益归零"。换上新度量和加固后的统计地基重试，它贡献了最后的 −0.02：**4.61 → 4.59，当前的闭式最终纪录**。方向再次支持"换度量会重新激活此前打平的杠杆"，但幅度必须诚实标注——这 0.02 只有约一倍折间波动，是锦上添花而不是新机制。
 
@@ -139,6 +128,25 @@ $$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}\_{\text{稀疏×度量}}
 
 
 
+
+---
+
+## 附录
+
+### 附录 A：失败清单——简单鲁棒版永远赢
+
+与四个胜利并排的是四个干净的失败，它们共享一个模式——**每当我们把一个有效的简单机制"做精"，结果都更差**：
+
+| 精巧化尝试 | 结果 | 简单版 |
+|---|---|---|
+| 迭代 G（在新模型上重测梯度再重建） | 4.89 | 一次测量 4.88 |
+| 完整 G（k=64 特征子空间 + 对角） | 4.74 | 对角 G 4.73 |
+| S 份额加大到 32%（度量加持下"S 更聪明了"） | 4.90 | 21% 的 4.88 仍最优 |
+| 按损失分布图定向的矩阵类型×深度分配 | 5.08 | Fisher 阻尼图 5.05 |
+
+诚实标注幅度：严格协议下这些"变差"多在 0.01~0.03，部分已在折间波动之内。所以稳健的结论不是"精巧化有害"，而是**四个更贵、更复杂的版本没有一个带来收益**。机制各不相同（迭代破坏自洽链、特征子空间对少量校准 batch 过拟合、oracle 收益不等于真实边际价值），但工程结论一致：**在校准数据有限的闭式世界里，参数量少的估计器赢**——对角赢完整、单遍赢迭代、阻尼赢全量。每个"更准的模型"都要用同样的几十到几百个 batch 去喂，多出来的自由度全变成噪声。
+
+
 </div>
 
 <!-- English Version -->
@@ -160,7 +168,7 @@ Part 2 established the layerwise objective: solve for $M^\*$, then truncate in t
 
 $$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{change ②: loss-sensitivity metric}} \big(M^\* - AB - \underbrace{S}\_{\text{change ①: sparse residual}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le r, \quad \mathrm{nnz}(S) \le k$$
 
-where $y\_j$ is the $j$-th component of the layer's output vector and $w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. **Change ③** is not in the formula but in its raw material: all statistics ($\Sigma\_{ss}, \Sigma\_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is **change ④** (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5.5).
+where $y\_j$ is the $j$-th component of the layer's output vector and $w\_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y\_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. **Change ③** is not in the formula but in its raw material: all statistics ($\Sigma\_{ss}, \Sigma\_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is **change ④** (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5).
 
 The sections below introduce these four changes in the order they happened.
 
@@ -192,7 +200,7 @@ The fix stays closed-form. Let $y\_j$ be the $j$-th component of the layer's out
 
 $$\min\_{AB}\ \lVert \mathrm{diag}(w) (M^\*-AB) L \rVert\_F^2$$
 
-— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. **−0.07 on its own (4.98) at zero parameter cost**, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a "nearby" artifact suffices (see Section 5's iteration failure).
+— multiply by $\mathrm{diag}(w)$ before the SVD, divide after. **−0.07 on its own (4.98) at zero parameter cost**, the biggest free lunch since the lm_head fix. Two engineering details decide success: $w$ must be scale-normalized and clamped ([0.01, 100]); and one measurement on a "nearby" artifact suffices (see the iteration failure in Appendix A).
 
 ### 3. Super-Additive Stacking: Amending the No-Stacking Rule
 
@@ -227,20 +235,9 @@ From 4.88 to 4.61 — **calibration-data engineering alone contributed ~0.27 nat
 1. **Quantity and diversity are two independent axes.** Quantity's first installment is the largest (32 → 128 batches: −0.15) — it shrinks sampling variance. Once quantity is fed, holding 128 batches fixed and going 1 shard → 4 shards still buys −0.05 — the **bias** term of the bias-variance split: more data from the same shard leaves the distributional tint untouched; only changing the data source removes it.
 2. Each axis saturates on its own: diversity at 8 shards (256×8 ties 256×16), quantity still pays mildly at ~512 batches (0.26M → 1.05M token positions). Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.
 
-### 5. The Failure List: Simple-Robust Always Wins
+Alongside the four wins sit four clean failures: every attempt to refine a working simple mechanism (re-measured gradients, full covariance, a larger sparse share, loss-map-guided allocation) failed to improve anything — **in the calibration-limited closed-form world, the estimator with fewer parameters wins**. The list and the margins are in Appendix A.
 
-Alongside four wins sit four clean failures, sharing one pattern — **every time we refined a working simple mechanism, the result got worse**:
-
-| Refinement attempt | Result | The simple version |
-|---|---|---|
-| Iterated G (remeasure gradients on the new model, rebuild) | 4.89 | one measurement: 4.88 |
-| Full G (k=64 eigen-subspace + diagonal) | 4.74 | diagonal G: 4.73 |
-| S share raised to 32% ("S is smarter now") | 4.90 | 21% at 4.88 remains optimal |
-| Loss-map-guided family×depth allocation | 5.08 | damped Fisher map: 5.05 |
-
-Honesty about the sizes: under the rigorous protocol these "regressions" are mostly 0.01-0.03, some within fold noise. The robust conclusion is therefore not "refinement hurts" but that **none of the four more expensive, more complex versions delivered any gain**. The mechanisms differ (iteration breaks the self-consistent chain; the eigen-subspace overfits the small calibration set; oracle gains ≠ real marginal value), but the engineering conclusion is uniform: **in the calibration-limited closed-form world, the estimator with fewer parameters wins** — diagonal over full, single-pass over iterated, damped over full-strength. Every "more accurate model" must be fed by the same few-dozen-to-few-hundred batches; the extra degrees of freedom all turn into noise.
-
-### 5.5 The Metric's Last Installment: rms-Lift Redeemed
+### 5. The Metric's Last Installment: rms-Lift Redeemed
 
 In part 4 the rms-lift nonlinear corrector tied with simply buying rank at equal budget and was shelved ("mechanism confirmed, gain zero"). Retried under the new metric and the reinforced statistics, it contributed the final −0.02: **4.61 → 4.59, the closed-form track's final record**. The direction again supports "changing the metric re-energizes levers that had washed out" — but honesty about the size: this 0.02 is about one fold-to-fold spread, a finishing touch rather than a new mechanism.
 
@@ -268,6 +265,25 @@ Will the ceiling move again? The honest answer: after this post, every dimension
 
 The series' next step is also no longer about shaving another 0.02 off a 2.29B model. Back to Section 0 of [the primer](/2026/08/30/lord-compression-primer/): the real use of low-rank initialization is manufacturing pretraining starting points for small models of **any size**. The rank sweep (384/192/96/48/24) and the "low-rank init vs random init" scaling-law comparison are running now — that will be the next post.
 
+
+
+
+---
+
+## Appendix
+
+### Appendix A: The Failure List — Simple-Robust Always Wins
+
+Alongside four wins sit four clean failures, sharing one pattern — **every time we refined a working simple mechanism, the result got worse**:
+
+| Refinement attempt | Result | The simple version |
+|---|---|---|
+| Iterated G (remeasure gradients on the new model, rebuild) | 4.89 | one measurement: 4.88 |
+| Full G (k=64 eigen-subspace + diagonal) | 4.74 | diagonal G: 4.73 |
+| S share raised to 32% ("S is smarter now") | 4.90 | 21% at 4.88 remains optimal |
+| Loss-map-guided family×depth allocation | 5.08 | damped Fisher map: 5.05 |
+
+Honesty about the sizes: under the rigorous protocol these "regressions" are mostly 0.01-0.03, some within fold noise. The robust conclusion is therefore not "refinement hurts" but that **none of the four more expensive, more complex versions delivered any gain**. The mechanisms differ (iteration breaks the self-consistent chain; the eigen-subspace overfits the small calibration set; oracle gains ≠ real marginal value), but the engineering conclusion is uniform: **in the calibration-limited closed-form world, the estimator with fewer parameters wins** — diagonal over full, single-pass over iterated, damped over full-strength. Every "more accurate model" must be fed by the same few-dozen-to-few-hundred batches; the extra degrees of freedom all turn into noise.
 
 
 </div>

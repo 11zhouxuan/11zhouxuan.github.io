@@ -19,7 +19,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 这是低秩压缩三部曲的完结篇（[第一篇：表示坍缩](/2026/08/17/representation-collapse-in-low-rank-compression/)，[第二篇：轨迹矫正线性蒸馏](/2026/08/19/trajectory-correcting-linear-distillation/)）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对"闭式 init + 训练"的完整路线意味着什么。
 
-（本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 5 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）
+（本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 4 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）
 
 ### 1. 消融的意外：便宜的赢了贵的
 
@@ -76,17 +76,9 @@ $$\text{oracle} = 4.0 \sim 4.3$$
 
 但同时出现了一个更深的事实：**训练（step 500 时 3.20）已经打穿了 oracle 界（4.0）**。逻辑上完全自洽：oracle 只约束"每层模仿教师对应层"的范式，而梯度训练**重组了各层的分工**——训练出的层不再是教师各层的逼近，而是一组全新的因子化方案，其复合效果超越逐层模仿的极限。这是第二篇"瓶颈在优化目标不在表达能力"论点的最强版本。
 
-### 4. 悬崖调查：block 16 是非线性放大器
+剩余非线性漂移的来源也定位到了：几乎全部来自**单独一层**（block 16）——它是教师自带的非线性放大器，容量、分配、线性矫正三类手段全部无效，闭式极限因此锁定在 ~5.1（调查细节见附录 A）。
 
-逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自**单独一层**：
-
-$$R^2:\ \underbrace{0.815}\_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}\_{\text{一层砍掉 0.543}}$$
-
-其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊：MLP 输出幅度是邻居的 2 倍，override ratio（MLP 输出相对残差流的幅度之比）0.60 vs 邻居的 0.25——这是文献中 massive activation 层（少数激活幅度异常大的层）的典型特征。
-
-两个定点打击实验都失败了：block 16 MLP 全秩（连矫正都满血）→ 5.40，更差；前载 rank（0-16 用 480、17-35 用 298，减少流入悬崖的漂移）→ 5.38，也更差。结论：**悬崖不是压缩造成的，是教师自己的功能特性**——入口处 18% 的非线性残余误差被它的原生大幅度非线性计算放大成出口处 73% 的不可恢复纠缠。容量、分配、线性矫正三类武器全部无效；这 18% 对可负担的 rank 提升也不敏感。闭式极限就此锁定在 ~5.1。
-
-### 5. 训练判决：好的闭式 init 值 200+ 步训练
+### 4. 训练判决：好的闭式 init 值 200+ 步训练
 
 双臂对照（同 seed、同数据序、同 global batch），只差初始化：
 
@@ -98,19 +90,9 @@ $$R^2:\ \underbrace{0.815}\_{\text{block 16 attention 后}} \xrightarrow{\ \text
 
 lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 步还不如 lindist 臂的起点。**好的闭式初始化至少值 200 步（4 亿 token）的训练量，且优势在观察窗口内持续存活。**
 
-文本采样给出了质变的直观刻度（temperature 0.8）：
+（各个 loss 水平的模型实际生成的文本什么样——从词汤、复读机到通顺叙事——见附录 B 的采样对照，它给这些数字提供了直观刻度。）
 
-| loss | 实际观感 |
-|---|---|
-| 8.5（坍缩） | 词汤：". and. f, to. i,.,. as the.." |
-| 5.6（lindist init） | 短语碎片 + 数字循环："the 1400-1400- 1922-1131..." |
-| 4.0（训练 100 步） | 语法流畅但复读机："...explorations to explore the history of mathematics that form the history of mathematics..." |
-| 3.2（训练 500 步） | **复读消失**，叙事结构出现，剩余问题是事实幻觉（"Apollo 11 在月球一段 7.5 英里的区域"） |
-| 2.1（教师） | 流畅且事实正确 |
-
-复读机的消退符合"能力增长使复制策略失去 loss 优势"的预测——退化策略（坍缩、复读）是能力不足时交叉熵的理性选择，能力恢复到哪一层，对应的退化就消失到哪一层。
-
-### 6. 结论
+### 5. 结论
 
 1. **闭式赛道的最终格局**（85% 压缩率，2.29B 同预算）：
 
@@ -124,6 +106,36 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to \unde
 
 实际的 5.10 和 oracle 地板 4.0 之间还隔着 1.1 nat。这段空间的结构是什么、还能挖出多少，是[第四篇](/2026/08/25/closed-form-anatomy/)的主题。
 
+
+---
+
+## 附录
+
+### 附录 A：悬崖调查——block 16 是非线性放大器
+
+逐 block 测量残差流的线性可恢复度，发现剩余非线性漂移几乎全部来自**单独一层**：
+
+$$R^2:\ \underbrace{0.815}\_{\text{block 16 attention 后}} \xrightarrow{\ \text{block 16 的 MLP}\ } \underbrace{0.272}\_{\text{一层砍掉 0.543}}$$
+
+其余 35 个 block 的子层变化都在 ±0.02 量级。block 16 在教师中本就特殊：MLP 输出幅度是邻居的 2 倍，override ratio（MLP 输出相对残差流的幅度之比）0.60 vs 邻居的 0.25——这是文献中 massive activation 层（少数激活幅度异常大的层）的典型特征。
+
+两个定点打击实验都失败了：block 16 MLP 全秩（连矫正都满血）→ 5.40，更差；前载 rank（0-16 用 480、17-35 用 298，减少流入悬崖的漂移）→ 5.38，也更差。结论：**悬崖不是压缩造成的，是教师自己的功能特性**——入口处 18% 的非线性残余误差被它的原生大幅度非线性计算放大成出口处 73% 的不可恢复纠缠。容量、分配、线性矫正三类武器全部无效；这 18% 对可负担的 rank 提升也不敏感。闭式极限就此锁定在 ~5.1。
+
+### 附录 B：不同 loss 水平的模型在生成什么
+
+文本采样给出了质变的直观刻度（temperature 0.8）：
+
+| loss | 实际观感 |
+|---|---|
+| 8.5（坍缩） | 词汤：". and. f, to. i,.,. as the.." |
+| 5.6（lindist init） | 短语碎片 + 数字循环："the 1400-1400- 1922-1131..." |
+| 4.0（训练 100 步） | 语法流畅但复读机："...explorations to explore the history of mathematics that form the history of mathematics..." |
+| 3.2（训练 500 步） | **复读消失**，叙事结构出现，剩余问题是事实幻觉（"Apollo 11 在月球一段 7.5 英里的区域"） |
+| 2.1（教师） | 流畅且事实正确 |
+
+复读机的消退符合"能力增长使复制策略失去 loss 优势"的预测——退化策略（坍缩、复读）是能力不足时交叉熵的理性选择，能力恢复到哪一层，对应的退化就消失到哪一层。
+
+
 </div>
 
 <!-- English Version -->
@@ -135,7 +147,7 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to \unde
 
 This concludes the low-rank compression trilogy ([part 1: representation collapse](/2026/08/17/representation-collapse-in-low-rank-compression/), [part 2: trajectory-correcting linear distillation](/2026/08/19/trajectory-correcting-linear-distillation/)). Part 2 ended with closed-form (training-free) methods at val loss 5.60. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the "closed-form init + training" pipeline.
 
-(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 5 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)
+(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 4 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)
 
 ### 1. An Ablation Surprise: the Cheap Component Beats the Expensive One
 
@@ -192,17 +204,9 @@ Even with god-tier drift correction, the summed local truncation errors of rank 
 
 Simultaneously, a deeper fact emerged: **training (3.20 at step 500) has already broken through the oracle bound (4.0)**. This is logically consistent and profound: the oracle only binds the "each layer imitates its teacher counterpart" paradigm, whereas gradient training **reorganizes the division of labor across layers** — the trained layers are no longer approximations of individual teacher layers but a new factorized solution whose composition beats what layerwise imitation permits. This is the strongest form of part 2's thesis that the bottleneck is the optimization objective, not expressiveness.
 
-### 4. The Cliff: Block 16 Is a Nonlinear Amplifier
+The source of the remaining nonlinear drift is also located: nearly all of it comes from a **single layer** (block 16) — a nonlinear amplifier native to the teacher, immune to capacity, allocation and linear correction alike, which locks the closed-form limit at ~5.1 (investigation in Appendix A).
 
-Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a **single layer**:
-
-$$R^2:\ \underbrace{0.815}\_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}\_{\text{one layer destroys 0.543}}$$
-
-Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself: MLP output 2× its neighbors' magnitude, override ratio (the MLP output's magnitude relative to the residual stream) 0.60 vs their 0.25 — the signature of a massive-activation layer (one of the few layers with abnormally large activations, a documented phenomenon).
-
-Two targeted interventions both failed: keeping block-16's MLP fully DENSE (full-rank lindist maps) → 5.40, worse; front-loading ranks (480 for blocks 0-16, 298 after, to reduce the drift flowing into the cliff) → 5.38, also worse. Conclusion: **the cliff is not caused by compression — it is the teacher's own function**: the ~18% nonlinear residue arriving at its input (insensitive to affordable rank increases) gets amplified by its native large-magnitude nonlinear computation into 73% unrecoverable entanglement at its output. Capacity, allocation, and linear correction are all powerless. The closed-form limit locks in at ~5.1.
-
-### 5. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps
+### 4. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps
 
 A two-arm controlled comparison (same seed, data order, global batch), differing only in initialization:
 
@@ -213,6 +217,39 @@ A two-arm controlled comparison (same seed, data order, global batch), differing
 | 500 | — (stopped) | **3.20** |
 
 The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed arm after 200 steps was still worse than the lindist arm's starting point. **A good closed-form init is worth at least 200 steps (~0.4B tokens) of training, and the advantage persists throughout the observation window.**
+
+(What models at each loss level actually generate — from word salad through broken-record loops to fluent narrative — is shown in Appendix B, which gives these numbers a tangible scale.)
+
+### 5. Conclusions
+
+1. **The final closed-form landscape** (85% compression, equal 2.29B budget):
+
+$$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champion}} \to \underbrace{\approx 4.0}\_{\text{layerwise oracle floor}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
+
+2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget at **truncation-tax-free** spots (lm\_head, residual stream); before engineering clever features, **audit every "uncompressed, so unmanaged" station** — the biggest win tends to hide in the blind spot.
+
+3. **The causal chain of the ceiling**: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 < 4.0).
+
+4. **The engineering takeaway**: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.
+
+Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of [part 4](/2026/08/25/closed-form-anatomy/).
+
+
+---
+
+## Appendix
+
+### Appendix A: The Cliff — Block 16 Is a Nonlinear Amplifier
+
+Measuring residual-stream linear recoverability block by block revealed that the remaining nonlinear drift comes almost entirely from a **single layer**:
+
+$$R^2:\ \underbrace{0.815}\_{\text{after block-16 attention}} \xrightarrow{\ \text{block-16 MLP}\ } \underbrace{0.272}\_{\text{one layer destroys 0.543}}$$
+
+Every other sublayer in all 36 blocks moves R² by ±0.02. Block 16 is special in the teacher itself: MLP output 2× its neighbors' magnitude, override ratio (the MLP output's magnitude relative to the residual stream) 0.60 vs their 0.25 — the signature of a massive-activation layer (one of the few layers with abnormally large activations, a documented phenomenon).
+
+Two targeted interventions both failed: keeping block-16's MLP fully DENSE (full-rank lindist maps) → 5.40, worse; front-loading ranks (480 for blocks 0-16, 298 after, to reduce the drift flowing into the cliff) → 5.38, also worse. Conclusion: **the cliff is not caused by compression — it is the teacher's own function**: the ~18% nonlinear residue arriving at its input (insensitive to affordable rank increases) gets amplified by its native large-magnitude nonlinear computation into 73% unrecoverable entanglement at its output. Capacity, allocation, and linear correction are all powerless. The closed-form limit locks in at ~5.1.
+
+### Appendix B: What Models at Each Loss Level Actually Generate
 
 Text samples give the qualitative ladder (temperature 0.8):
 
@@ -226,19 +263,6 @@ Text samples give the qualitative ladder (temperature 0.8):
 
 The fading of repetition matches the prediction that degenerate strategies (collapse, loops) are cross-entropy-rational responses to missing capability — as capability returns, each degeneration dissolves in order.
 
-### 6. Conclusions
-
-1. **The final closed-form landscape** (85% compression, equal 2.29B budget):
-
-$$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champion}} \to \underbrace{\approx 4.0}\_{\text{layerwise oracle floor}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
-
-2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget at **truncation-tax-free** spots (lm\_head, residual stream); before engineering clever features, **audit every "uncompressed, so unmanaged" station** — the biggest win tends to hide in the blind spot.
-
-3. **The causal chain of the ceiling**: the space between practical 5.10 and theoretical 4.0 is locked by block-16-style nonlinear amplification (the teacher's native sensitivity to input drift — not compression's fault); going below 4.0 requires breaking the layerwise-imitation paradigm, which only global optimization does — and demonstrably did (3.20 < 4.0).
-
-4. **The engineering takeaway**: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.
-
-Between the practical 5.10 and the oracle floor of 4.0 lie 1.1 nats. What that space is made of, and how much of it can still be mined, is the subject of [part 4](/2026/08/25/closed-form-anatomy/).
 
 </div>
 
