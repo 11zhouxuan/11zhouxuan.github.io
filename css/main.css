@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #ab2691;
+  background: #8bb6a8;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3074,6 +3074,10 @@ pre {
 }
 .post-body table {
   border: none !important;
+  border-top: 2px solid #2f3e4e !important;
+  border-bottom: 2px solid #2f3e4e !important;
+  margin: 1.8em auto;
+  font-size: 0.95em;
 }
 .post-body table th,
 .post-body table td {
@@ -3083,7 +3087,12 @@ pre {
   background: none !important;
 }
 .post-body table thead th {
-  border-bottom: 1px solid #e5e7eb !important;
+  border-bottom: 1px solid #2f3e4e !important;
+  font-weight: 600;
+  padding: 0.55em 0.9em !important;
+}
+.post-body table td {
+  padding: 0.5em 0.9em !important;
 }
 .post-body table tbody tr,
 .post-body table tbody tr:nth-of-type(even),
@@ -3120,4 +3129,19 @@ pre {
   color: #9aa0a6;
   font-size: 1.1em;
   letter-spacing: 0.6em;
+}
+.post-body blockquote:has(ol) {
+  background: #fbfcfe !important;
+  border-radius: 0;
+  border-top: 2.5px solid #2f3e4e !important;
+  border-bottom: 2.5px solid #2f3e4e !important;
+  padding: 0.75em 1.2em 0.9em;
+}
+.post-body blockquote:has(ol) > p:first-child {
+  border-bottom: 1px solid #d8dde3;
+  padding-bottom: 0.55em;
+  margin-bottom: 0.9em;
+}
+.post-body blockquote:has(ol) > p:first-child strong {
+  font-size: 1.05em;
 }
