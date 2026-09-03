@@ -26,9 +26,11 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-reg
 | Plain SVD | 18.65 | 噪声压倒信号 |
 | ASVD（$\alpha=0.5$，均匀 rank） | 10.83 | 高度退化，但未坍缩 |
 | ASVD（$\alpha=1.0$，逐矩阵分配 rank） | 8.50 | **完全坍缩成常数函数**（98.6% 预测逗号） |
-| 常数预测器理论下界 | 7.51 | $H(\text{unigram})$ |
+| 参考线：完全不看上下文能做到的最好成绩 | 7.51 | 任何低于此值的 loss 都证明模型在利用上下文 |
 
-两行 ASVD 是同一方法的不同配置：把加权指数从 0.5 提到 1.0、均匀 rank 换成逐矩阵分配（最小的矩阵被饿到 rank 32），模型就从"高度退化"滑进"完全坍缩"。最后一行的**常数预测器**指完全无视上下文、每个位置输出同一个概率分布的模型——它能达到的最低 loss 是语料词频分布的熵 $H(\text{unigram}) = 7.51$（推导见第一篇第 2 节）。这条线是试金石：**loss 低于 7.51 才说明模型真的在利用上下文**。
+两行 ASVD 是同一方法的不同配置：把加权指数从 0.5 提到 1.0、均匀 rank 换成逐矩阵分配（最小的矩阵被饿到 rank 32），模型就从"高度退化"滑进"完全坍缩"。
+
+最后一行 7.51 不是某个模型，而是一条**参考线**，它回答的问题是："如果完全不看前文、每个位置都输出同一张固定的概率表，最好能考多少分？"这类模型里成绩最好的，是把那张固定概率表设成语料的真实词频（逗号给 3.6%、" the" 给 5%……）——可以证明再怎么调也不可能更低，最优成绩恰好是 7.51（推导见第一篇第 2 节）。于是这条线成了试金石：**loss 低于 7.51，模型一定在真正利用上下文；高于 7.51，说明它连"背词频"这件事都还没做满**。
 
 8.50 看似最好，实为假象：它是"放弃预测、输出接近词频分布"的退化策略，离常数预测器的下界只有 1 nat。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。
 
@@ -153,9 +155,11 @@ In the [previous post](/2026/08/17/representation-collapse-in-low-rank-compressi
 | Plain SVD | 18.65 | Noise overwhelms signal |
 | ASVD ($\alpha=0.5$, uniform ranks) | 10.83 | Severely degenerate, but not collapsed |
 | ASVD ($\alpha=1.0$, per-matrix ranks) | 8.50 | **Fully collapsed to a constant function** (98.6% commas) |
-| Constant-predictor floor | 7.51 | $H(\text{unigram})$ |
+| Reference line: the best possible score without looking at context | 7.51 | any loss below this proves the model uses context |
 
-The two ASVD rows are the same method under different configurations: raising the weighting exponent from 0.5 to 1.0 and swapping uniform ranks for per-matrix allocation (the smallest matrix starved to rank 32) slides the model from "severely degenerate" into "fully collapsed." The last row's **constant predictor** is a model that ignores context entirely and emits the same distribution at every position — the lowest loss it can reach is the entropy of the corpus word-frequency distribution, $H(\text{unigram}) = 7.51$ (derived in part 1, Section 2). That line is the litmus test: **only a loss below 7.51 proves the model actually uses context**.
+The two ASVD rows are the same method under different configurations: raising the weighting exponent from 0.5 to 1.0 and swapping uniform ranks for per-matrix allocation (the smallest matrix starved to rank 32) slides the model from "severely degenerate" into "fully collapsed."
+
+The last row, 7.51, is not a model but a **reference line**. It answers the question: "if you never look at the preceding text and emit one fixed probability table at every position, what is the best score you can possibly get?" The best member of that family sets the fixed table to the corpus word frequencies (3.6% to the comma, 5% to " the", ...) — and one can prove no tuning does better; the optimum is exactly 7.51 (derivation in part 1, Section 2). That makes the line a litmus test: **a loss below 7.51 means the model genuinely uses context; a loss above it means the model has not even finished memorizing word frequencies**.
 
 The 8.50 is an illusion: a "give up and emit the word-frequency distribution" strategy sitting 1 nat above the constant-predictor floor. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.
 
