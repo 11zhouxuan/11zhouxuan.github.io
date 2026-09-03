@@ -138,18 +138,7 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 
 **正交约束确实打破了坍缩**（预测多样性从 1 到 23 到 401），但 **val loss 同时变差**。
 
-进一步的 rank 重分配实验（在均匀 rank=384、$\alpha=0.5$ 变体上做，其自身基线为 10.83）显示，即使给关键组件多得多的参数，也无法接近坍缩态的 loss：
-
-| 配置 | 参数量 | val loss | 是否坍缩 |
-|---|---|---|---|
-| 坍缩的 ASVD（$\alpha=1.0$ + 逐层 rank） | 2.29B | **8.50** | 是（98.6% 逗号） |
-| 均匀 rank=384，$\alpha=0.5$（重分配实验的基线） | 2.29B | 10.83 | 否 |
-| + gate\_proj 满秩 | 3.88B | 14.22 | 否 |
-| + down\_proj 满秩 | 3.88B | 11.32 | 否 |
-| + down\_proj rank=1024 | 2.67B | 11.33 | 否 |
-| + down\_proj rank=768（预算匹配） | 2.29B | 12.31 | 否 |
-
-**没有任何非坍缩配置能接近坍缩态的 8.50**——即使用了 70% 更多的参数（3.88B vs 2.29B）。这揭示了一个根本的 tradeoff：在这一族配置里，**坍缩得越彻底，loss 越低；打破坍缩，loss 就变差**。
+进一步的 rank 重分配实验（给 gate_proj/down_proj 满秩或更高的 rank，最多用到 70% 更多的参数；配置与数字见附录 C）得到同一个结论：**没有任何非坍缩配置能接近坍缩态的 8.50**。这揭示了一个根本的 tradeoff：在这一族配置里，**坍缩得越彻底，loss 越低；打破坍缩，loss 就变差**。
 
 原因回到第 2 节：在模型**真的没有足够能力区分 token** 的情况下（rank=384、85% 压缩率），坍缩到高频 token 就是 loss-最优的策略，打破坍缩等于强迫模型做它做不到的事。
 
@@ -239,6 +228,17 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中
 我们的情况属于"value 矩阵选择不当"的极端版本——低秩截断让所有层的投影方向系统性地对齐，满足了坍缩的条件。
 
 ### 附录 C：独立复核——坍缩可复现，但对配置敏感
+
+正文第 4 节提到的 rank 重分配实验（在均匀 rank=384、$\alpha=0.5$ 变体上做，其自身基线为 10.83）：
+
+| 配置 | 参数量 | val loss | 是否坍缩 |
+|---|---|---|---|
+| 坍缩的 ASVD（$\alpha=1.0$ + 逐矩阵 rank） | 2.29B | **8.50** | 是（98.6% 逗号） |
+| 均匀 rank=384，$\alpha=0.5$（重分配实验的基线） | 2.29B | 10.83 | 否 |
+| + gate\_proj 满秩 | 3.88B | 14.22 | 否 |
+| + down\_proj 满秩 | 3.88B | 11.32 | 否 |
+| + down\_proj rank=1024 | 2.67B | 11.33 | 否 |
+| + down\_proj rank=768（预算匹配） | 2.29B | 12.31 | 否 |
 
 由于"整个模型只预测逗号"的结论过于反直觉，我们对它做了独立的复核：重新评估保存的 checkpoint、在 held-out 数据上复测、检查输出分布的位置间 KL、并与信息论下界对照。结论：**坍缩完全可复现**（val loss 8.5008、逗号 98.6%、位置间 KL=0.007、top-1 prob 0.095 ≈ 常数预测器）。
 
@@ -382,18 +382,7 @@ Since the collapse comes from "36 layers repeatedly keeping the same set of dire
 
 **Orthogonality constraints do break the collapse** (diversity goes from 1 to 23 to 401), but **val loss simultaneously worsens**.
 
-Further rank-reallocation experiments (run on the uniform rank=384, $\alpha=0.5$ variant, whose own baseline is 10.83) show that even with far more parameters for key components, no configuration approaches the collapsed model's loss:
-
-| Configuration | Params | val loss | Collapsed? |
-|---|---|---|---|
-| Collapsed ASVD ($\alpha=1.0$ + per-layer ranks) | 2.29B | **8.50** | Yes (98.6% comma) |
-| Uniform rank=384, $\alpha=0.5$ (baseline for the boosts) | 2.29B | 10.83 | No |
-| + gate\_proj full rank | 3.88B | 14.22 | No |
-| + down\_proj full rank | 3.88B | 11.32 | No |
-| + down\_proj rank=1024 | 2.67B | 11.33 | No |
-| + down\_proj rank=768 (budget-matched) | 2.29B | 12.31 | No |
-
-**No non-collapsed configuration comes close to the collapsed 8.50** — even with 70% more parameters (3.88B vs 2.29B). This reveals a fundamental tradeoff: within this family of configurations, **the more complete the collapse, the lower the loss; breaking the collapse makes the loss worse**.
+Further rank-reallocation experiments (full-rank or much larger gate_proj/down_proj, up to 70% more parameters; configurations and numbers in Appendix C) reach the same verdict: **no non-collapsed configuration comes close to the collapsed 8.50**. This reveals a fundamental tradeoff: within this family of configurations, **the more complete the collapse, the lower the loss; breaking the collapse makes the loss worse**.
 
 The reason is Section 2 again: when the model **genuinely lacks the capacity to distinguish tokens** (rank 384 at 85% compression), collapsing to frequent tokens IS the loss-optimal strategy, and breaking the collapse forces the model to attempt what it cannot do.
 
@@ -483,6 +472,17 @@ This phenomenon has theoretical explanations in transformer research:
 Our case is an extreme version of "improper value matrices" — low-rank truncation systematically aligns all layers' projection directions, fulfilling the conditions for collapse.
 
 ### Appendix C: Independent Verification — Reproducible, but Config-Sensitive
+
+The rank-reallocation experiments referenced in Section 4 (run on the uniform rank=384, $\alpha=0.5$ variant, whose own baseline is 10.83):
+
+| Configuration | Params | val loss | Collapsed? |
+|---|---|---|---|
+| Collapsed ASVD ($\alpha=1.0$ + per-matrix ranks) | 2.29B | **8.50** | Yes (98.6% comma) |
+| Uniform rank=384, $\alpha=0.5$ (baseline for the boosts) | 2.29B | 10.83 | No |
+| + gate\_proj full rank | 3.88B | 14.22 | No |
+| + down\_proj full rank | 3.88B | 11.32 | No |
+| + down\_proj rank=1024 | 2.67B | 11.33 | No |
+| + down\_proj rank=768 (budget-matched) | 2.29B | 12.31 | No |
 
 Because "the whole model predicts only commas" is so counter-intuitive, we independently re-verified it: re-evaluating the saved checkpoint, re-measuring on held-out data, checking pairwise KL between positions, and comparing against the information-theoretic floor. Verdict: **the collapse is fully reproducible** (val loss 8.5008, comma at 98.6%, cross-position KL = 0.007, top-1 prob 0.095 ≈ a constant predictor).
 

@@ -44,15 +44,7 @@ $$AB \leftarrow \text{whiten-SVD}(M^\*-S,\ r), \qquad S \leftarrow \text{top-}k\
 
 AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-nnz。预算严格配平：S 的每个非零值按 1.5 个参数计（含 index 开销；严格 CSR-int16 应为 2.0，勘误后纪录依然成立），从 rank 里扣。
 
-**S/LR 配比的剂量曲线**（S 占总预算的份额）：
-
-| S 份额 | val loss |
-|---|---|
-| 0%（纯低秩） | 5.05 |
-| **21%** | **5.01** |
-| 41% | 5.04 |
-
-21% 即最优——**文献的"sparse 为主（70/30）"结论不迁移**，因为我们的低秩部分是轨迹矫正回归（远强于他们的朴素 SVD），S 只需要补真正的重尾。这也是一个方法论提醒：移植文献结论时，配比参数依附于基线强度。
+结果：S 占总预算 21% 时最优，**5.05 → 5.01**（份额再加大反而回退）。值得注意的是**文献的"sparse 为主（70/30）"结论不迁移**——我们的低秩部分是轨迹矫正回归，远强于他们的朴素 SVD，S 只需要补真正的重尾。移植文献结论时，配比参数依附于基线强度。
 
 ### 2. 换度量：输出敏感度加权截断
 
@@ -88,14 +80,12 @@ SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.07（4.98�
 | 32 批 × 1 shard | 4.88 | 组合配方基线 |
 | 128 × 1 | 4.73 | 数量 ×4：−0.15 |
 | 128 × 4 shards | 4.68 | **同数量、多样性 ×4**：再 −0.05 |
-| 256 × 8 | 4.64 | 数量与多样性再翻倍 |
-| 256 × 16 | 4.63 | 多样性饱和于 8 shards（与 ×8 打平） |
-| **512 × 16** | **4.61** | 数量到 512 仍有小幅收益 |
+| **512 × 16** | **4.61** | 两轴推到饱和 |
 
 从 4.88 到 4.61——**校准数据工程独立贡献了 ~0.27 nat**，比任何单个算法改进都大。两个可迁移的定量结论：
 
 1. **数量与多样性是两个独立的轴。** 数量的第一档收益最大（32→128 批：−0.15），它压的是采样方差；数量吃饱之后，批数不变、把 1 个 shard 换成 4 个仍有 −0.05——这是偏差-方差分解里的**偏差项**：同一个 shard 里加再多数据，分布的偏色一分不动，只有换数据源才能压掉。
-2. 两轴各自饱和：多样性 8 shards（256×8 与 256×16 打平）、数量 ~512 批（26 万→105 万 token 位置）仍有小幅收益。饱和点大约在"统计噪声降到单个算法改进量级（±0.01）"处，符合直觉。
+2. 两轴各自饱和：多样性在 8 shards 处饱和、数量到 ~512 批仍有小幅收益。饱和点大约在"统计噪声降到单个算法改进量级（±0.01）"处，符合直觉。
 
 与四个胜利并排的还有四个干净的失败：每当我们把一个有效的简单机制"做精"（迭代重测梯度、完整协方差、更大稀疏份额、按损失分布图定向分配），结果都没有变好——**在校准数据有限的闭式世界里，参数量少的估计器赢**。清单和幅度见附录 A。
 
@@ -183,15 +173,7 @@ $$AB \leftarrow \text{whiten-SVD}(M^\*-S,\ r), \qquad S \leftarrow \text{top-}k\
 
 The AB step is the existing whitened truncation; the S step scores the residual in the whitened metric and keeps the top-nnz. Strictly budgeted: each nonzero of S is charged 1.5 parameters (index overhead; strict CSR-int16 would be 2.0 — the record survives the erratum), paid out of rank.
 
-**The S/LR dose-response** (S's share of the total budget):
-
-| S share | val loss |
-|---|---|
-| 0% (pure low-rank) | 5.05 |
-| **21%** | **5.01** |
-| 41% | 5.04 |
-
-21% is the optimum — **the literature's sparse-heavy (70/30) recipe does not transfer**, because our low-rank part is trajectory-correcting regression (far stronger than their plain SVD), so S only needs to catch the genuine heavy tails. A methodological reminder: ratio hyperparameters are attached to baseline strength.
+Result: the optimum puts 21% of the budget in S, **5.05 → 5.01** (larger shares regress). Notably, **the literature's sparse-heavy (70/30) recipe does not transfer** — our low-rank part is trajectory-correcting regression, far stronger than their plain SVD, so S only needs to catch the genuine heavy tails. Ratio hyperparameters are attached to baseline strength.
 
 ### 2. Changing the Metric: Output-Sensitivity-Weighted Truncation
 
@@ -227,14 +209,12 @@ Everything a closed-form method knows comes from calibration data ($\Sigma\_{ss}
 | 32 batches × 1 shard | 4.88 | combo-recipe baseline |
 | 128 × 1 | 4.73 | quantity ×4: −0.15 |
 | 128 × 4 shards | 4.68 | **same quantity, diversity ×4**: another −0.05 |
-| 256 × 8 | 4.64 | double both again |
-| 256 × 16 | 4.63 | diversity saturates at 8 shards (tie with ×8) |
-| **512 × 16** | **4.61** | quantity still pays mildly at 512 |
+| **512 × 16** | **4.61** | both axes pushed to saturation |
 
 From 4.88 to 4.61 — **calibration-data engineering alone contributed ~0.27 nat**, more than any single algorithmic idea. Two transferable quantitative findings:
 
 1. **Quantity and diversity are two independent axes.** Quantity's first installment is the largest (32 → 128 batches: −0.15) — it shrinks sampling variance. Once quantity is fed, holding 128 batches fixed and going 1 shard → 4 shards still buys −0.05 — the **bias** term of the bias-variance split: more data from the same shard leaves the distributional tint untouched; only changing the data source removes it.
-2. Each axis saturates on its own: diversity at 8 shards (256×8 ties 256×16), quantity still pays mildly at ~512 batches (0.26M → 1.05M token positions). Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.
+2. Each axis saturates on its own: diversity at 8 shards, quantity still paying mildly out to ~512 batches. Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.
 
 Alongside the four wins sit four clean failures: every attempt to refine a working simple mechanism (re-measured gradients, full covariance, a larger sparse share, loss-map-guided allocation) failed to improve anything — **in the calibration-limited closed-form world, the estimator with fewer parameters wins**. The list and the margins are in Appendix A.
 
