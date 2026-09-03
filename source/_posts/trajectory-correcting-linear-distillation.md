@@ -24,11 +24,13 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, ridge-reg
 | 方法 | val loss | 实质 |
 |---|---|---|
 | Plain SVD | 18.65 | 噪声压倒信号 |
-| ASVD（激活加权） | 10.83 | 部分退化 |
-| 坍缩 ASVD | 8.50 | **常数函数**（98.6% 预测逗号） |
+| ASVD（$\alpha=0.5$，均匀 rank） | 10.83 | 高度退化，但未坍缩 |
+| ASVD（$\alpha=1.0$，逐矩阵分配 rank） | 8.50 | **完全坍缩成常数函数**（98.6% 预测逗号） |
 | 常数预测器理论下界 | 7.51 | $H(\text{unigram})$ |
 
-8.50 看似最好，实为假象：它是"放弃预测、输出接近 unigram 分布"的退化策略，离常数预测器的信息论下界只有 1 nat。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。
+两行 ASVD 是同一方法的不同配置：把加权指数从 0.5 提到 1.0、均匀 rank 换成逐矩阵分配（最小的矩阵被饿到 rank 32），模型就从"高度退化"滑进"完全坍缩"。最后一行的**常数预测器**指完全无视上下文、每个位置输出同一个概率分布的模型——它能达到的最低 loss 是语料词频分布的熵 $H(\text{unigram}) = 7.51$（推导见第一篇第 2 节）。这条线是试金石：**loss 低于 7.51 才说明模型真的在利用上下文**。
+
+8.50 看似最好，实为假象：它是"放弃预测、输出接近词频分布"的退化策略，离常数预测器的下界只有 1 nat。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。
 
 但有一个关键事实说明这堵墙不是低秩本身的极限：**从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构**。也就是说，rank-384 参数空间里存在好得多的点，只是"逐层逼近 $W$"这类局部目标找不到它。
 
@@ -141,11 +143,13 @@ In the [previous post](/2026/08/17/representation-collapse-in-low-rank-compressi
 | Method | val loss | Reality |
 |---|---|---|
 | Plain SVD | 18.65 | Noise overwhelms signal |
-| ASVD (activation-weighted) | 10.83 | Partially degenerate |
-| Collapsed ASVD | 8.50 | **Constant function** (98.6% commas) |
+| ASVD ($\alpha=0.5$, uniform ranks) | 10.83 | Severely degenerate, but not collapsed |
+| ASVD ($\alpha=1.0$, per-matrix ranks) | 8.50 | **Fully collapsed to a constant function** (98.6% commas) |
 | Constant-predictor floor | 7.51 | $H(\text{unigram})$ |
 
-The 8.50 is an illusion: a "give up and emit the unigram distribution" strategy sitting 1 nat above the information-theoretic floor for constant predictors. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.
+The two ASVD rows are the same method under different configurations: raising the weighting exponent from 0.5 to 1.0 and swapping uniform ranks for per-matrix allocation (the smallest matrix starved to rank 32) slides the model from "severely degenerate" into "fully collapsed." The last row's **constant predictor** is a model that ignores context entirely and emits the same distribution at every position — the lowest loss it can reach is the entropy of the corpus word-frequency distribution, $H(\text{unigram}) = 7.51$ (derived in part 1, Section 2). That line is the litmus test: **only a loss below 7.51 proves the model actually uses context**.
+
+The 8.50 is an illusion: a "give up and emit the word-frequency distribution" strategy sitting 1 nat above the constant-predictor floor. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.
 
 One fact showed the wall is not intrinsic to low rank: **end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure**. A far better point exists in the same parameter space; layerwise "approximate $W$" objectives simply cannot find it.
 
