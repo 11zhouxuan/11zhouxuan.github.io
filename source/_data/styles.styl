@@ -337,43 +337,76 @@ code, pre {
   }
 }
 
-// ---- Academic typesetting: serif body, sans headings ----
-// Latin in STIX Two Text (matches MathJax's TeX look), Chinese in a serif
-// (Noto Serif SC webfont, falling back to system Songti); headings in a
-// modern sans — the standard journal-style mix.
+// ---- Math-blog typesetting (LaTeX look) ----
+// Computer Modern for Latin (the TeX default face), Noto Serif SC / Songti
+// for Chinese; headings are bold serif like \section; CM has a small
+// x-height, so the base size is bumped slightly.
 .post-body,
 .post-body p,
 .post-body li,
 .post-body td,
-.post-body blockquote {
-  font-family: "STIX Two Text", "Source Serif 4", Georgia, "Noto Serif SC", "Songti SC", "SimSun", "Source Han Serif SC", serif;
-}
-
-.post-body h1, .post-body h2, .post-body h3, .post-body h4,
 .post-body th,
-.post-title {
-  font-family: -apple-system, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
-  letter-spacing: 0.02em;
-  font-weight: 600;
+.post-body blockquote,
+.post-title,
+.post-body h1, .post-body h2, .post-body h3, .post-body h4 {
+  font-family: "Computer Modern Serif", "STIX Two Text", Georgia, "Noto Serif SC", "Songti SC", "SimSun", serif;
 }
 
-// ---- Algorithm blocks (blockquotes) ----
-// The theme dims blockquote text to #666 over a grey fill, which makes the
-// formulas inside an algorithm block read as duller than the identical
-// formulas in body text. Match the body colour so math looks the same
-// everywhere, and keep the block marked by its left rule alone.
+.post-body {
+  font-size: 1.08em;
+  line-height: 1.8;
+}
+
+.post-body h1, .post-body h2, .post-body h3, .post-body h4, .post-title {
+  font-weight: bold;
+  letter-spacing: 0;
+}
+
+// LaTeX booktabs tables: horizontal rules only, no zebra striping
+.post-body table {
+  border: none !important;
+  border-top: 2px solid #333 !important;
+  border-bottom: 2px solid #333 !important;
+}
+
+.post-body table th,
+.post-body table td {
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  background: none !important;
+}
+
+.post-body table thead th {
+  border-bottom: 1px solid #333 !important;
+}
+
+.post-body table tbody tr,
+.post-body table tbody tr:nth-of-type(even),
+.post-body table tbody tr:hover,
+.post-body table tbody tr:nth-of-type(even) td,
+.post-body table tbody tr:hover td {
+  background: none !important;
+}
+
+// ---- Algorithm blocks (blockquotes), LaTeX algorithm-environment style:
+// thin rules above and below, no fill, no side bar; text matches the body.
 .post-body blockquote {
   color: #555 !important;
-  background-color: #fcfcfd;
-  border-left: 3px solid #1565C0;
+  background: none !important;
+  border-left: none !important;
+  border-top: 1.5px solid #333;
+  border-bottom: 1.5px solid #333;
+  border-radius: 0;
+  padding: 0.7em 0.5em;
+  margin: 1.4em 0;
 }
 
 .post-body blockquote p,
-.post-body blockquote li,
-.post-body blockquote strong {
+.post-body blockquote li {
   color: #555 !important;
 }
 
 .post-body blockquote strong {
-  color: #333 !important;
+  color: #222 !important;
 }
