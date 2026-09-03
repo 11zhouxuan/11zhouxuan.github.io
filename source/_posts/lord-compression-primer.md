@@ -135,7 +135,7 @@ $$\text{loss} = \text{平均}\big(-\ln p(\text{正确 token})\big)$$
 - **残差流（residual stream）**：贯穿全程的那条"主线"。每个 token 对应一个 4096 维向量，从头传到尾；每个加工站（block）不是替换它，而是算出一个修正量**加上去**：$h \leftarrow h + \text{本站的输出}$。这个"只做加法"的设计叫**残差连接**，是理解系列中很多现象的关键——比如误差会沿主线一路累积。
 - 每个 block 里有两个部分，共 **7 个大矩阵**（每个矩阵就是一次线性变换）：
   - **注意力（attention）**：让每个位置"回头看"前文。四个矩阵各司其职——**q**（query，我在找什么）、**k**（key，每个位置能提供什么）、**v**（value，实际取回的内容）、**o**（output，把取回的内容整理后写回主线）。q 和 k 只负责算"该看哪里"（它们的点积经 softmax 变成注意力权重），v 和 o 负责"搬运内容"——系列正文把前者叫**模式通路**、后者叫**内容通路**，区别就在这里。
-  - **MLP**：一个两层的非线性变换。三个矩阵：**gate** 和 **up** 把 4096 维升到 12288 维（gate 那一路过一个非线性函数后与 up 那一路**逐元素相乘**——这个结构叫 SwiGLU，那个乘法在系列里反复出场），**down** 再降回 4096 维写回主线。
+  - **MLP**（多层感知机；Transformer 文献里也常叫 FFN，前馈网络——同一个组件的两种名字，本系列跟随代码命名用 MLP）：一个两层的非线性变换。三个矩阵：**gate** 和 **up** 把 4096 维升到 12288 维（gate 那一路过一个非线性函数后与 up 那一路**逐元素相乘**——这个结构叫 SwiGLU，那个乘法在系列里反复出场），**down** 再降回 4096 维写回主线。
 - **RMSNorm**：每个部分入口处的归一化层，把向量除以它自身的均方根（root mean square），防止数值越滚越大。注意它是个**除法**——分母由向量里幅度最大的那些分量主导，这个细节在系列第 4、5 篇会变得重要。
 - **lm_head**：最后一站，一个 4096×151936 的矩阵，把 4096 维向量变成词表上每个 token 的得分。
 
@@ -384,7 +384,7 @@ The model in this series, Qwen3-8B, belongs to the Transformer family (specifica
 - **Residual stream**: the "conveyor belt" running end to end — one 4096-dim vector per token. Each station (block) doesn't replace it; it computes a correction and **adds** it: $h \leftarrow h + \text{station output}$. This add-only design (the **residual connection**) explains many phenomena in the series — e.g. errors accumulate along the belt.
 - Each block has two parts, totaling **7 large matrices** (each is one linear map):
   - **Attention** lets each position look back at the context. Four matrices: **q** (query: what am I looking for), **k** (key: what each position offers), **v** (value: the content actually fetched), **o** (output: reorganize and write back). q and k only decide *where to look* (their dot products go through softmax into attention weights); v and o *carry the content*. The series calls the former the **pattern pathway** and the latter the **content pathway**.
-  - **MLP**: a two-layer nonlinear map. Three matrices: **gate** and **up** lift 4096 → 12288 dims (the gate path passes a nonlinearity and is **elementwise-multiplied** with the up path — the SwiGLU structure; that multiplication recurs throughout the series), then **down** projects back to 4096.
+  - **MLP** (multi-layer perceptron; the Transformer literature often calls it the FFN, feed-forward network — two names for the same component; this series follows the code naming and says MLP): a two-layer nonlinear map. Three matrices: **gate** and **up** lift 4096 → 12288 dims (the gate path passes a nonlinearity and is **elementwise-multiplied** with the up path — the SwiGLU structure; that multiplication recurs throughout the series), then **down** projects back to 4096.
 - **RMSNorm**: the normalization at each part's entrance — divide the vector by its own root-mean-square. Note it is a **division**, with a denominator dominated by the largest components; this detail becomes important in parts 4-5.
 - **lm_head**: the final 4096×151936 matrix mapping the internal vector to a score per vocabulary token.
 

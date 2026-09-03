@@ -141,7 +141,7 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 
 惊人的发现：**Plain SVD 在中间层比 ASVD 坍缩得更严重**（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。
 
-**SwiGLU MLP 是逐层坍缩的主要驱动力。** 逐 block 分解显示：
+**SwiGLU MLP（即 Transformer 里的前馈网络 FFN）是逐层坍缩的主要驱动力。** 逐 block 分解显示：
 
 | Block | Attention 贡献 | MLP 贡献 | 净变化 |
 |---|---|---|---|
@@ -375,7 +375,7 @@ Further diagnostic experiments traced the **effective rank (erank)** through eve
 
 Surprising finding: **Plain SVD collapses MORE severely in intermediate layers** (Block 3 erank=4.5 vs ASVD's 233), yet plain SVD recovers to erank=111 while ASVD collapses to 7.
 
-**The SwiGLU MLP drives the per-block collapse.** Per-block decomposition:
+**The SwiGLU MLP (i.e. the Transformer's feed-forward network, FFN) drives the per-block collapse.** Per-block decomposition:
 
 | Block | Attention contribution | MLP contribution | Net change |
 |---|---|---|---|
