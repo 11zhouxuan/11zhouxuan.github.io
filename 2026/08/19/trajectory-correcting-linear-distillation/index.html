@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-19T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-02T11:46:04.776Z">
+<meta property="article:modified_time" content="2026-09-03T03:19:01.572Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-02 11:46:04" itemprop="dateModified" datetime="2026-09-02T11:46:04+00:00">2026-09-02</time>
+      <time title="Modified: 2026-09-03 03:19:01" itemprop="dateModified" datetime="2026-09-03T03:19:01+00:00">2026-09-03</time>
     </span>
 
   
@@ -363,26 +363,26 @@
 </table>
 <p>只有第三种在<strong>矫正</strong>漂移。每一层不再模仿 $W$，而是成为一个矫正器：接住漂移的输入，输出教师轨迹上本该有的结果。</p>
 <h3 id="3-方法：逐层仿射岭回归">3. 方法：逐层仿射岭回归</h3>
-<p>先定义<strong>校准数据</strong> $D$：从训练集（FineWeb-Edu）里取出的一小批文本，本篇用 32 个 batch、每 batch 8 段 × 8192 token，合计约 210 万个 token 位置。它的唯一用途是<strong>估计统计量</strong>——把教师和学生在同样文本上跑一遍前向，收集各层输入的均值与协方差，供下面的回归求解使用。全程没有任何梯度更新，所以这类方法叫&quot;闭式&quot;（closed-form，解方程直接得到答案）。$D$ 与用来报告 loss 的验证数据完全无重叠。（校准数据的用量和多样性本身对结果影响很大，这是<a href="/2026/08/30/closed-form-moving-ceiling/">第五篇</a>的主题之一。）</p>
+<p>先定义<strong>校准数据</strong> $D$：从训练集（FineWeb-Edu）里取出的一小批文本，本篇用 32 个 batch、每 batch 8 段 × 8192 token，合计约 210 万个 token 位置。它的唯一用途是<strong>估计统计量</strong>——把教师和学生在同样文本上跑一遍前向，收集每个权重矩阵入口处输入的均值与协方差，供下面的回归求解使用。全程没有任何梯度更新，所以这类方法叫&quot;闭式&quot;（closed-form，解方程直接得到答案）。$D$ 与用来报告 loss 的验证数据完全无重叠。（校准数据的用量和多样性本身对结果影响很大，这是<a href="/2026/08/30/closed-form-moving-ceiling/">第五篇</a>的主题之一。）</p>
 <p>完整算法只有一个循环：</p>
 <blockquote>
 <p><strong>算法 1：轨迹矫正线性蒸馏</strong></p>
-<p><strong>输入</strong>：教师模型（线性层 $W_1, \dots, W_{252}$，按前向顺序编号）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$</p>
-<p><strong>对 $\ell = 1, 2, \dots, 252$ 依次执行</strong>（循环体内的 $x_t, x_s, \Sigma, M^*, A, B, b$ 都属于当前的第 $\ell$ 层，为简洁省略层标）：</p>
+<p><strong>输入</strong>：教师模型的全部权重矩阵 $W_1, \dots, W_N$，按前向顺序编号（$N = 252$：模型共 36 层，每层含 7 个）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$</p>
+<p><strong>对 $\ell = 1, 2, \dots, N$ 依次执行</strong>（循环体内的 $x_t, x_s, \Sigma, M^*, A, B, b$ 都属于当前的 $W_\ell$，为简洁省略编号）：</p>
 <ol>
-<li>教师与当前学生（前 $\ell-1$ 层已替换）在 $D$ 上配对前向，在第 $\ell$ 层入口采集教师输入 $x_t$ 与学生输入 $x_s$，累积均值 $\bar{x}_t, \bar{x}_s$ 和中心化协方差 $\Sigma_{ts} = \sum x_t x_s^T$、$\Sigma_{ss} = \sum x_s x_s^T$</li>
+<li>教师与当前学生（前 $\ell-1$ 个矩阵已替换）在 $D$ 上配对前向，在 $W_\ell$ 的入口采集教师输入 $x_t$ 与学生输入 $x_s$，累积均值 $\bar{x}_t, \bar{x}_s$ 和中心化协方差 $\Sigma_{ts} = \sum x_t x_s^T$、$\Sigma_{ss} = \sum x_s x_s^T$</li>
 <li>岭回归：$M^* = W_\ell \Sigma_{ts} (\Sigma_{ss} + \lambda I)^{-1}$</li>
 <li>白化截断：$L = \mathrm{chol}(\Sigma_{ss} + \lambda I)$，对 $M^* L$ 做 SVD 保留前 $r$ 项得 $U_r \Sigma_r V_r^T$，令 $A = U_r \Sigma_r$、$B = V_r^T L^{-1}$</li>
-<li>偏置：$b = W_\ell \bar{x}_t - AB\bar{x}_s$；把第 $\ell$ 层替换为 $x \mapsto ABx + b$</li>
+<li>偏置：$b = W_\ell \bar{x}_t - AB\bar{x}_s$；把 $W_\ell$ 替换为 $x \mapsto ABx + b$</li>
 </ol>
-<p><strong>输出</strong>：所有线性层替换完毕的学生模型</p>
+<p><strong>输出</strong>：全部 $N$ 个权重矩阵替换完毕的学生模型</p>
 </blockquote>
 <p>其中第 2 步的 $M^*$ 是下面这个仿射岭回归的解，<strong>本篇的全部改进都在这一个式子里</strong>：</p>
 <p>$$(M^*, b^*) = \arg\min_{M, b}\ \mathbb{E}\big\lVert W_\ell x_t - M x_s - b \big\rVert^2$$</p>
 <p>目标 $W_\ell x_t$ 是教师轨迹的干净输出，输入 $x_s$ 是学生的漂移输入，期望取自学生的真实运行分布。对比第一篇的代理目标 $\min \lVert (W - AB) S \rVert_F^2$——那里输入分布和逼近目标都活在教师的世界里——这一处换目标贡献了 8.50 → 5.60 的全部差距。</p>
 <p>每一步的理由：</p>
 <ul>
-<li><strong>顺序处理（循环体）</strong>：第 $\ell$ 层采集到的 $x_s$ 自动携带前面所有已替换层的误差，本层的回归顺带矫正它——矫正链因此逐层自洽。</li>
+<li><strong>顺序处理（循环体）</strong>：$W_\ell$ 入口采集到的 $x_s$ 自动携带前面所有已替换矩阵的误差，本次回归顺带矫正它——矫正链因此环环自洽。</li>
 <li><strong>第 2 步（岭回归）</strong>：带 $\lambda I$ 正则项的最小二乘，求逆稳定、抑制对采样噪声的过拟合。直觉：$\Sigma_{ts}\Sigma_{ss}^{-1}$ 是&quot;从脏输入线性还原干净输入&quot;的最优算子，与 $W_\ell$ 复合成一个矩阵。</li>
 <li><strong>第 3 步（白化截断）</strong>：直接截断 $M^*$ 隐含&quot;输入各方向同等重要&quot;的假设，而真实输入分布并非如此；先用 $L$ 变换到协方差为单位阵的白化坐标再截断，是 $x_s$ 真实分布下可证最优的截断（白化坐标里的 Eckart–Young 定理，推导见<a href="/2026/08/30/lord-compression-primer/">预备篇</a>）。</li>
 <li><strong>第 4 步（偏置）</strong>：$b$ 顺带吸收截断在均值处的误差。</li>
@@ -531,26 +531,26 @@
 </table>
 <p>Only the third CORRECTS drift. Each layer stops imitating $W$ and becomes a corrector: take the drifted input, emit what the teacher's trajectory would have produced.</p>
 <h3 id="3-The-Method-Layerwise-Affine-Ridge-Regression">3. The Method: Layerwise Affine Ridge Regression</h3>
-<p>First, what <strong>calibration data</strong> $D$ means: a small batch of text drawn from the training set (FineWeb-Edu) — here 32 batches of 8 passages × 8192 tokens, about 2.1M token positions in total. Its only purpose is <strong>estimating statistics</strong>: run the teacher and the student over the same text and collect the means and covariances of each layer's inputs, to be consumed by the regressions below. No gradient update happens anywhere, which is why these methods are called closed-form (solve equations, get the answer directly). $D$ has no overlap with the validation data used to report losses. (How much calibration data, and how diverse, turns out to matter a great deal — one of <a href="/2026/08/30/closed-form-moving-ceiling/">part 5</a>'s subjects.)</p>
+<p>First, what <strong>calibration data</strong> $D$ means: a small batch of text drawn from the training set (FineWeb-Edu) — here 32 batches of 8 passages × 8192 tokens, about 2.1M token positions in total. Its only purpose is <strong>estimating statistics</strong>: run the teacher and the student over the same text and collect the means and covariances of the inputs at each weight matrix's entrance, to be consumed by the regressions below. No gradient update happens anywhere, which is why these methods are called closed-form (solve equations, get the answer directly). $D$ has no overlap with the validation data used to report losses. (How much calibration data, and how diverse, turns out to matter a great deal — one of <a href="/2026/08/30/closed-form-moving-ceiling/">part 5</a>'s subjects.)</p>
 <p>The complete algorithm is a single loop:</p>
 <blockquote>
 <p><strong>Algorithm 1: Trajectory-Correcting Linear Distillation</strong></p>
-<p><strong>Input</strong>: teacher model (linear layers $W_1, \dots, W_{252}$ in forward order), calibration data $D$, target rank $r$, regularization strength $\lambda$</p>
-<p><strong>For $\ell = 1, 2, \dots, 252$</strong> (inside the loop, $x_t, x_s, \Sigma, M^*, A, B, b$ all belong to the current layer $\ell$; the layer index is dropped for brevity):</p>
+<p><strong>Input</strong>: all of the teacher's weight matrices $W_1, \dots, W_N$ in forward order ($N = 252$: 36 layers with 7 matrices each), calibration data $D$, target rank $r$, regularization strength $\lambda$</p>
+<p><strong>For $\ell = 1, 2, \dots, N$</strong> (inside the loop, $x_t, x_s, \Sigma, M^*, A, B, b$ all belong to the current $W_\ell$; the index is dropped for brevity):</p>
 <ol>
-<li>Run teacher and the current student (layers $1..\ell-1$ already replaced) on $D$ in paired forwards; at layer $\ell$'s entrance collect the teacher input $x_t$ and student input $x_s$; accumulate the means $\bar{x}_t, \bar{x}_s$ and centered covariances $\Sigma_{ts} = \sum x_t x_s^T$, $\Sigma_{ss} = \sum x_s x_s^T$</li>
+<li>Run teacher and the current student (matrices $1..\ell-1$ already replaced) on $D$ in paired forwards; at $W_\ell$'s entrance collect the teacher input $x_t$ and student input $x_s$; accumulate the means $\bar{x}_t, \bar{x}_s$ and centered covariances $\Sigma_{ts} = \sum x_t x_s^T$, $\Sigma_{ss} = \sum x_s x_s^T$</li>
 <li>Ridge regression: $M^* = W_\ell \Sigma_{ts} (\Sigma_{ss} + \lambda I)^{-1}$</li>
 <li>Whitened truncation: $L = \mathrm{chol}(\Sigma_{ss} + \lambda I)$; take the top-$r$ SVD of $M^* L$ as $U_r \Sigma_r V_r^T$; set $A = U_r \Sigma_r$, $B = V_r^T L^{-1}$</li>
-<li>Bias: $b = W_\ell \bar{x}_t - AB\bar{x}_s$; replace layer $\ell$ with $x \mapsto ABx + b$</li>
+<li>Bias: $b = W_\ell \bar{x}_t - AB\bar{x}_s$; replace $W_\ell$ with $x \mapsto ABx + b$</li>
 </ol>
-<p><strong>Output</strong>: the student model with all linear layers replaced</p>
+<p><strong>Output</strong>: the student model with all $N$ weight matrices replaced</p>
 </blockquote>
 <p>The $M^*$ of step 2 solves the affine ridge regression below — <strong>all of this post's improvement is inside this one equation</strong>:</p>
 <p>$$(M^*, b^*) = \arg\min_{M, b}\ \mathbb{E}\big\lVert W_\ell x_t - M x_s - b \big\rVert^2$$</p>
 <p>The target $W_\ell x_t$ is the teacher trajectory's clean output; the input $x_s$ is the student's drifted input; the expectation runs over the student's real running distribution. Contrast with part 1's proxy $\min \lVert (W - AB) S \rVert_F^2$ — there, both the input distribution and the target live in the teacher's world — and this single change of objective accounts for all of 8.50 → 5.60.</p>
 <p>Why each step:</p>
 <ul>
-<li><strong>Sequential processing (the loop)</strong>: layer $\ell$'s collected $x_s$ automatically carries the errors of all previously replaced layers, so this layer's regression corrects them in passing — the corrector chain stays self-consistent layer by layer.</li>
+<li><strong>Sequential processing (the loop)</strong>: the $x_s$ collected at $W_\ell$'s entrance automatically carries the errors of all previously replaced matrices, so this regression corrects them in passing — the corrector chain stays self-consistent link by link.</li>
 <li><strong>Step 2 (ridge)</strong>: least squares with a $\lambda I$ regularizer — stable inversion, damped overfit to sampling noise. Intuition: $\Sigma_{ts}\Sigma_{ss}^{-1}$ is the optimal linear operator recovering the clean input from the corrupted one, fused with $W_\ell$ into one matrix.</li>
 <li><strong>Step 3 (whitened truncation)</strong>: truncating $M^*$ directly assumes all input directions matter equally, which the real input distribution violates; transforming with $L$ into whitened coordinates (identity covariance) first makes the truncation provably optimal under $x_s$'s true distribution (Eckart–Young in whitened coordinates; derivation in <a href="/2026/08/30/lord-compression-primer/">the primer</a>).</li>
 <li><strong>Step 4 (bias)</strong>: $b$ absorbs the truncation error at the mean.</li>
