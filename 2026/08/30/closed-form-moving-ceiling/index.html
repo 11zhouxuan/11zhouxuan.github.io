@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（五）：会移动的天花板——稀疏残差、更好的度量与校准数据  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  第四篇用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 4.59——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-03T07:32:44.388Z">
+<meta property="article:modified_time" content="2026-09-03T07:34:43.830Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="calibration">
@@ -269,7 +269,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-03 07:32:44" itemprop="dateModified" datetime="2026-09-03T07:32:44+00:00">2026-09-03</time>
+      <time title="Modified: 2026-09-03 07:34:43" itemprop="dateModified" datetime="2026-09-03T07:34:43+00:00">2026-09-03</time>
     </span>
 
   
@@ -311,30 +311,7 @@
 <p>做法：在每层的截断步里做交替求解（3 轮）——</p>
 <p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-nnz。预算严格配平：S 的每个非零值按 1.5 个参数计（含 index 开销；严格 CSR-int16 应为 2.0，勘误后纪录依然成立），从 rank 里扣。</p>
-<p><strong>S/LR 配比的剂量曲线</strong>（S 占总预算的份额）：</p>
-<table>
-<thead>
-<tr>
-<th>S 份额</th>
-<th>val loss</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0%（纯低秩）</td>
-<td>5.05</td>
-</tr>
-<tr>
-<td><strong>21%</strong></td>
-<td><strong>5.01</strong></td>
-</tr>
-<tr>
-<td>41%</td>
-<td>5.04</td>
-</tr>
-</tbody>
-</table>
-<p>21% 即最优——<strong>文献的&quot;sparse 为主（70/30）&quot;结论不迁移</strong>，因为我们的低秩部分是轨迹矫正回归（远强于他们的朴素 SVD），S 只需要补真正的重尾。这也是一个方法论提醒：移植文献结论时，配比参数依附于基线强度。</p>
+<p>结果：S 占总预算 21% 时最优，<strong>5.05 → 5.01</strong>（份额再加大反而回退）。值得注意的是<strong>文献的&quot;sparse 为主（70/30）&quot;结论不迁移</strong>——我们的低秩部分是轨迹矫正回归，远强于他们的朴素 SVD，S 只需要补真正的重尾。移植文献结论时，配比参数依附于基线强度。</p>
 <h3 id="2-换度量：输出敏感度加权截断">2. 换度量：输出敏感度加权截断</h3>
 <p>第四篇曾逐个位置测量截断损失的分布（下称“损失分布图”），其中留了一个反常没解释：qkv@late 在白化能量下&quot;几乎无损&quot;（保留 94-98%），却是最大的税项（+0.56）。反常的谜底是：<strong>我们的截断在错误的目标函数下最优</strong>。白化 SVD 最小化的是该层输出的 L2 误差（Eckart-Young），但输出误差到最终 loss 的映射高度各向异性——q/k 的某些方向误差被 softmax 与下游放大数十倍，down 的很多大能量方向却被残差流稀释。</p>
 <p>修法仍是闭式的。设 $y_j$ 为该层输出向量的第 $j$ 个分量，测 $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$（一次 backprop pass，全参数冻结、只让 embedding 输出带梯度），截断目标改为</p>
@@ -397,26 +374,16 @@
 <td><strong>同数量、多样性 ×4</strong>：再 −0.05</td>
 </tr>
 <tr>
-<td>256 × 8</td>
-<td>4.64</td>
-<td>数量与多样性再翻倍</td>
-</tr>
-<tr>
-<td>256 × 16</td>
-<td>4.63</td>
-<td>多样性饱和于 8 shards（与 ×8 打平）</td>
-</tr>
-<tr>
 <td><strong>512 × 16</strong></td>
 <td><strong>4.61</strong></td>
-<td>数量到 512 仍有小幅收益</td>
+<td>两轴推到饱和</td>
 </tr>
 </tbody>
 </table>
 <p>从 4.88 到 4.61——<strong>校准数据工程独立贡献了 ~0.27 nat</strong>，比任何单个算法改进都大。两个可迁移的定量结论：</p>
 <ol>
 <li><strong>数量与多样性是两个独立的轴。</strong> 数量的第一档收益最大（32→128 批：−0.15），它压的是采样方差；数量吃饱之后，批数不变、把 1 个 shard 换成 4 个仍有 −0.05——这是偏差-方差分解里的<strong>偏差项</strong>：同一个 shard 里加再多数据，分布的偏色一分不动，只有换数据源才能压掉。</li>
-<li>两轴各自饱和：多样性 8 shards（256×8 与 256×16 打平）、数量 ~512 批（26 万→105 万 token 位置）仍有小幅收益。饱和点大约在&quot;统计噪声降到单个算法改进量级（±0.01）&quot;处，符合直觉。</li>
+<li>两轴各自饱和：多样性在 8 shards 处饱和、数量到 ~512 批仍有小幅收益。饱和点大约在&quot;统计噪声降到单个算法改进量级（±0.01）&quot;处，符合直觉。</li>
 </ol>
 <p>与四个胜利并排的还有四个干净的失败：每当我们把一个有效的简单机制&quot;做精&quot;（迭代重测梯度、完整协方差、更大稀疏份额、按损失分布图定向分配），结果都没有变好——<strong>在校准数据有限的闭式世界里，参数量少的估计器赢</strong>。清单和幅度见附录 A。</p>
 <h3 id="5-换度量的最后一笔收益：rms-lift-的平反">5. 换度量的最后一笔收益：rms-lift 的平反</h3>
@@ -492,30 +459,7 @@
 <p>Method: alternate inside each layer's truncation step (3 rounds) —</p>
 <p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>The AB step is the existing whitened truncation; the S step scores the residual in the whitened metric and keeps the top-nnz. Strictly budgeted: each nonzero of S is charged 1.5 parameters (index overhead; strict CSR-int16 would be 2.0 — the record survives the erratum), paid out of rank.</p>
-<p><strong>The S/LR dose-response</strong> (S's share of the total budget):</p>
-<table>
-<thead>
-<tr>
-<th>S share</th>
-<th>val loss</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0% (pure low-rank)</td>
-<td>5.05</td>
-</tr>
-<tr>
-<td><strong>21%</strong></td>
-<td><strong>5.01</strong></td>
-</tr>
-<tr>
-<td>41%</td>
-<td>5.04</td>
-</tr>
-</tbody>
-</table>
-<p>21% is the optimum — <strong>the literature's sparse-heavy (70/30) recipe does not transfer</strong>, because our low-rank part is trajectory-correcting regression (far stronger than their plain SVD), so S only needs to catch the genuine heavy tails. A methodological reminder: ratio hyperparameters are attached to baseline strength.</p>
+<p>Result: the optimum puts 21% of the budget in S, <strong>5.05 → 5.01</strong> (larger shares regress). Notably, <strong>the literature's sparse-heavy (70/30) recipe does not transfer</strong> — our low-rank part is trajectory-correcting regression, far stronger than their plain SVD, so S only needs to catch the genuine heavy tails. Ratio hyperparameters are attached to baseline strength.</p>
 <h3 id="2-Changing-the-Metric-Output-Sensitivity-Weighted-Truncation">2. Changing the Metric: Output-Sensitivity-Weighted Truncation</h3>
 <p>Part 4's loss-distribution map left one anomaly unexplained: qkv@late looks &quot;nearly lossless&quot; in whitened energy (94-98% kept) yet is the largest tax item (+0.56). The resolution: <strong>our truncation was optimal under the wrong objective</strong>. Whitened SVD minimizes the layer output's L2 error (Eckart-Young), but the map from output error to final loss is sharply anisotropic — some q/k directions get amplified tens of times by softmax and downstream, while many high-energy down directions get diluted in the residual stream.</p>
 <p>The fix stays closed-form. Let $y_j$ be the $j$-th component of the layer's output vector and measure $w_j^2 = \mathbb{E}[(\partial L/\partial y_j)^2]$ (one backprop pass; freeze all parameters and let only the embedding output require grad), and truncate under</p>
@@ -578,26 +522,16 @@
 <td><strong>same quantity, diversity ×4</strong>: another −0.05</td>
 </tr>
 <tr>
-<td>256 × 8</td>
-<td>4.64</td>
-<td>double both again</td>
-</tr>
-<tr>
-<td>256 × 16</td>
-<td>4.63</td>
-<td>diversity saturates at 8 shards (tie with ×8)</td>
-</tr>
-<tr>
 <td><strong>512 × 16</strong></td>
 <td><strong>4.61</strong></td>
-<td>quantity still pays mildly at 512</td>
+<td>both axes pushed to saturation</td>
 </tr>
 </tbody>
 </table>
 <p>From 4.88 to 4.61 — <strong>calibration-data engineering alone contributed ~0.27 nat</strong>, more than any single algorithmic idea. Two transferable quantitative findings:</p>
 <ol>
 <li><strong>Quantity and diversity are two independent axes.</strong> Quantity's first installment is the largest (32 → 128 batches: −0.15) — it shrinks sampling variance. Once quantity is fed, holding 128 batches fixed and going 1 shard → 4 shards still buys −0.05 — the <strong>bias</strong> term of the bias-variance split: more data from the same shard leaves the distributional tint untouched; only changing the data source removes it.</li>
-<li>Each axis saturates on its own: diversity at 8 shards (256×8 ties 256×16), quantity still pays mildly at ~512 batches (0.26M → 1.05M token positions). Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.</li>
+<li>Each axis saturates on its own: diversity at 8 shards, quantity still paying mildly out to ~512 batches. Saturation arrives roughly when statistical noise drops to the size of one algorithmic improvement (±0.01), as intuition suggests.</li>
 </ol>
 <p>Alongside the four wins sit four clean failures: every attempt to refine a working simple mechanism (re-measured gradients, full covariance, a larger sparse share, loss-map-guided allocation) failed to improve anything — <strong>in the calibration-limited closed-form world, the estimator with fewer parameters wins</strong>. The list and the margins are in Appendix A.</p>
 <h3 id="5-The-Metric-s-Last-Installment-rms-Lift-Redeemed">5. The Metric's Last Installment: rms-Lift Redeemed</h3>
