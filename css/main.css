@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #b5e0ff;
+  background: #a8429c;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3072,27 +3072,37 @@ pre {
   font-weight: bold;
   letter-spacing: 0;
 }
+.post-body .table-container {
+  overflow-x: auto;
+}
 .post-body table {
+  width: auto !important;
+  max-width: 100%;
+  margin: 2em auto !important;
+  border-collapse: collapse !important;
   border: none !important;
   border-top: 2px solid #2f3e4e !important;
   border-bottom: 2px solid #2f3e4e !important;
-  margin: 1.8em auto;
   font-size: 0.95em;
 }
 .post-body table th,
 .post-body table td {
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
+  border: none !important;
   background: none !important;
+  text-align: left !important;
+  white-space: normal;
+}
+.post-body table th:not(:first-child),
+.post-body table td:not(:first-child) {
+  text-align: center !important;
 }
 .post-body table thead th {
   border-bottom: 1px solid #2f3e4e !important;
   font-weight: 600;
-  padding: 0.55em 0.9em !important;
+  padding: 0.5em 1.3em !important;
 }
 .post-body table td {
-  padding: 0.5em 0.9em !important;
+  padding: 0.45em 1.3em !important;
 }
 .post-body table tbody tr,
 .post-body table tbody tr:nth-of-type(even),
