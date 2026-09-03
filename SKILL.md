@@ -115,6 +115,19 @@ We use `hexo-renderer-markdown-it` which does NOT interfere with LaTeX syntax. W
 
 **Rule of thumb**: Any `\` followed by a non-letter character will be escaped. Only use `\` + letters (like `\quad`, `\enspace`, `\lVert`, `\mathrm{}`).
 
+### BROKEN (markdown emphasis eats `_` and `*` inside math)
+
+markdown-it applies emphasis rules **before** MathJax sees the formula. When two `_` (or two `*`) in the same formula happen to pair up, the text between them becomes `<em>` and the subscript/superscript is destroyed:
+
+- `\hat{Z}_1 ... \sup_{t \in [0,1]}` → the two `_` pair → `\hat{Z}<em>1 ... \sup</em>{t ...`
+- `v_t^{\pi^*}(x) = \nabla\Psi^*(z_0)` → the two `*` pair → `\pi^<em>}(x) = \nabla\Psi^</em>(`
+
+**Fixes:**
+- Subscripts: escape as `\_` — e.g. `\mathcal{L}\_{\mathrm{CFM}}`, `\sup\_{t \in [0,1]}`, `\hat{Z}\_1`. (Safe to always escape; MathJax treats `\_` as `_`.)
+- Superscript star: write `^{\ast}` instead of `^*` — e.g. `\pi^{\ast}`, `\nabla\Psi^{\ast}`.
+
+**How to detect**: after `hexo generate`/serve, grep the rendered HTML for `<em>` inside `$...$` / `$$...$$`. Any hit is a broken formula.
+
 ### Display math
 Use `$$...$$` on its own line:
 ```
