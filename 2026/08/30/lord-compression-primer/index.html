@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（〇）：预备知识——读懂本系列需要的一切 这个系列讲的是一件事：把一个 80 亿参数的语言模型压缩成 23 亿参数，并且尽量不让它变笨。系列正文假设读者熟悉一些机器学习词汇，这一篇把需要的背景一次性补齐——只要你学过高等数学和线性代数，读完这篇就能顺畅读完全系列。已经熟悉语言模型的读者可以直接跳到正文，遇到不认识的词再回来查第 9 节的速查表。 0">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T08:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-04T03:19:45.518Z">
+<meta property="article:modified_time" content="2026-09-04T06:04:44.129Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -266,7 +266,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -434,7 +434,7 @@
 <li><strong>残差流（residual stream）</strong>：贯穿全程的那条&quot;主线&quot;。每个 token 对应一个 4096 维向量，从头传到尾；每个加工站（block）不是替换它，而是算出一个修正量<strong>加上去</strong>：$h \leftarrow h + \text{本站的输出}$。这个&quot;只做加法&quot;的设计叫<strong>残差连接</strong>，是理解系列中很多现象的关键——比如误差会沿主线一路累积。</li>
 <li>每个 block 里有两个部分，共 <strong>7 个大矩阵</strong>（每个矩阵就是一次线性变换）：
 <ul>
-<li><strong>注意力（attention）</strong>：让每个位置&quot;回头看&quot;前文。四个矩阵各司其职——<strong>q</strong>（query，我在找什么）、<strong>k</strong>（key，每个位置能提供什么）、<strong>v</strong>（value，实际取回的内容）、<strong>o</strong>（output，把取回的内容整理后写回主线）。q 和 k 只负责算&quot;该看哪里&quot;（它们的点积经 softmax 变成注意力权重），v 和 o 负责&quot;搬运内容&quot;——系列正文把前者叫<strong>模式通路</strong>、后者叫<strong>内容通路</strong>，区别就在这里。</li>
+<li><strong>注意力（attention）</strong>：让每个位置&quot;回头看&quot;前文。四个矩阵各司其职——<strong>q</strong>（query，我在找什么）、<strong>k</strong>（key，每个位置能提供什么）、<strong>v</strong>（value，实际取回的内容）、<strong>o</strong>（output，把取回的内容整理后写回主线）。q 和 k 只负责算&quot;该看哪里&quot;（它们的点积经 softmax 变成注意力权重），v 和 o 负责&quot;搬运内容&quot;。</li>
 <li><strong>MLP</strong>（多层感知机；Transformer 文献里也常叫 FFN，前馈网络——同一个组件的两种名字，本系列跟随代码命名用 MLP）：一个两层的非线性变换。三个矩阵：<strong>gate</strong> 和 <strong>up</strong> 把 4096 维升到 12288 维（gate 那一路过一个非线性函数后与 up 那一路<strong>逐元素相乘</strong>——这个结构叫 SwiGLU，那个乘法在系列里反复出场），<strong>down</strong> 再降回 4096 维写回主线。</li>
 </ul>
 </li>
@@ -736,7 +736,7 @@
 <li><strong>Residual stream</strong>: the &quot;conveyor belt&quot; running end to end — one 4096-dim vector per token. Each station (block) doesn't replace it; it computes a correction and <strong>adds</strong> it: $h \leftarrow h + \text{station output}$. This add-only design (the <strong>residual connection</strong>) explains many phenomena in the series — e.g. errors accumulate along the belt.</li>
 <li>Each block has two parts, totaling <strong>7 large matrices</strong> (each is one linear map):
 <ul>
-<li><strong>Attention</strong> lets each position look back at the context. Four matrices: <strong>q</strong> (query: what am I looking for), <strong>k</strong> (key: what each position offers), <strong>v</strong> (value: the content actually fetched), <strong>o</strong> (output: reorganize and write back). q and k only decide <em>where to look</em> (their dot products go through softmax into attention weights); v and o <em>carry the content</em>. The series calls the former the <strong>pattern pathway</strong> and the latter the <strong>content pathway</strong>.</li>
+<li><strong>Attention</strong> lets each position look back at the context. Four matrices: <strong>q</strong> (query: what am I looking for), <strong>k</strong> (key: what each position offers), <strong>v</strong> (value: the content actually fetched), <strong>o</strong> (output: reorganize and write back). q and k only decide <em>where to look</em> (their dot products go through softmax into attention weights); v and o <em>carry the content</em>.</li>
 <li><strong>MLP</strong> (multi-layer perceptron; the Transformer literature often calls it the FFN, feed-forward network — two names for the same component; this series follows the code naming and says MLP): a two-layer nonlinear map. Three matrices: <strong>gate</strong> and <strong>up</strong> lift 4096 → 12288 dims (the gate path passes a nonlinearity and is <strong>elementwise-multiplied</strong> with the up path — the SwiGLU structure; that multiplication recurs throughout the series), then <strong>down</strong> projects back to 4096.</li>
 </ul>
 </li>

@@ -261,7 +261,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -423,7 +423,7 @@
 <li><strong>残差流（residual stream）</strong>：贯穿全程的那条&quot;主线&quot;。每个 token 对应一个 4096 维向量，从头传到尾；每个加工站（block）不是替换它，而是算出一个修正量<strong>加上去</strong>：$h \leftarrow h + \text{本站的输出}$。这个&quot;只做加法&quot;的设计叫<strong>残差连接</strong>，是理解系列中很多现象的关键——比如误差会沿主线一路累积。</li>
 <li>每个 block 里有两个部分，共 <strong>7 个大矩阵</strong>（每个矩阵就是一次线性变换）：
 <ul>
-<li><strong>注意力（attention）</strong>：让每个位置&quot;回头看&quot;前文。四个矩阵各司其职——<strong>q</strong>（query，我在找什么）、<strong>k</strong>（key，每个位置能提供什么）、<strong>v</strong>（value，实际取回的内容）、<strong>o</strong>（output，把取回的内容整理后写回主线）。q 和 k 只负责算&quot;该看哪里&quot;（它们的点积经 softmax 变成注意力权重），v 和 o 负责&quot;搬运内容&quot;——系列正文把前者叫<strong>模式通路</strong>、后者叫<strong>内容通路</strong>，区别就在这里。</li>
+<li><strong>注意力（attention）</strong>：让每个位置&quot;回头看&quot;前文。四个矩阵各司其职——<strong>q</strong>（query，我在找什么）、<strong>k</strong>（key，每个位置能提供什么）、<strong>v</strong>（value，实际取回的内容）、<strong>o</strong>（output，把取回的内容整理后写回主线）。q 和 k 只负责算&quot;该看哪里&quot;（它们的点积经 softmax 变成注意力权重），v 和 o 负责&quot;搬运内容&quot;。</li>
 <li><strong>MLP</strong>（多层感知机；Transformer 文献里也常叫 FFN，前馈网络——同一个组件的两种名字，本系列跟随代码命名用 MLP）：一个两层的非线性变换。三个矩阵：<strong>gate</strong> 和 <strong>up</strong> 把 4096 维升到 12288 维（gate 那一路过一个非线性函数后与 up 那一路<strong>逐元素相乘</strong>——这个结构叫 SwiGLU，那个乘法在系列里反复出场），<strong>down</strong> 再降回 4096 维写回主线。</li>
 </ul>
 </li>
@@ -725,7 +725,7 @@
 <li><strong>Residual stream</strong>: the &quot;conveyor belt&quot; running end to end — one 4096-dim vector per token. Each station (block) doesn't replace it; it computes a correction and <strong>adds</strong> it: $h \leftarrow h + \text{station output}$. This add-only design (the <strong>residual connection</strong>) explains many phenomena in the series — e.g. errors accumulate along the belt.</li>
 <li>Each block has two parts, totaling <strong>7 large matrices</strong> (each is one linear map):
 <ul>
-<li><strong>Attention</strong> lets each position look back at the context. Four matrices: <strong>q</strong> (query: what am I looking for), <strong>k</strong> (key: what each position offers), <strong>v</strong> (value: the content actually fetched), <strong>o</strong> (output: reorganize and write back). q and k only decide <em>where to look</em> (their dot products go through softmax into attention weights); v and o <em>carry the content</em>. The series calls the former the <strong>pattern pathway</strong> and the latter the <strong>content pathway</strong>.</li>
+<li><strong>Attention</strong> lets each position look back at the context. Four matrices: <strong>q</strong> (query: what am I looking for), <strong>k</strong> (key: what each position offers), <strong>v</strong> (value: the content actually fetched), <strong>o</strong> (output: reorganize and write back). q and k only decide <em>where to look</em> (their dot products go through softmax into attention weights); v and o <em>carry the content</em>.</li>
 <li><strong>MLP</strong> (multi-layer perceptron; the Transformer literature often calls it the FFN, feed-forward network — two names for the same component; this series follows the code naming and says MLP): a two-layer nonlinear map. Three matrices: <strong>gate</strong> and <strong>up</strong> lift 4096 → 12288 dims (the gate path passes a nonlinearity and is <strong>elementwise-multiplied</strong> with the up path — the SwiGLU structure; that multiplication recurs throughout the series), then <strong>down</strong> projects back to 4096.</li>
 </ul>
 </li>
@@ -966,7 +966,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -1351,16 +1351,16 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <td>0.27</td>
 </tr>
 <tr>
-<td>MLP override ratio</td>
+<td>MLP 输出/残差流幅度比</td>
 <td>0.40</td>
 <td>0.30</td>
 <td>1.40</td>
 </tr>
 </tbody>
 </table>
-<p>（override ratio = MLP 输出与残差流本身的幅度之比，衡量 MLP 对残差流的改写力度。）</p>
+<p>（幅度比衡量 MLP 对残差流的改写力度。）</p>
 <p><strong>ASVD 的 MLP 对所有 token 输出几乎相同的向量</strong>（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。</p>
-<p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。</p>
+<p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（幅度比 1.40），但每个 token 的偏移不同，所以不会收敛。</p>
 <p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留 $s_i$ 大的那些分量），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
 <h3 id="附录-B：与文献的对应">附录 B：与文献的对应</h3>
 <p>这个现象在 transformer 研究中已有理论解释：</p>
@@ -1818,14 +1818,14 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <td>0.27</td>
 </tr>
 <tr>
-<td>MLP override ratio</td>
+<td>MLP output / residual-stream magnitude</td>
 <td>0.40</td>
 <td>0.30</td>
 <td>1.40</td>
 </tr>
 </tbody>
 </table>
-<p>(Override ratio = the magnitude of the MLP output relative to the residual stream itself — how strongly the MLP rewrites the stream.)</p>
+<p>(The magnitude ratio measures how strongly the MLP rewrites the stream.)</p>
 <p><strong>ASVD's MLP outputs are nearly identical across all tokens</strong> (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).</p>
 <p>In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.</p>
 <p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (the components with large $s_i$) while discarding the <strong>token-specific differences</strong>.</p>
@@ -1998,7 +1998,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -2430,7 +2430,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -2892,7 +2892,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -2915,7 +2915,7 @@ switchLang('zh');
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<p><a href="/2026/08/22/closed-form-ceiling/">三部曲的完结篇</a>宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 <strong>5.05</strong>，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这 0.05 nat 是怎么挣的——以及一路上收获的、比 0.05 值钱得多的四个机制发现：loss 敏感度的模式/内容通路二分、RMSNorm×巨通道的乘性放大器、<strong>截断税的深度分布</strong>（一个 oracle 分解实验），和&quot;小改进不叠加&quot;的规律。</p>
+<p><a href="/2026/08/22/closed-form-ceiling/">三部曲的完结篇</a>宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 <strong>5.05</strong>，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这 0.05 nat 是怎么挣的——以及一路上收获的、比 0.05 值钱得多的四个机制发现：loss 敏感度在 q/k 侧与写回侧之间的鲜明二分、RMSNorm 与异常大通道构成的乘性放大器、<strong>截断税的深度分布</strong>（一个 oracle 分解实验），和&quot;小改进不叠加&quot;的规律。</p>
 <p>背景（一句话版）：Qwen3-8B（val loss 2.11）→ 每个 linear 换 rank-384 的 $AB$（2.29B，删 72% 参数），闭式方法 = 逐层轨迹矫正回归 + lm_head 矫正 + 残差流矫正器，起点 5.10。</p>
 <p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 3 节 oracle 分解的诊断数字是一次性实验、保持当时的测量口径，只用于相对比较。）</p>
 <h3 id="1-差距的三个组成部分：5-06-到-2-11-之间差在哪里">1. 差距的三个组成部分：5.06 到 2.11 之间差在哪里</h3>
@@ -2969,13 +2969,13 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>网络分成两条通路：<strong>模式通路</strong>（q/k → softmax）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；<strong>内容通路</strong>（v→o、up→down 的写路径）<strong>谱衰减极慢、用满全宽</strong>——down_proj 要把 12288 维乘积空间里以&quot;超位置&quot;方式存储的特征（superposition：把远多于维度数的特征重叠地存在同一组维度里）解码回残差流，这样的解码矩阵天生没有低秩结构可利用。这部分损失是信息论性质的，对&quot;更好的逼近算法&quot;免疫。</p>
+<p>这张表分成两类：<strong>q/k 一侧</strong>（只负责算注意力分布）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；<strong>v→o 与 up→down 一侧</strong>（把内容写回残差流）<strong>谱衰减极慢、用满全宽</strong>——down_proj 要把 12288 维乘积空间里以&quot;超位置&quot;方式存储的特征（superposition：把远多于维度数的特征重叠地存在同一组维度里）解码回残差流，这样的解码矩阵天生没有低秩结构可利用。这部分损失是信息论性质的，对&quot;更好的逼近算法&quot;免疫。</p>
 <p><strong>② 漂移残余</strong>：实际 5.06 与 oracle 4.15 之间，是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta_g\delta_u$ 二阶项和 RMSNorm 的除法（附录 B 有它的精确机制）。</p>
 <p><strong>③ 重组收益</strong>：训练不受这个地板约束，因为它从不要求每层模仿教师对应层——残差架构下最终计算是 36 个 block 贡献的<strong>和</strong>，同一个总函数有无数种拆成 36 份的方式，梯度下降可以找到比&quot;模仿教师原有分工&quot;更适合 rank-384 的新分工。逐层模仿的目标从定义上就拿不到这部分收益。</p>
 <p>三个组成部分对应三个不同的瓶颈。本篇的四个实验方向全部发生在 ① 和 ② 的边界上。</p>
 <h3 id="2-实验方向一：loss-敏感度驱动的-rank-分配——方向对，但要阻尼">2. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</h3>
 <p>我们之前试过从白化谱做分配（重构误差驱动），失败（5.73）。文献一致认可的是 <strong>loss 敏感度驱动</strong>（六篇独立工作同向；文献调研见附录 A）——这是两回事：前者问&quot;砍掉这个方向，本层输出变多少&quot;，后者问&quot;砍掉这个方向，最终 loss 变多少&quot;。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha_i=1$，反传时只求门的梯度，累积 $f_i = \sum(\partial L/\partial\alpha_i)^2$（梯度平方和，Fisher 信息的对角近似，衡量 loss 对该方向的敏感度）；用尾部的 $f$ 校准白化谱（$f_{l,i}\approx c_l\sigma_{l,i}^2$），然后在总预算固定的约束下把 rank 优先分给敏感度高的层，直到预算用完。</p>
-<p>Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：</p>
+<p>Fisher 给出的分配极其激进，且完美对应上面的二分（q/k 低、写回侧高）：</p>
 <table>
 <thead>
 <tr>
@@ -3002,11 +3002,11 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p><strong>照单全收 → 5.27（失败）</strong>；把偏离限制在均匀值的 0.6~1.6 倍（即&quot;阻尼&quot;）→ <strong>5.06（当时的新纪录）</strong>。教训：这种敏感度是局部量——它只回答&quot;在当前解附近动一动会怎样&quot;，砍 4 倍已经远超它的适用范围；三点剂量曲线（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。</p>
+<p><strong>照单全收 → 5.27（失败）</strong>；把偏离限制在均匀值的 0.6~1.6 倍（即&quot;阻尼&quot;）→ <strong>5.06（当时的新纪录）</strong>。教训：这种敏感度是局部量——它只回答&quot;在当前解附近动一动会怎样&quot;，砍 4 倍已经远超它的适用范围；三档对照（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。</p>
 <p><strong>把本篇的改动写成公式</strong>。前三篇里每层的 rank 是固定常数 $r$；本篇把每层的 rank ${r_\ell}$ 变成待求的变量：</p>
 <p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{层 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{预算}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{阻尼约束（不可省略）}}$$</p>
 <p>其中 $f_{\ell,i}$ 是第 $\ell$ 层第 $i$ 个方向的 loss 敏感度（前文的梯度平方和）。没有阻尼约束时这个问题的解就是&quot;照单全收&quot;的 5.27；加上它才得到 5.06——<strong>约束本身是改进的一半</strong>。</p>
-<p>实验方向二、三都是干净的负结果，但各自揭示了机制，细节在附录：巨激活通道天然不付截断税（<strong>附录 B</strong>——顺带定位了&quot;②漂移残余&quot;的放大器：RMSNorm 的分母被两条巨通道主导，它们一漂移、全部 4096 维跟着乘性重缩放）；rms-lift 非线性矫正器能修乘性漂移，但参数效率与直接加 rank 持平（<strong>附录 C</strong>）。主线于是回到 rank 的放置：</p>
+<p>实验方向二、三都是干净的负结果，但各自揭示了机制，细节在附录：激活值异常大的通道天然不付截断税（<strong>附录 B</strong>——顺带定位了&quot;②漂移残余&quot;的放大器：RMSNorm 的分母被两条异常大的通道主导，它们一漂移、全部 4096 维跟着乘性重缩放）；rms-lift 非线性矫正器能修乘性漂移，但参数效率与直接加 rank 持平（<strong>附录 C</strong>）。主线于是回到 rank 的放置：</p>
 <h3 id="3-实验方向四：oracle-分解——截断税住在哪些-block-里">3. 实验方向四：oracle 分解——截断税住在哪些 block 里</h3>
 <p><a href="/2026/08/22/closed-form-ceiling/">第三篇</a>的完整 oracle（把全部子层输入换成教师的干净值）只给出一个总量。把它拆开——每次只换一部分输入（本表是一次性诊断实验，用当时的评估口径，看相对差值即可）：</p>
 <table>
@@ -3053,11 +3053,11 @@ switchLang('zh');
 <p>两个重磅结论：</p>
 <p><strong>其一：截断税几乎全部集中在后半段。</strong> 只把 block 18-35 的输入换干净，loss 就到了完整 oracle 的水平——意味着前半段的局部截断误差对 logits 的直接贡献只有约 0.01 nat，它的全部危害走&quot;制造漂移&quot;这条间接通道；而漂移是（部分）可矫正的，后半段的截断税则无药可救。<strong>推论：边际 rank 在后半段的价值远高于前半段。</strong> 我们此前试过的恰好是反方向（front-load，5.38 失败——当时的理论&quot;减少流进 block 16 的漂移&quot;错得离谱）。</p>
 <p><strong>其二：局部&quot;清洁&quot;上游反而伤害下游（−0.40）。</strong> 顺序管线里每一层和矫正器都是<strong>适配上游特定误差模式</strong>拟合的，突然给它们干净的中间值，下游的补偿全部失配。这是矫正链自洽性的第三次独立验证（前两次：不动点迭代 5.95、跨层联合优化的文献负结果）。</p>
-<p>据此做 back-load（把 rank 往后半段倾斜）：前半 rank ×0.8、后半按预算配平放大（×1.24）。<strong>5.05——最终纪录</strong>，剂量曲线在 ×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。</p>
-<p>最后一个实验是把两个已验证的小改进叠加（back-load + rms-lift-256）：<strong>失败，比单独 back-load 还差</strong>。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。</p>
+<p>据此把 rank 往后半段倾斜（下称&quot;后倾分配&quot;）：前半 rank ×0.8、后半按预算配平放大（×1.24）。<strong>5.05——最终纪录</strong>，倾斜幅度逐档试过，×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。</p>
+<p>最后一个实验是把两个已验证的小改进叠加（后倾分配 + rms-lift-256）：<strong>失败，比单独后倾分配还差</strong>。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。</p>
 <h3 id="4-结论：三个瓶颈、三条出路与三条经验">4. 结论：三个瓶颈、三条出路与三条经验</h3>
 <p><strong>最终版图</strong>（85% 压缩率、等预算 2.29B）：</p>
-<p>$$8.50_{\text{坍缩假象}} \to 5.60_{\text{轨迹矫正}} \to 5.10_{\text{全秩矫正器}} \to \mathbf{5.05}_{\text{+分配+back-load}} \to 4.15_{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50_{\text{坍缩假象}} \to 5.60_{\text{轨迹矫正}} \to 5.10_{\text{全秩矫正器}} \to \mathbf{5.05}_{\text{+分配+后倾}} \to 4.15_{\text{oracle}} \to 2.11_{\text{教师}}$$</p>
 <table>
 <thead>
 <tr>
@@ -3069,12 +3069,12 @@ switchLang('zh');
 <tbody>
 <tr>
 <td>截断税约 2.0（集中在后半段）</td>
-<td>内容通路的超位置存储、谱衰减极慢</td>
+<td>写回矩阵（v→o、up→down）的超位置存储、谱衰减极慢</td>
 <td>改变 rank 的放置方式（跨矩阵联合分解、稀疏残差等）——在现有范式之外</td>
 </tr>
 <tr>
 <td>漂移残余约 0.9</td>
-<td>SwiGLU 乘法 + RMSNorm×巨通道</td>
+<td>SwiGLU 乘法 + RMSNorm 的异常大通道</td>
 <td>非线性矫正器可修，但参数效率与加 rank 持平——已榨干</td>
 </tr>
 <tr>
@@ -3100,9 +3100,9 @@ switchLang('zh');
 <li><strong>没有任何已发表的 training-free 方法在 70%+ 参数削减下报告过可用结果。</strong> 纯闭式的最远数据点是 SVD-LLM 在 LLaMA-7B 删 60% 时 PPL 53.7——折成 loss 约 4.0，与我们的 oracle 界惊人吻合：文献从侧面证实这堵墙的量级是真的。我们在删 72% 拿 5.0x，在前沿之上。</li>
 <li><strong>非均匀 rank 分配是文献中最一致的收益来源</strong>（Dobi-SVD、SVD-LLM v2、D-Rank、UniRank、AIR、LACE-SVD 六篇独立工作同向）：高压缩下&quot;分配比分解本身更重要&quot;。这直接触发了实验方向一。</li>
 </ol>
-<h3 id="附录-B：实验方向二——巨激活通道的双负结果与真正的放大机制">附录 B：实验方向二——巨激活通道的双负结果与真正的放大机制</h3>
+<h3 id="附录-B：实验方向二——激活值异常大的通道：双负结果与真正的放大机制">附录 B：实验方向二——激活值异常大的通道：双负结果与真正的放大机制</h3>
 <p>测量教师的输出侧异常，发现巨幅激活（massive activations，<a href="/2026/08/22/closed-form-ceiling/">第三篇</a>附录 A 提过的现象）在这个模型里是<strong>两条贯穿全网的全局通道</strong>：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。</p>
-<p>顺着第三篇&quot;全秩矫正器&quot;的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。<strong>双双打平。</strong> 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向<strong>天然优先服务它们</strong>——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。</p>
+<p>顺着第三篇&quot;全秩矫正器&quot;的思路做了两个等预算直通实验：激活最大的输入列不进 SVD 截断（每层 top-24 列原样保留）、幅度最大的输出行不进截断（o/down 的 top-8 行）。<strong>双双打平。</strong> 这个负结果反而更有价值：白化 SVD 的目标函数本来就被这些大行大列主导，最靠前的奇异方向<strong>天然优先服务它们</strong>——这些异常大的通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。</p>
 <p>但测量顺带揭示了&quot;②漂移残余&quot;的精确机制：<strong>RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放</strong>。这是一个把局部小误差全局化的耦合器，也是第三篇发现的 block 16 放大器（一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。</p>
 <h3 id="附录-C：实验方向三——rms-lift-非线性矫正器，机制证实、收益归零">附录 C：实验方向三——rms-lift 非线性矫正器，机制证实、收益归零</h3>
 <p>既然放大器是 RMSNorm 的乘性耦合，对症的做法就是给残差矫正器一个能表达&quot;缩放校正&quot;的特征空间：把回归输入从 $h$ 提升到 $[h;\ h\cdot(\bar r/\mathrm{rms}(h)-1)]$——第二块是每 token 的<strong>尺度异常分量</strong>。对参数仍然线性，ridge 依旧闭式可解。</p>
@@ -3141,7 +3141,7 @@ switchLang('zh');
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<p><a href="/2026/08/22/closed-form-ceiling/">The trilogy finale</a> declared the closed-form track finished at 5.10. We then ran four more experimental directions, pushed the equal-budget record to <strong>5.05</strong>, and — this time — obtained structural evidence that it is truly over. This post covers how that 0.05 nat was earned, and four mechanistic findings worth far more than the 0.05: the pattern/content pathway split in loss sensitivity, the RMSNorm×massive-channel multiplicative amplifier, <strong>the depth distribution of the truncation tax</strong> (an oracle-decomposition experiment), and the rule that small improvements don't stack.</p>
+<p><a href="/2026/08/22/closed-form-ceiling/">The trilogy finale</a> declared the closed-form track finished at 5.10. We then ran four more experimental directions, pushed the equal-budget record to <strong>5.05</strong>, and — this time — obtained structural evidence that it is truly over. This post covers how that 0.05 nat was earned, and four mechanistic findings worth far more than the 0.05: the sharp split of loss sensitivity between the q/k side and the write-back side, the multiplicative amplifier formed by RMSNorm and the massive channels, <strong>the depth distribution of the truncation tax</strong> (an oracle-decomposition experiment), and the rule that small improvements don't stack.</p>
 <p>Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by rank-384 $AB$ (2.29B params, 72% removed); closed-form = layerwise trajectory-correcting regression + lm_head fix + residual-stream correctors, starting at 5.10.</p>
 <p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle-decomposition diagnostics in Section 3 are one-off experiments kept in their original measurement window, used for relative comparison only.)</p>
 <h3 id="1-Three-Components-of-the-Gap-What-Separates-5-06-from-2-11">1. Three Components of the Gap: What Separates 5.06 from 2.11</h3>
@@ -3195,13 +3195,13 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>The network splits into two pathways: the <strong>pattern pathway</strong> (q/k → softmax) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the <strong>content pathway</strong> (v→o, up→down write path) has <strong>slowly decaying spectra using the full width</strong> — down_proj must decode features stored in superposition (packing far more features than dimensions, overlapped in the same coordinates) in the 12288-dim product space back into the residual stream, and such decoding matrices have no low-rank structure to exploit. This loss is information-theoretic; it is immune to &quot;a better approximation algorithm&quot;.</p>
+<p>The table splits in two: the <strong>q/k side</strong> (which only computes the attention pattern) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the <strong>v→o and up→down side</strong> (which writes content back into the residual stream) has <strong>slowly decaying spectra using the full width</strong> — down_proj must decode features stored in superposition (packing far more features than dimensions, overlapped in the same coordinates) in the 12288-dim product space back into the residual stream, and such decoding matrices have no low-rank structure to exploit. This loss is information-theoretic; it is immune to &quot;a better approximation algorithm&quot;.</p>
 <p><strong>② Drift residue</strong>: the gap between the practical 5.06 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta_g\delta_u$ term and RMSNorm's division (its precise mechanism in Appendix B).</p>
 <p><strong>③ Reorganization gain</strong>: training is not bound by this floor, because it never asks each layer to imitate its teacher counterpart — in a residual architecture the final computation is a <strong>sum</strong> of 36 block contributions; the same total function admits infinitely many decompositions, and gradient descent can find one better suited to rank 384 than the teacher's own. Layerwise-imitation objectives cannot capture this gain by definition.</p>
 <p>Three components, three different bottlenecks. All four experimental directions below operate on the boundary between ① and ②.</p>
 <h3 id="2-Direction-1-Loss-Aware-Rank-Allocation-—-Right-Direction-Needs-Damping">2. Direction 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</h3>
 <p>We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.73). What the literature consistently endorses is <strong>loss-sensitivity-driven</strong> allocation (six independent works agree; the survey is in Appendix A) — a different thing: the former asks &quot;how much does this layer's output change if I cut this direction,&quot; the latter asks &quot;how much does the final loss change.&quot; Method: hang a multiplicative gate $\alpha_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate $f_i = \sum(\partial L/\partial\alpha_i)^2$ (a sum of squared gradients — the diagonal approximation of Fisher information, measuring the loss's sensitivity to that direction); calibrate the whitened spectra with the tail values ($f_{l,i}\approx c_l\sigma_{l,i}^2$), then hand rank to the most sensitive layers first until the fixed budget runs out.</p>
-<p>Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/content split:</p>
+<p>Fisher's optimal allocation is drastic, and maps perfectly onto the split above (q/k low, write-back side high):</p>
 <table>
 <thead>
 <tr>
@@ -3283,7 +3283,7 @@ switchLang('zh');
 <p>The last experiment stacked the two verified small improvements (back-load + rms-lift-256): <strong>fail — worse than back-load alone.</strong> Improvements at the 0.02 level harvest the same residue and erode each other when combined.</p>
 <h3 id="4-Conclusions-Three-Bottlenecks-Three-Ways-Out-Three-Lessons">4. Conclusions: Three Bottlenecks, Three Ways Out, Three Lessons</h3>
 <p><strong>The final landscape</strong> (85% compression, equal 2.29B budget):</p>
-<p>$$8.50_{\text{collapse illusion}} \to 5.60_{\text{traj. correction}} \to 5.10_{\text{full-rank correctors}} \to \mathbf{5.05}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p>$$8.50_{\text{collapse illusion}} \to 5.60_{\text{traj. correction}} \to 5.10_{\text{full-rank correctors}} \to \mathbf{5.05}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 2.11_{\text{teacher}}$$</p>
 <table>
 <thead>
 <tr>
@@ -3295,7 +3295,7 @@ switchLang('zh');
 <tbody>
 <tr>
 <td>Truncation tax ~2.0 (concentrated late)</td>
-<td>superposition storage on the content pathway, slowly decaying spectra</td>
+<td>superposition storage in the write-back matrices (v→o, up→down), slowly decaying spectra</td>
 <td>change where rank lives (cross-matrix joint decompositions, sparse residuals) — outside the current paradigm</td>
 </tr>
 <tr>
@@ -3442,7 +3442,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -3474,7 +3474,7 @@ switchLang('zh');
 <p>其中 $y_j$ 是该层输出向量的第 $j$ 个分量，$w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见第 5 节）。</p>
 <p>下面按发生顺序逐个讲这四处改动。</p>
 <h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿截断税">1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税</h3>
-<p>截断税（约 2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
+<p>截断税（约 2 nat，第四篇的组成部分①）的架构根源是写回矩阵（v→o、up→down）的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
 <p>做法：在每层的截断步里做交替求解（3 轮）——</p>
 <p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-nnz。预算严格配平：S 的每个非零值按 1.5 个参数计（含 index 开销；严格 CSR-int16 应为 2.0，勘误后纪录依然成立），从 rank 里扣。</p>
@@ -3515,7 +3515,7 @@ switchLang('zh');
 <p>−0.04 和 −0.07 叠出了 −0.17，比线性相加的 −0.11 还多赚 0.06——<strong>超线性</strong>。机制：梯度度量同时升级了 S 的选择（打分从&quot;能量残差&quot;变成&quot;loss 关键残差&quot;，$|R|\cdot\sigma_{col}\cdot w_{row}$），而度量加权的 SVD 留下的残差恰好更适合 S 捡走。修正后的规律：<strong>同一度量下的小改进不叠加；换度量的改进会放大其他所有杠杆</strong>——因为度量作用于每一个有 rank 约束的决策点。</p>
 <p>（一个理论上干净的推论顺带得证：对角输出加权对<strong>全秩</strong>回归无影响——逐行独立求解时权重不改变解。所以残差矫正器和 lm_head 矫正都吃不到这份收益，度量的收益只存在于 rank 约束处。这也回头解释了为什么当年 lm_head 矫正不需要任何加权就很强。）</p>
 <h3 id="4-校准数据工程：被文献整体忽略的维度">4. 校准数据工程：被文献整体忽略的维度</h3>
-<p>闭式方法的一切统计量（$\Sigma_{ss}, \Sigma_{ts}$、梯度二阶矩）都来自校准数据。文献的标配是 128-256 条短样本（SVD-LLM 用 256×C4）；没有人把校准数据当成一个需要工程的对象。我们把它当成剂量-响应实验做了一遍：</p>
+<p>闭式方法的一切统计量（$\Sigma_{ss}, \Sigma_{ts}$、梯度二阶矩）都来自校准数据。文献的标配是 128-256 条短样本（SVD-LLM 用 256×C4）；没有人把校准数据当成一个需要工程的对象。我们把它当成实验对象，逐档改变用量和多样性测了一遍：</p>
 <table>
 <thead>
 <tr>
@@ -3565,7 +3565,7 @@ switchLang('zh');
 <p>本篇新增的三条可迁移定律：</p>
 <ol>
 <li><strong>度量是一等公民。</strong> 逼近算法的&quot;最优性&quot;永远是相对某个度量的；换成 loss 感知的度量后，此前&quot;榨干&quot;的每个杠杆都重新有了改进空间。检查任何压缩管线时，先问它的截断在什么度量下最优。</li>
-<li><strong>校准数据是一个被忽略的工程对象。</strong> 数量和多样性各自独立贡献、各自饱和，两个轴都值得用剂量实验便宜地测一遍。约 0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
+<li><strong>校准数据是一个被忽略的工程对象。</strong> 数量和多样性各自独立贡献、各自饱和，两个轴都值得逐档改变用量、便宜地测一遍。约 0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
 <li><strong>参数少的估计器赢</strong>（闭式版奥卡姆剃刀）：对角 &gt; 完整协方差，单遍 &gt; 迭代，阻尼 &gt; 全量执行。校准数据的信息量是硬约束，精巧化只是把它重新分配给噪声。</li>
 </ol>
 <p>天花板还会不会动？诚实的答案：本篇之后，配方内的所有维度（表达形式、度量、分配、矫正器、统计）都各自测到了饱和点，剩余的结构性候选只剩逐 head 的 (V,O) 联合分解一项。但第四篇也曾这样宣布过收官——这大概是这个系列最诚实的一课：<strong>&quot;到头了&quot;是一个关于当前假设集的陈述，不是关于问题本身的</strong>。</p>
@@ -3622,7 +3622,7 @@ switchLang('zh');
 <p>where $y_j$ is the $j$-th component of the layer's output vector and $w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$ (the mean squared gradient of the loss with respect to it); solved by alternation — the AB step is a weighted whitened truncation, the S step keeps the top-$k$ entries of the weighted residual. <strong>Change ③</strong> is not in the formula but in its raw material: all statistics ($\Sigma_{ss}, \Sigma_{ts}, L, w$) are now estimated from 512 batches × 16 data shards of calibration data — this post will show its contribution is no smaller than any algorithmic change. On the corrector side there is <strong>change ④</strong> (rms-lift: lift the corrector input from $h$ to $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$, Section 5).</p>
 <p>The sections below introduce these four changes in the order they happened.</p>
 <h3 id="1-Sparse-Residuals-W-≈-AB-S-First-Breach-of-the-Truncation-Tax">1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax</h3>
-<p>The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage on the content pathway: the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>: it is by nature &quot;a few large entries at arbitrary positions.&quot; It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
+<p>The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage in the write-back matrices (v→o, up→down): the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A <strong>sparse term can</strong>: it is by nature &quot;a few large entries at arbitrary positions.&quot; It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).</p>
 <p>Method: alternate inside each layer's truncation step (3 rounds) —</p>
 <p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>The AB step is the existing whitened truncation; the S step scores the residual in the whitened metric and keeps the top-nnz. Strictly budgeted: each nonzero of S is charged 1.5 parameters (index overhead; strict CSR-int16 would be 2.0 — the record survives the erratum), paid out of rank.</p>
@@ -3830,7 +3830,7 @@ switchLang('zh');
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2026-09-04 00:00:00 / Modified: 03:19:45" itemprop="dateCreated datePublished" datetime="2026-09-04T00:00:00+00:00">2026-09-04</time>
+      <time title="Created: 2026-09-04 00:00:00 / Modified: 06:04:44" itemprop="dateCreated datePublished" datetime="2026-09-04T00:00:00+00:00">2026-09-04</time>
     </span>
 
   
@@ -4285,7 +4285,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -4950,7 +4950,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -5047,7 +5047,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">

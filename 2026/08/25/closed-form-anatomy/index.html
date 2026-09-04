@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  三部曲的完结篇宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 5.05，并且这一次拿到了&quot;真的到头了&quot;的结构性证据">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-25T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-04T03:19:45.517Z">
+<meta property="article:modified_time" content="2026-09-04T06:04:44.129Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -177,7 +177,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E5%9B%9B%EF%BC%89%EF%BC%9A%E5%A4%A9%E8%8A%B1%E6%9D%BF%E7%9A%84%E8%A7%A3%E5%89%96%E2%80%94%E2%80%94%E7%94%A8-oracle-%E5%88%86%E8%A7%A3%E5%89%A9%E4%BD%99%E5%B7%AE%E8%B7%9D"><span class="nav-text">低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%B7%AE%E8%B7%9D%E7%9A%84%E4%B8%89%E4%B8%AA%E7%BB%84%E6%88%90%E9%83%A8%E5%88%86%EF%BC%9A5-06-%E5%88%B0-2-11-%E4%B9%8B%E9%97%B4%E5%B7%AE%E5%9C%A8%E5%93%AA%E9%87%8C"><span class="nav-text">1. 差距的三个组成部分：5.06 到 2.11 之间差在哪里</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%80%EF%BC%9Aloss-%E6%95%8F%E6%84%9F%E5%BA%A6%E9%A9%B1%E5%8A%A8%E7%9A%84-rank-%E5%88%86%E9%85%8D%E2%80%94%E2%80%94%E6%96%B9%E5%90%91%E5%AF%B9%EF%BC%8C%E4%BD%86%E8%A6%81%E9%98%BB%E5%B0%BC"><span class="nav-text">2. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E5%9B%9B%EF%BC%9Aoracle-%E5%88%86%E8%A7%A3%E2%80%94%E2%80%94%E6%88%AA%E6%96%AD%E7%A8%8E%E4%BD%8F%E5%9C%A8%E5%93%AA%E4%BA%9B-block-%E9%87%8C"><span class="nav-text">3. 实验方向四：oracle 分解——截断税住在哪些 block 里</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E8%AE%BA%EF%BC%9A%E4%B8%89%E4%B8%AA%E7%93%B6%E9%A2%88%E3%80%81%E4%B8%89%E6%9D%A1%E5%87%BA%E8%B7%AF%E4%B8%8E%E4%B8%89%E6%9D%A1%E7%BB%8F%E9%AA%8C"><span class="nav-text">4. 结论：三个瓶颈、三条出路与三条经验</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%96%87%E7%8C%AE%E8%B0%83%E7%A0%94%E2%80%94%E2%80%94%E6%88%91%E4%BB%AC%E5%9C%A8%E5%89%8D%E6%B2%BF%E7%9A%84%E4%BB%80%E4%B9%88%E4%BD%8D%E7%BD%AE"><span class="nav-text">附录 A：文献调研——我们在前沿的什么位置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%BA%8C%E2%80%94%E2%80%94%E5%B7%A8%E6%BF%80%E6%B4%BB%E9%80%9A%E9%81%93%E7%9A%84%E5%8F%8C%E8%B4%9F%E7%BB%93%E6%9E%9C%E4%B8%8E%E7%9C%9F%E6%AD%A3%E7%9A%84%E6%94%BE%E5%A4%A7%E6%9C%BA%E5%88%B6"><span class="nav-text">附录 B：实验方向二——巨激活通道的双负结果与真正的放大机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-C%EF%BC%9A%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%89%E2%80%94%E2%80%94rms-lift-%E9%9D%9E%E7%BA%BF%E6%80%A7%E7%9F%AB%E6%AD%A3%E5%99%A8%EF%BC%8C%E6%9C%BA%E5%88%B6%E8%AF%81%E5%AE%9E%E3%80%81%E6%94%B6%E7%9B%8A%E5%BD%92%E9%9B%B6"><span class="nav-text">附录 C：实验方向三——rms-lift 非线性矫正器，机制证实、收益归零</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-4-Anatomy-of-the-Ceiling-%E2%80%94-an-Oracle-Decomposition-of-the-Remaining-Gap"><span class="nav-text">Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Three-Components-of-the-Gap-What-Separates-5-06-from-2-11"><span class="nav-text">1. Three Components of the Gap: What Separates 5.06 from 2.11</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Direction-1-Loss-Aware-Rank-Allocation-%E2%80%94-Right-Direction-Needs-Damping"><span class="nav-text">2. Direction 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Direction-4-The-Oracle-Decomposition-%E2%80%94-Which-Blocks-the-Tax-Lives-In"><span class="nav-text">3. Direction 4: The Oracle Decomposition — Which Blocks the Tax Lives In</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Conclusions-Three-Bottlenecks-Three-Ways-Out-Three-Lessons"><span class="nav-text">4. Conclusions: Three Bottlenecks, Three Ways Out, Three Lessons</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-Literature-Survey-%E2%80%94-Where-We-Sit-on-the-Frontier"><span class="nav-text">Appendix A: Literature Survey — Where We Sit on the Frontier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-Direction-2-%E2%80%94-Massive-Activation-Channels-a-Double-Negative-and-the-True-Amplifier"><span class="nav-text">Appendix B: Direction 2 — Massive-Activation Channels, a Double Negative and the True Amplifier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-C-Direction-3-%E2%80%94-rms-Lift-Nonlinear-Correctors-Mechanism-Confirmed-Gain-Zero"><span class="nav-text">Appendix C: Direction 3 — rms-Lift Nonlinear Correctors, Mechanism Confirmed, Gain Zero</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E5%9B%9B%EF%BC%89%EF%BC%9A%E5%A4%A9%E8%8A%B1%E6%9D%BF%E7%9A%84%E8%A7%A3%E5%89%96%E2%80%94%E2%80%94%E7%94%A8-oracle-%E5%88%86%E8%A7%A3%E5%89%A9%E4%BD%99%E5%B7%AE%E8%B7%9D"><span class="nav-text">低秩压缩系列（四）：天花板的解剖——用 oracle 分解剩余差距</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%B7%AE%E8%B7%9D%E7%9A%84%E4%B8%89%E4%B8%AA%E7%BB%84%E6%88%90%E9%83%A8%E5%88%86%EF%BC%9A5-06-%E5%88%B0-2-11-%E4%B9%8B%E9%97%B4%E5%B7%AE%E5%9C%A8%E5%93%AA%E9%87%8C"><span class="nav-text">1. 差距的三个组成部分：5.06 到 2.11 之间差在哪里</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%80%EF%BC%9Aloss-%E6%95%8F%E6%84%9F%E5%BA%A6%E9%A9%B1%E5%8A%A8%E7%9A%84-rank-%E5%88%86%E9%85%8D%E2%80%94%E2%80%94%E6%96%B9%E5%90%91%E5%AF%B9%EF%BC%8C%E4%BD%86%E8%A6%81%E9%98%BB%E5%B0%BC"><span class="nav-text">2. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E5%9B%9B%EF%BC%9Aoracle-%E5%88%86%E8%A7%A3%E2%80%94%E2%80%94%E6%88%AA%E6%96%AD%E7%A8%8E%E4%BD%8F%E5%9C%A8%E5%93%AA%E4%BA%9B-block-%E9%87%8C"><span class="nav-text">3. 实验方向四：oracle 分解——截断税住在哪些 block 里</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E8%AE%BA%EF%BC%9A%E4%B8%89%E4%B8%AA%E7%93%B6%E9%A2%88%E3%80%81%E4%B8%89%E6%9D%A1%E5%87%BA%E8%B7%AF%E4%B8%8E%E4%B8%89%E6%9D%A1%E7%BB%8F%E9%AA%8C"><span class="nav-text">4. 结论：三个瓶颈、三条出路与三条经验</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%96%87%E7%8C%AE%E8%B0%83%E7%A0%94%E2%80%94%E2%80%94%E6%88%91%E4%BB%AC%E5%9C%A8%E5%89%8D%E6%B2%BF%E7%9A%84%E4%BB%80%E4%B9%88%E4%BD%8D%E7%BD%AE"><span class="nav-text">附录 A：文献调研——我们在前沿的什么位置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%BA%8C%E2%80%94%E2%80%94%E6%BF%80%E6%B4%BB%E5%80%BC%E5%BC%82%E5%B8%B8%E5%A4%A7%E7%9A%84%E9%80%9A%E9%81%93%EF%BC%9A%E5%8F%8C%E8%B4%9F%E7%BB%93%E6%9E%9C%E4%B8%8E%E7%9C%9F%E6%AD%A3%E7%9A%84%E6%94%BE%E5%A4%A7%E6%9C%BA%E5%88%B6"><span class="nav-text">附录 B：实验方向二——激活值异常大的通道：双负结果与真正的放大机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-C%EF%BC%9A%E5%AE%9E%E9%AA%8C%E6%96%B9%E5%90%91%E4%B8%89%E2%80%94%E2%80%94rms-lift-%E9%9D%9E%E7%BA%BF%E6%80%A7%E7%9F%AB%E6%AD%A3%E5%99%A8%EF%BC%8C%E6%9C%BA%E5%88%B6%E8%AF%81%E5%AE%9E%E3%80%81%E6%94%B6%E7%9B%8A%E5%BD%92%E9%9B%B6"><span class="nav-text">附录 C：实验方向三——rms-lift 非线性矫正器，机制证实、收益归零</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-4-Anatomy-of-the-Ceiling-%E2%80%94-an-Oracle-Decomposition-of-the-Remaining-Gap"><span class="nav-text">Low-Rank Compression Series (4): Anatomy of the Ceiling — an Oracle Decomposition of the Remaining Gap</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Three-Components-of-the-Gap-What-Separates-5-06-from-2-11"><span class="nav-text">1. Three Components of the Gap: What Separates 5.06 from 2.11</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Direction-1-Loss-Aware-Rank-Allocation-%E2%80%94-Right-Direction-Needs-Damping"><span class="nav-text">2. Direction 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Direction-4-The-Oracle-Decomposition-%E2%80%94-Which-Blocks-the-Tax-Lives-In"><span class="nav-text">3. Direction 4: The Oracle Decomposition — Which Blocks the Tax Lives In</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Conclusions-Three-Bottlenecks-Three-Ways-Out-Three-Lessons"><span class="nav-text">4. Conclusions: Three Bottlenecks, Three Ways Out, Three Lessons</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-Literature-Survey-%E2%80%94-Where-We-Sit-on-the-Frontier"><span class="nav-text">Appendix A: Literature Survey — Where We Sit on the Frontier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-Direction-2-%E2%80%94-Massive-Activation-Channels-a-Double-Negative-and-the-True-Amplifier"><span class="nav-text">Appendix B: Direction 2 — Massive-Activation Channels, a Double Negative and the True Amplifier</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-C-Direction-3-%E2%80%94-rms-Lift-Nonlinear-Correctors-Mechanism-Confirmed-Gain-Zero"><span class="nav-text">Appendix C: Direction 3 — rms-Lift Nonlinear Correctors, Mechanism Confirmed, Gain Zero</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -269,7 +269,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -298,7 +298,7 @@
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<p><a href="/2026/08/22/closed-form-ceiling/">三部曲的完结篇</a>宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 <strong>5.05</strong>，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这 0.05 nat 是怎么挣的——以及一路上收获的、比 0.05 值钱得多的四个机制发现：loss 敏感度的模式/内容通路二分、RMSNorm×巨通道的乘性放大器、<strong>截断税的深度分布</strong>（一个 oracle 分解实验），和&quot;小改进不叠加&quot;的规律。</p>
+<p><a href="/2026/08/22/closed-form-ceiling/">三部曲的完结篇</a>宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 <strong>5.05</strong>，并且这一次拿到了&quot;真的到头了&quot;的结构性证据。这篇讲这 0.05 nat 是怎么挣的——以及一路上收获的、比 0.05 值钱得多的四个机制发现：loss 敏感度在 q/k 侧与写回侧之间的鲜明二分、RMSNorm 与异常大通道构成的乘性放大器、<strong>截断税的深度分布</strong>（一个 oracle 分解实验），和&quot;小改进不叠加&quot;的规律。</p>
 <p>背景（一句话版）：Qwen3-8B（val loss 2.11）→ 每个 linear 换 rank-384 的 $AB$（2.29B，删 72% 参数），闭式方法 = 逐层轨迹矫正回归 + lm_head 矫正 + 残差流矫正器，起点 5.10。</p>
 <p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 3 节 oracle 分解的诊断数字是一次性实验、保持当时的测量口径，只用于相对比较。）</p>
 <h3 id="1-差距的三个组成部分：5-06-到-2-11-之间差在哪里">1. 差距的三个组成部分：5.06 到 2.11 之间差在哪里</h3>
@@ -352,13 +352,13 @@
 </tr>
 </tbody>
 </table>
-<p>网络分成两条通路：<strong>模式通路</strong>（q/k → softmax）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；<strong>内容通路</strong>（v→o、up→down 的写路径）<strong>谱衰减极慢、用满全宽</strong>——down_proj 要把 12288 维乘积空间里以&quot;超位置&quot;方式存储的特征（superposition：把远多于维度数的特征重叠地存在同一组维度里）解码回残差流，这样的解码矩阵天生没有低秩结构可利用。这部分损失是信息论性质的，对&quot;更好的逼近算法&quot;免疫。</p>
+<p>这张表分成两类：<strong>q/k 一侧</strong>（只负责算注意力分布）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；<strong>v→o 与 up→down 一侧</strong>（把内容写回残差流）<strong>谱衰减极慢、用满全宽</strong>——down_proj 要把 12288 维乘积空间里以&quot;超位置&quot;方式存储的特征（superposition：把远多于维度数的特征重叠地存在同一组维度里）解码回残差流，这样的解码矩阵天生没有低秩结构可利用。这部分损失是信息论性质的，对&quot;更好的逼近算法&quot;免疫。</p>
 <p><strong>② 漂移残余</strong>：实际 5.06 与 oracle 4.15 之间，是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta_g\delta_u$ 二阶项和 RMSNorm 的除法（附录 B 有它的精确机制）。</p>
 <p><strong>③ 重组收益</strong>：训练不受这个地板约束，因为它从不要求每层模仿教师对应层——残差架构下最终计算是 36 个 block 贡献的<strong>和</strong>，同一个总函数有无数种拆成 36 份的方式，梯度下降可以找到比&quot;模仿教师原有分工&quot;更适合 rank-384 的新分工。逐层模仿的目标从定义上就拿不到这部分收益。</p>
 <p>三个组成部分对应三个不同的瓶颈。本篇的四个实验方向全部发生在 ① 和 ② 的边界上。</p>
 <h3 id="2-实验方向一：loss-敏感度驱动的-rank-分配——方向对，但要阻尼">2. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼</h3>
 <p>我们之前试过从白化谱做分配（重构误差驱动），失败（5.73）。文献一致认可的是 <strong>loss 敏感度驱动</strong>（六篇独立工作同向；文献调研见附录 A）——这是两回事：前者问&quot;砍掉这个方向，本层输出变多少&quot;，后者问&quot;砍掉这个方向，最终 loss 变多少&quot;。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha_i=1$，反传时只求门的梯度，累积 $f_i = \sum(\partial L/\partial\alpha_i)^2$（梯度平方和，Fisher 信息的对角近似，衡量 loss 对该方向的敏感度）；用尾部的 $f$ 校准白化谱（$f_{l,i}\approx c_l\sigma_{l,i}^2$），然后在总预算固定的约束下把 rank 优先分给敏感度高的层，直到预算用完。</p>
-<p>Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：</p>
+<p>Fisher 给出的分配极其激进，且完美对应上面的二分（q/k 低、写回侧高）：</p>
 <table>
 <thead>
 <tr>
@@ -385,11 +385,11 @@
 </tr>
 </tbody>
 </table>
-<p><strong>照单全收 → 5.27（失败）</strong>；把偏离限制在均匀值的 0.6~1.6 倍（即&quot;阻尼&quot;）→ <strong>5.06（当时的新纪录）</strong>。教训：这种敏感度是局部量——它只回答&quot;在当前解附近动一动会怎样&quot;，砍 4 倍已经远超它的适用范围；三点剂量曲线（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。</p>
+<p><strong>照单全收 → 5.27（失败）</strong>；把偏离限制在均匀值的 0.6~1.6 倍（即&quot;阻尼&quot;）→ <strong>5.06（当时的新纪录）</strong>。教训：这种敏感度是局部量——它只回答&quot;在当前解附近动一动会怎样&quot;，砍 4 倍已经远超它的适用范围；三档对照（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。</p>
 <p><strong>把本篇的改动写成公式</strong>。前三篇里每层的 rank 是固定常数 $r$；本篇把每层的 rank ${r_\ell}$ 变成待求的变量：</p>
 <p>$$\min_{{r_\ell}}\ \sum_\ell \underbrace{\sum_{i &gt; r_\ell} f_{\ell,i}}_{\text{层 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum_\ell r_\ell (m_\ell + n_\ell) = \text{预算}, \qquad \underbrace{r_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}_{\text{阻尼约束（不可省略）}}$$</p>
 <p>其中 $f_{\ell,i}$ 是第 $\ell$ 层第 $i$ 个方向的 loss 敏感度（前文的梯度平方和）。没有阻尼约束时这个问题的解就是&quot;照单全收&quot;的 5.27；加上它才得到 5.06——<strong>约束本身是改进的一半</strong>。</p>
-<p>实验方向二、三都是干净的负结果，但各自揭示了机制，细节在附录：巨激活通道天然不付截断税（<strong>附录 B</strong>——顺带定位了&quot;②漂移残余&quot;的放大器：RMSNorm 的分母被两条巨通道主导，它们一漂移、全部 4096 维跟着乘性重缩放）；rms-lift 非线性矫正器能修乘性漂移，但参数效率与直接加 rank 持平（<strong>附录 C</strong>）。主线于是回到 rank 的放置：</p>
+<p>实验方向二、三都是干净的负结果，但各自揭示了机制，细节在附录：激活值异常大的通道天然不付截断税（<strong>附录 B</strong>——顺带定位了&quot;②漂移残余&quot;的放大器：RMSNorm 的分母被两条异常大的通道主导，它们一漂移、全部 4096 维跟着乘性重缩放）；rms-lift 非线性矫正器能修乘性漂移，但参数效率与直接加 rank 持平（<strong>附录 C</strong>）。主线于是回到 rank 的放置：</p>
 <h3 id="3-实验方向四：oracle-分解——截断税住在哪些-block-里">3. 实验方向四：oracle 分解——截断税住在哪些 block 里</h3>
 <p><a href="/2026/08/22/closed-form-ceiling/">第三篇</a>的完整 oracle（把全部子层输入换成教师的干净值）只给出一个总量。把它拆开——每次只换一部分输入（本表是一次性诊断实验，用当时的评估口径，看相对差值即可）：</p>
 <table>
@@ -436,11 +436,11 @@
 <p>两个重磅结论：</p>
 <p><strong>其一：截断税几乎全部集中在后半段。</strong> 只把 block 18-35 的输入换干净，loss 就到了完整 oracle 的水平——意味着前半段的局部截断误差对 logits 的直接贡献只有约 0.01 nat，它的全部危害走&quot;制造漂移&quot;这条间接通道；而漂移是（部分）可矫正的，后半段的截断税则无药可救。<strong>推论：边际 rank 在后半段的价值远高于前半段。</strong> 我们此前试过的恰好是反方向（front-load，5.38 失败——当时的理论&quot;减少流进 block 16 的漂移&quot;错得离谱）。</p>
 <p><strong>其二：局部&quot;清洁&quot;上游反而伤害下游（−0.40）。</strong> 顺序管线里每一层和矫正器都是<strong>适配上游特定误差模式</strong>拟合的，突然给它们干净的中间值，下游的补偿全部失配。这是矫正链自洽性的第三次独立验证（前两次：不动点迭代 5.95、跨层联合优化的文献负结果）。</p>
-<p>据此做 back-load（把 rank 往后半段倾斜）：前半 rank ×0.8、后半按预算配平放大（×1.24）。<strong>5.05——最终纪录</strong>，剂量曲线在 ×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。</p>
-<p>最后一个实验是把两个已验证的小改进叠加（back-load + rms-lift-256）：<strong>失败，比单独 back-load 还差</strong>。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。</p>
+<p>据此把 rank 往后半段倾斜（下称&quot;后倾分配&quot;）：前半 rank ×0.8、后半按预算配平放大（×1.24）。<strong>5.05——最终纪录</strong>，倾斜幅度逐档试过，×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。</p>
+<p>最后一个实验是把两个已验证的小改进叠加（后倾分配 + rms-lift-256）：<strong>失败，比单独后倾分配还差</strong>。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。</p>
 <h3 id="4-结论：三个瓶颈、三条出路与三条经验">4. 结论：三个瓶颈、三条出路与三条经验</h3>
 <p><strong>最终版图</strong>（85% 压缩率、等预算 2.29B）：</p>
-<p>$$8.50_{\text{坍缩假象}} \to 5.60_{\text{轨迹矫正}} \to 5.10_{\text{全秩矫正器}} \to \mathbf{5.05}_{\text{+分配+back-load}} \to 4.15_{\text{oracle}} \to 3.2_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50_{\text{坍缩假象}} \to 5.60_{\text{轨迹矫正}} \to 5.10_{\text{全秩矫正器}} \to \mathbf{5.05}_{\text{+分配+后倾}} \to 4.15_{\text{oracle}} \to 2.11_{\text{教师}}$$</p>
 <table>
 <thead>
 <tr>
@@ -452,12 +452,12 @@
 <tbody>
 <tr>
 <td>截断税约 2.0（集中在后半段）</td>
-<td>内容通路的超位置存储、谱衰减极慢</td>
+<td>写回矩阵（v→o、up→down）的超位置存储、谱衰减极慢</td>
 <td>改变 rank 的放置方式（跨矩阵联合分解、稀疏残差等）——在现有范式之外</td>
 </tr>
 <tr>
 <td>漂移残余约 0.9</td>
-<td>SwiGLU 乘法 + RMSNorm×巨通道</td>
+<td>SwiGLU 乘法 + RMSNorm 的异常大通道</td>
 <td>非线性矫正器可修，但参数效率与加 rank 持平——已榨干</td>
 </tr>
 <tr>
@@ -483,9 +483,9 @@
 <li><strong>没有任何已发表的 training-free 方法在 70%+ 参数削减下报告过可用结果。</strong> 纯闭式的最远数据点是 SVD-LLM 在 LLaMA-7B 删 60% 时 PPL 53.7——折成 loss 约 4.0，与我们的 oracle 界惊人吻合：文献从侧面证实这堵墙的量级是真的。我们在删 72% 拿 5.0x，在前沿之上。</li>
 <li><strong>非均匀 rank 分配是文献中最一致的收益来源</strong>（Dobi-SVD、SVD-LLM v2、D-Rank、UniRank、AIR、LACE-SVD 六篇独立工作同向）：高压缩下&quot;分配比分解本身更重要&quot;。这直接触发了实验方向一。</li>
 </ol>
-<h3 id="附录-B：实验方向二——巨激活通道的双负结果与真正的放大机制">附录 B：实验方向二——巨激活通道的双负结果与真正的放大机制</h3>
+<h3 id="附录-B：实验方向二——激活值异常大的通道：双负结果与真正的放大机制">附录 B：实验方向二——激活值异常大的通道：双负结果与真正的放大机制</h3>
 <p>测量教师的输出侧异常，发现巨幅激活（massive activations，<a href="/2026/08/22/closed-form-ceiling/">第三篇</a>附录 A 提过的现象）在这个模型里是<strong>两条贯穿全网的全局通道</strong>：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。</p>
-<p>顺着第三篇&quot;全秩矫正器&quot;的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。<strong>双双打平。</strong> 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向<strong>天然优先服务它们</strong>——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。</p>
+<p>顺着第三篇&quot;全秩矫正器&quot;的思路做了两个等预算直通实验：激活最大的输入列不进 SVD 截断（每层 top-24 列原样保留）、幅度最大的输出行不进截断（o/down 的 top-8 行）。<strong>双双打平。</strong> 这个负结果反而更有价值：白化 SVD 的目标函数本来就被这些大行大列主导，最靠前的奇异方向<strong>天然优先服务它们</strong>——这些异常大的通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。</p>
 <p>但测量顺带揭示了&quot;②漂移残余&quot;的精确机制：<strong>RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放</strong>。这是一个把局部小误差全局化的耦合器，也是第三篇发现的 block 16 放大器（一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。</p>
 <h3 id="附录-C：实验方向三——rms-lift-非线性矫正器，机制证实、收益归零">附录 C：实验方向三——rms-lift 非线性矫正器，机制证实、收益归零</h3>
 <p>既然放大器是 RMSNorm 的乘性耦合，对症的做法就是给残差矫正器一个能表达&quot;缩放校正&quot;的特征空间：把回归输入从 $h$ 提升到 $[h;\ h\cdot(\bar r/\mathrm{rms}(h)-1)]$——第二块是每 token 的<strong>尺度异常分量</strong>。对参数仍然线性，ridge 依旧闭式可解。</p>
@@ -524,7 +524,7 @@
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<p><a href="/2026/08/22/closed-form-ceiling/">The trilogy finale</a> declared the closed-form track finished at 5.10. We then ran four more experimental directions, pushed the equal-budget record to <strong>5.05</strong>, and — this time — obtained structural evidence that it is truly over. This post covers how that 0.05 nat was earned, and four mechanistic findings worth far more than the 0.05: the pattern/content pathway split in loss sensitivity, the RMSNorm×massive-channel multiplicative amplifier, <strong>the depth distribution of the truncation tax</strong> (an oracle-decomposition experiment), and the rule that small improvements don't stack.</p>
+<p><a href="/2026/08/22/closed-form-ceiling/">The trilogy finale</a> declared the closed-form track finished at 5.10. We then ran four more experimental directions, pushed the equal-budget record to <strong>5.05</strong>, and — this time — obtained structural evidence that it is truly over. This post covers how that 0.05 nat was earned, and four mechanistic findings worth far more than the 0.05: the sharp split of loss sensitivity between the q/k side and the write-back side, the multiplicative amplifier formed by RMSNorm and the massive channels, <strong>the depth distribution of the truncation tax</strong> (an oracle-decomposition experiment), and the rule that small improvements don't stack.</p>
 <p>Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by rank-384 $AB$ (2.29B params, 72% removed); closed-form = layerwise trajectory-correcting regression + lm_head fix + residual-stream correctors, starting at 5.10.</p>
 <p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle-decomposition diagnostics in Section 3 are one-off experiments kept in their original measurement window, used for relative comparison only.)</p>
 <h3 id="1-Three-Components-of-the-Gap-What-Separates-5-06-from-2-11">1. Three Components of the Gap: What Separates 5.06 from 2.11</h3>
@@ -578,13 +578,13 @@
 </tr>
 </tbody>
 </table>
-<p>The network splits into two pathways: the <strong>pattern pathway</strong> (q/k → softmax) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the <strong>content pathway</strong> (v→o, up→down write path) has <strong>slowly decaying spectra using the full width</strong> — down_proj must decode features stored in superposition (packing far more features than dimensions, overlapped in the same coordinates) in the 12288-dim product space back into the residual stream, and such decoding matrices have no low-rank structure to exploit. This loss is information-theoretic; it is immune to &quot;a better approximation algorithm&quot;.</p>
+<p>The table splits in two: the <strong>q/k side</strong> (which only computes the attention pattern) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the <strong>v→o and up→down side</strong> (which writes content back into the residual stream) has <strong>slowly decaying spectra using the full width</strong> — down_proj must decode features stored in superposition (packing far more features than dimensions, overlapped in the same coordinates) in the 12288-dim product space back into the residual stream, and such decoding matrices have no low-rank structure to exploit. This loss is information-theoretic; it is immune to &quot;a better approximation algorithm&quot;.</p>
 <p><strong>② Drift residue</strong>: the gap between the practical 5.06 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta_g\delta_u$ term and RMSNorm's division (its precise mechanism in Appendix B).</p>
 <p><strong>③ Reorganization gain</strong>: training is not bound by this floor, because it never asks each layer to imitate its teacher counterpart — in a residual architecture the final computation is a <strong>sum</strong> of 36 block contributions; the same total function admits infinitely many decompositions, and gradient descent can find one better suited to rank 384 than the teacher's own. Layerwise-imitation objectives cannot capture this gain by definition.</p>
 <p>Three components, three different bottlenecks. All four experimental directions below operate on the boundary between ① and ②.</p>
 <h3 id="2-Direction-1-Loss-Aware-Rank-Allocation-—-Right-Direction-Needs-Damping">2. Direction 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping</h3>
 <p>We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.73). What the literature consistently endorses is <strong>loss-sensitivity-driven</strong> allocation (six independent works agree; the survey is in Appendix A) — a different thing: the former asks &quot;how much does this layer's output change if I cut this direction,&quot; the latter asks &quot;how much does the final loss change.&quot; Method: hang a multiplicative gate $\alpha_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate $f_i = \sum(\partial L/\partial\alpha_i)^2$ (a sum of squared gradients — the diagonal approximation of Fisher information, measuring the loss's sensitivity to that direction); calibrate the whitened spectra with the tail values ($f_{l,i}\approx c_l\sigma_{l,i}^2$), then hand rank to the most sensitive layers first until the fixed budget runs out.</p>
-<p>Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/content split:</p>
+<p>Fisher's optimal allocation is drastic, and maps perfectly onto the split above (q/k low, write-back side high):</p>
 <table>
 <thead>
 <tr>
@@ -666,7 +666,7 @@
 <p>The last experiment stacked the two verified small improvements (back-load + rms-lift-256): <strong>fail — worse than back-load alone.</strong> Improvements at the 0.02 level harvest the same residue and erode each other when combined.</p>
 <h3 id="4-Conclusions-Three-Bottlenecks-Three-Ways-Out-Three-Lessons">4. Conclusions: Three Bottlenecks, Three Ways Out, Three Lessons</h3>
 <p><strong>The final landscape</strong> (85% compression, equal 2.29B budget):</p>
-<p>$$8.50_{\text{collapse illusion}} \to 5.60_{\text{traj. correction}} \to 5.10_{\text{full-rank correctors}} \to \mathbf{5.05}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 3.2_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p>$$8.50_{\text{collapse illusion}} \to 5.60_{\text{traj. correction}} \to 5.10_{\text{full-rank correctors}} \to \mathbf{5.05}_{\text{+alloc+backload}} \to 4.15_{\text{oracle}} \to 2.11_{\text{teacher}}$$</p>
 <table>
 <thead>
 <tr>
@@ -678,7 +678,7 @@
 <tbody>
 <tr>
 <td>Truncation tax ~2.0 (concentrated late)</td>
-<td>superposition storage on the content pathway, slowly decaying spectra</td>
+<td>superposition storage in the write-back matrices (v→o, up→down), slowly decaying spectra</td>
 <td>change where rank lives (cross-matrix joint decompositions, sparse residuals) — outside the current paradigm</td>
 </tr>
 <tr>

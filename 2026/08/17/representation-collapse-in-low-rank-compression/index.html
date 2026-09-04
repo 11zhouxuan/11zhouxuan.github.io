@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-04T03:19:45.519Z">
+<meta property="article:modified_time" content="2026-09-04T06:04:44.130Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -268,7 +268,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -659,16 +659,16 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <td>0.27</td>
 </tr>
 <tr>
-<td>MLP override ratio</td>
+<td>MLP 输出/残差流幅度比</td>
 <td>0.40</td>
 <td>0.30</td>
 <td>1.40</td>
 </tr>
 </tbody>
 </table>
-<p>（override ratio = MLP 输出与残差流本身的幅度之比，衡量 MLP 对残差流的改写力度。）</p>
+<p>（幅度比衡量 MLP 对残差流的改写力度。）</p>
 <p><strong>ASVD 的 MLP 对所有 token 输出几乎相同的向量</strong>（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。</p>
-<p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。</p>
+<p>这意味着在残差加法 $h_{new} = h_{old} + \text{MLP}(h_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（幅度比 1.40），但每个 token 的偏移不同，所以不会收敛。</p>
 <p><strong>根本原因</strong>：down_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down_proj 只保留了 384 个线性组合——这些组合恰好是所有 token <strong>共享的成分</strong>（因为 ASVD 的加权偏好保留 $s_i$ 大的那些分量），而 <strong>token-specific 的差异成分被丢弃</strong>。</p>
 <h3 id="附录-B：与文献的对应">附录 B：与文献的对应</h3>
 <p>这个现象在 transformer 研究中已有理论解释：</p>
@@ -1126,14 +1126,14 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <td>0.27</td>
 </tr>
 <tr>
-<td>MLP override ratio</td>
+<td>MLP output / residual-stream magnitude</td>
 <td>0.40</td>
 <td>0.30</td>
 <td>1.40</td>
 </tr>
 </tbody>
 </table>
-<p>(Override ratio = the magnitude of the MLP output relative to the residual stream itself — how strongly the MLP rewrites the stream.)</p>
+<p>(The magnitude ratio measures how strongly the MLP rewrites the stream.)</p>
 <p><strong>ASVD's MLP outputs are nearly identical across all tokens</strong> (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).</p>
 <p>In the residual addition $h_{new} = h_{old} + \text{MLP}(h_{old})$, ASVD adds nearly the same offset to every token. Over 36 layers, all representations converge to the same direction. Plain SVD's larger but token-diverse offsets do not cause convergence.</p>
 <p><strong>Root cause</strong>: When down_proj maps the 12288-dim gate×up result back to 4096 dimensions with rank=384, ASVD's activation weighting causes it to retain the <strong>shared components</strong> across tokens (the components with large $s_i$) while discarding the <strong>token-specific differences</strong>.</p>
