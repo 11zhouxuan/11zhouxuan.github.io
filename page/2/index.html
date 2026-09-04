@@ -22,7 +22,7 @@
     <meta name="description" content="Personal academic blog on applied mathematics and machine learning.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Xuan&#39;s Blog">
-<meta property="og:url" content="https://11zhouxuan.github.io/tags/generative-models/index.html">
+<meta property="og:url" content="https://11zhouxuan.github.io/page/2/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
 <meta property="og:description" content="Personal academic blog on applied mathematics and machine learning.">
 <meta property="og:locale" content="en_US">
@@ -31,13 +31,13 @@
 <meta name="twitter:card" content="summary">
 
 
-<link rel="canonical" href="https://11zhouxuan.github.io/tags/generative-models/">
+<link rel="canonical" href="https://11zhouxuan.github.io/page/2/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":false,"lang":"en","comments":"","permalink":"","path":"tags/generative-models/index.html","title":""}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":true,"isPost":false,"lang":"en","comments":"","permalink":"","path":"page/2/index.html","title":""}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Tag: generative models | Xuan's Blog</title>
+<title>Xuan's Blog</title>
   
 
 
@@ -68,7 +68,7 @@
 
   
 
-  <script class="next-config" data-name="enableMath" type="application/json">false</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"ams","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
+  <script class="next-config" data-name="enableMath" type="application/json">true</script><script class="next-config" data-name="mathjax" type="application/json">{"enable":true,"tags":"ams","js":{"url":"https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js","integrity":"sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI="}}</script>
 <script src="/js/third-party/math/mathjax.js" defer></script>
 
 
@@ -101,7 +101,7 @@
 
     <a href="/" class="brand" rel="start">
       <i class="logo-line"></i>
-      <p class="site-title">Xuan's Blog</p>
+      <h1 class="site-title">Xuan's Blog</h1>
       <i class="logo-line"></i>
     </a>
       <p class="site-subtitle" itemprop="description">Applied Mathematics & Machine Learning</p>
@@ -212,70 +212,109 @@
 
     </div>
 
-    <div class="main-inner tag posts-collapse">
+    <div class="main-inner index posts-expand">
+
+    
 
 
+<div class="post-block">
   
   
-  
-  <div class="post-block">
-    <div class="post-content">
-      <div class="collection-title">
-        <h1 class="collection-header">generative models
-          <small>Tag</small>
-        </h1>
-      </div>
 
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="">
+    <link itemprop="mainEntityOfPage" href="https://11zhouxuan.github.io/2025/06/12/flow-matching-three-steps/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Xuan Zhou">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Xuan's Blog">
+      <meta itemprop="description" content="Personal academic blog on applied mathematics and machine learning.">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content=" | Xuan's Blog">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          <a href="/2025/06/12/flow-matching-three-steps/" class="post-title-link" itemprop="url">The Mathematics of Flow Matching</a>
+        </h2>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2025-06-12 10:00:00" itemprop="dateCreated datePublished" datetime="2025-06-12T10:00:00+00:00">2025-06-12</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/machine-learning/" itemprop="url" rel="index"><span itemprop="name">machine learning</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+          <div class="lang-switch">
+  <button id="btn-en" class="lang-btn active" onclick="switchLang('en')">English</button>
+  <button id="btn-zh" class="lang-btn" onclick="switchLang('zh')">中文</button>
+</div>
+<!-- Chinese Version -->
+<div class="lang-content lang-zh" style="display:none;">
+<p>Flow Matching——连续生成模型中&quot;无需模拟&quot;训练目标的极简推导，三步到位。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2025/06/12/flow-matching-three-steps/#more" rel="contents">
+                Read more &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
       
-    <div class="collection-year">
-      <span class="collection-header">2025</span>
     </div>
 
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-      <div class="post-meta-container">
-        <time itemprop="dateCreated"
-              datetime="2025-06-18T10:00:00+00:00"
-              content="2025-06-18">
-          06-18
-        </time>
-      </div>
+    
+    
+    
 
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/06/18/meanflow-one-step-generation/" itemprop="url">
-            <span itemprop="name">From Flow Matching to MeanFlow: One-Step Generation</span>
-          </a>
-      </div>
-
+    <footer class="post-footer">
+        <div class="post-eof"></div>
       
-    </header>
+    </footer>
   </article>
+</div>
 
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-      <div class="post-meta-container">
-        <time itemprop="dateCreated"
-              datetime="2025-06-12T10:00:00+00:00"
-              content="2025-06-12">
-          06-12
-        </time>
-      </div>
 
-      <div class="post-title">
-          <a class="post-title-link" href="/2025/06/12/flow-matching-three-steps/" itemprop="url">
-            <span itemprop="name">The Mathematics of Flow Matching</span>
-          </a>
-      </div>
 
-      
-    </header>
-  </article>
 
-    </div>
-  </div>
-  
-  
-  
+  <nav class="pagination">
+    <a class="extend prev" rel="prev" title="Previous page" aria-label="Previous page" href="/"><i class="fa fa-angle-left"></i></a><a class="page-number" href="/">1</a><span class="page-number current">2</span>
+  </nav>
 
 </div>
   </main>
