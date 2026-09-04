@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（五）：会移动的天花板——稀疏残差、更好的度量与校准数据  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  第四篇用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 4.59——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-30T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-04T03:09:44.288Z">
+<meta property="article:modified_time" content="2026-09-04T03:19:45.518Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="calibration">
@@ -269,7 +269,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:19:45" itemprop="dateModified" datetime="2026-09-04T03:19:45+00:00">2026-09-04</time>
     </span>
 
   
@@ -299,7 +299,7 @@
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
 <p><a href="/2026/08/25/closed-form-anatomy/">第四篇</a>用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 <strong>4.59</strong>——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）只剩 0.80。这篇讲天花板是怎么两次移动的。诚实地说，两次都源于同一件事：<strong>合作者对&quot;已经到头了&quot;这个结论的不服气</strong>。第一次的不服（&quot;低秩逼近还有很大空间&quot;）指向了度量修正，第二次（对统计地基的持续加码）打开了校准数据工程。&quot;工具箱已榨干&quot;的结论永远带着一个隐藏脚注：<em>在当前的度量、当前的表达形式、当前的统计地基下</em>。</p>
-<p>背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 免税矫正器 + loss 感知分配，第四篇终点 5.05。</p>
+<p>背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 全秩矫正器 + loss 感知分配，第四篇终点 5.05。</p>
 <p>（本文 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 6 节的 oracle 诊断保持当时的测量口径。）</p>
 <h3 id="0-先看最终配方：四处改动写进同一个式子">0. 先看最终配方：四处改动写进同一个式子</h3>
 <p>第二篇确立的逐层目标是：解出 $M^*$ 后在白化度量下截断，$\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$。本篇终点的逐层目标：</p>
@@ -447,7 +447,7 @@
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
 <p><a href="/2026/08/25/closed-form-anatomy/">Part 4</a> closed the closed-form track at 5.05 with a three-component anatomy of the gap. It was then pushed to <strong>4.59</strong> within a week — nearly another 0.5 nat, leaving just 0.80 to an end-to-end-distilled, actually-trained model (3.79). This post is about how the ceiling moved twice. Honestly, both moves came from the same source: <strong>a collaborator refusing to accept &quot;it's over&quot;</strong>. The first refusal (&quot;low-rank approximation still has plenty of room&quot;) led to the metric fix; the second (insisting on the statistical foundations) opened up calibration-data engineering. &quot;The toolbox is exhausted&quot; always carries a hidden footnote: <em>under the current metric, the current representation, and the current statistics</em>.</p>
-<p>Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + tax-free correctors + loss-aware allocation; part 4 endpoint 5.05.</p>
+<p>Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + full-rank correctors + loss-aware allocation; part 4 endpoint 5.05.</p>
 <p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle diagnostics in Section 6 keep their original measurement window.)</p>
 <h3 id="0-The-Final-Recipe-First-Four-Changes-in-One-Formula">0. The Final Recipe First: Four Changes in One Formula</h3>
 <p>Part 2 established the layerwise objective: solve for $M^*$, then truncate in the whitened metric, $\min_{A,B} \lVert (M^* - AB) L \rVert_F^2$. This post's endpoint objective per layer:</p>
