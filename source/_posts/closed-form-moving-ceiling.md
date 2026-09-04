@@ -36,7 +36,7 @@ $$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{改动②：
 
 ### 1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税
 
-截断税（约 2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但**稀疏项可以**——它天生就是"少数任意位置的大元素"。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。
+截断税（约 2 nat，第四篇的组成部分①）的架构根源是写回矩阵（v→o、up→down）的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但**稀疏项可以**——它天生就是"少数任意位置的大元素"。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。
 
 做法：在每层的截断步里做交替求解（3 轮）——
 
@@ -73,7 +73,7 @@ SVD 前乘 $\mathrm{diag}(w)$、解出后除回即可。**单独 −0.07（4.98�
 
 ### 4. 校准数据工程：被文献整体忽略的维度
 
-闭式方法的一切统计量（$\Sigma\_{ss}, \Sigma\_{ts}$、梯度二阶矩）都来自校准数据。文献的标配是 128-256 条短样本（SVD-LLM 用 256×C4）；没有人把校准数据当成一个需要工程的对象。我们把它当成剂量-响应实验做了一遍：
+闭式方法的一切统计量（$\Sigma\_{ss}, \Sigma\_{ts}$、梯度二阶矩）都来自校准数据。文献的标配是 128-256 条短样本（SVD-LLM 用 256×C4）；没有人把校准数据当成一个需要工程的对象。我们把它当成实验对象，逐档改变用量和多样性测了一遍：
 
 | 统计配置 | val loss | 备注 |
 |---|---|---|
@@ -110,7 +110,7 @@ $$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}\_{\text{稀疏×度量}}
 本篇新增的三条可迁移定律：
 
 1. **度量是一等公民。** 逼近算法的"最优性"永远是相对某个度量的；换成 loss 感知的度量后，此前"榨干"的每个杠杆都重新有了改进空间。检查任何压缩管线时，先问它的截断在什么度量下最优。
-2. **校准数据是一个被忽略的工程对象。** 数量和多样性各自独立贡献、各自饱和，两个轴都值得用剂量实验便宜地测一遍。约 0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。
+2. **校准数据是一个被忽略的工程对象。** 数量和多样性各自独立贡献、各自饱和，两个轴都值得逐档改变用量、便宜地测一遍。约 0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。
 3. **参数少的估计器赢**（闭式版奥卡姆剃刀）：对角 > 完整协方差，单遍 > 迭代，阻尼 > 全量执行。校准数据的信息量是硬约束，精巧化只是把它重新分配给噪声。
 
 天花板还会不会动？诚实的答案：本篇之后，配方内的所有维度（表达形式、度量、分配、矫正器、统计）都各自测到了饱和点，剩余的结构性候选只剩逐 head 的 (V,O) 联合分解一项。但第四篇也曾这样宣布过收官——这大概是这个系列最诚实的一课：**"到头了"是一个关于当前假设集的陈述，不是关于问题本身的**。
@@ -165,7 +165,7 @@ The sections below introduce these four changes in the order they happened.
 
 ### 1. Sparse Residuals: W ≈ AB + S, First Breach of the Truncation Tax
 
-The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage on the content pathway: the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A **sparse term can**: it is by nature "a few large entries at arbitrary positions." It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).
+The truncation tax (~2 nats, component ① in part 4) is rooted in superposition storage in the write-back matrices (v→o, up→down): the error concentrates in a few large, mutually unrelated matrix entries — structure low-rank factors mathematically cannot express. A **sparse term can**: it is by nature "a few large entries at arbitrary positions." It is also the literature's most consistently supported paradigm change (OATS/HASSLE-free/LoSparse: S+LR beats pure LR at equal budget, with the gap widening at higher compression).
 
 Method: alternate inside each layer's truncation step (3 rounds) —
 

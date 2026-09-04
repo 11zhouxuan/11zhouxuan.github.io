@@ -18,7 +18,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
-[三部曲的完结篇](/2026/08/22/closed-form-ceiling/)宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 **5.05**，并且这一次拿到了"真的到头了"的结构性证据。这篇讲这 0.05 nat 是怎么挣的——以及一路上收获的、比 0.05 值钱得多的四个机制发现：loss 敏感度的模式/内容通路二分、RMSNorm×巨通道的乘性放大器、**截断税的深度分布**（一个 oracle 分解实验），和"小改进不叠加"的规律。
+[三部曲的完结篇](/2026/08/22/closed-form-ceiling/)宣布闭式赛道在 5.10 收官。然后我们又跑了四个实验方向，把等预算纪录推到 **5.05**，并且这一次拿到了"真的到头了"的结构性证据。这篇讲这 0.05 nat 是怎么挣的——以及一路上收获的、比 0.05 值钱得多的四个机制发现：loss 敏感度在 q/k 侧与写回侧之间的鲜明二分、RMSNorm 与异常大通道构成的乘性放大器、**截断税的深度分布**（一个 oracle 分解实验），和"小改进不叠加"的规律。
 
 背景（一句话版）：Qwen3-8B（val loss 2.11）→ 每个 linear 换 rank-384 的 $AB$（2.29B，删 72% 参数），闭式方法 = 逐层轨迹矫正回归 + lm_head 矫正 + 残差流矫正器，起点 5.10。
 
@@ -44,7 +44,7 @@ $$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrig
 | up_proj | 82.9% | 983 |
 | **down_proj** | **66.2%** | **1839** |
 
-网络分成两条通路：**模式通路**（q/k → softmax）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；**内容通路**（v→o、up→down 的写路径）**谱衰减极慢、用满全宽**——down_proj 要把 12288 维乘积空间里以"超位置"方式存储的特征（superposition：把远多于维度数的特征重叠地存在同一组维度里）解码回残差流，这样的解码矩阵天生没有低秩结构可利用。这部分损失是信息论性质的，对"更好的逼近算法"免疫。
+这张表分成两类：**q/k 一侧**（只负责算注意力分布）本质低秩且对漂移鲁棒（softmax 饱和，attention 分布接近 argmax）；**v→o 与 up→down 一侧**（把内容写回残差流）**谱衰减极慢、用满全宽**——down_proj 要把 12288 维乘积空间里以"超位置"方式存储的特征（superposition：把远多于维度数的特征重叠地存在同一组维度里）解码回残差流，这样的解码矩阵天生没有低秩结构可利用。这部分损失是信息论性质的，对"更好的逼近算法"免疫。
 
 **② 漂移残余**：实际 5.06 与 oracle 4.15 之间，是穿过非线性复合后线性矫正器修不掉的漂移，载体是两个乘性非线性——SwiGLU 的 $\delta\_g\delta\_u$ 二阶项和 RMSNorm 的除法（附录 B 有它的精确机制）。
 
@@ -56,7 +56,7 @@ $$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrig
 
 我们之前试过从白化谱做分配（重构误差驱动），失败（5.73）。文献一致认可的是 **loss 敏感度驱动**（六篇独立工作同向；文献调研见附录 A）——这是两回事：前者问"砍掉这个方向，本层输出变多少"，后者问"砍掉这个方向，最终 loss 变多少"。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha\_i=1$，反传时只求门的梯度，累积 $f\_i = \sum(\partial L/\partial\alpha\_i)^2$（梯度平方和，Fisher 信息的对角近似，衡量 loss 对该方向的敏感度）；用尾部的 $f$ 校准白化谱（$f\_{l,i}\approx c\_l\sigma\_{l,i}^2$），然后在总预算固定的约束下把 rank 优先分给敏感度高的层，直到预算用完。
 
-Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
+Fisher 给出的分配极其激进，且完美对应上面的二分（q/k 低、写回侧高）：
 
 | 矩阵 | Fisher 最优 rank（均值） | 对均匀 316 |
 |---|---|---|
@@ -64,7 +64,7 @@ Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 | down_proj | 476 | ↑ 1.5 倍 |
 | q_proj / k_proj / gate_proj | 77 / 92 / 128 | ↓ 3-4 倍 |
 
-**照单全收 → 5.27（失败）**；把偏离限制在均匀值的 0.6~1.6 倍（即"阻尼"）→ **5.06（当时的新纪录）**。教训：这种敏感度是局部量——它只回答"在当前解附近动一动会怎样"，砍 4 倍已经远超它的适用范围；三点剂量曲线（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。
+**照单全收 → 5.27（失败）**；把偏离限制在均匀值的 0.6~1.6 倍（即"阻尼"）→ **5.06（当时的新纪录）**。教训：这种敏感度是局部量——它只回答"在当前解附近动一动会怎样"，砍 4 倍已经远超它的适用范围；三档对照（不倾斜 5.10 / 阻尼 5.06 / 极端 5.27）显示阻尼点就在最优附近。方向本身的机制解释很干净：q/k 只决定经 softmax 归一化的 attention 权重，天然抗漂移；v/o/down 直接携带写进残差流的内容。
 
 **把本篇的改动写成公式**。前三篇里每层的 rank 是固定常数 $r$；本篇把每层的 rank $\{r\_\ell\}$ 变成待求的变量：
 
@@ -72,7 +72,7 @@ $$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_
 
 其中 $f\_{\ell,i}$ 是第 $\ell$ 层第 $i$ 个方向的 loss 敏感度（前文的梯度平方和）。没有阻尼约束时这个问题的解就是"照单全收"的 5.27；加上它才得到 5.06——**约束本身是改进的一半**。
 
-实验方向二、三都是干净的负结果，但各自揭示了机制，细节在附录：巨激活通道天然不付截断税（**附录 B**——顺带定位了"②漂移残余"的放大器：RMSNorm 的分母被两条巨通道主导，它们一漂移、全部 4096 维跟着乘性重缩放）；rms-lift 非线性矫正器能修乘性漂移，但参数效率与直接加 rank 持平（**附录 C**）。主线于是回到 rank 的放置：
+实验方向二、三都是干净的负结果，但各自揭示了机制，细节在附录：激活值异常大的通道天然不付截断税（**附录 B**——顺带定位了"②漂移残余"的放大器：RMSNorm 的分母被两条异常大的通道主导，它们一漂移、全部 4096 维跟着乘性重缩放）；rms-lift 非线性矫正器能修乘性漂移，但参数效率与直接加 rank 持平（**附录 C**）。主线于是回到 rank 的放置：
 
 ### 3. 实验方向四：oracle 分解——截断税住在哪些 block 里
 
@@ -93,20 +93,20 @@ $$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_
 
 **其二：局部"清洁"上游反而伤害下游（−0.40）。** 顺序管线里每一层和矫正器都是**适配上游特定误差模式**拟合的，突然给它们干净的中间值，下游的补偿全部失配。这是矫正链自洽性的第三次独立验证（前两次：不动点迭代 5.95、跨层联合优化的文献负结果）。
 
-据此做 back-load（把 rank 往后半段倾斜）：前半 rank ×0.8、后半按预算配平放大（×1.24）。**5.05——最终纪录**，剂量曲线在 ×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。
+据此把 rank 往后半段倾斜（下称"后倾分配"）：前半 rank ×0.8、后半按预算配平放大（×1.24）。**5.05——最终纪录**，倾斜幅度逐档试过，×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。
 
-最后一个实验是把两个已验证的小改进叠加（back-load + rms-lift-256）：**失败，比单独 back-load 还差**。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。
+最后一个实验是把两个已验证的小改进叠加（后倾分配 + rms-lift-256）：**失败，比单独后倾分配还差**。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。
 
 ### 4. 结论：三个瓶颈、三条出路与三条经验
 
 **最终版图**（85% 压缩率、等预算 2.29B）：
 
-$$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{全秩矫正器}} \to \mathbf{5.05}\_{\text{+分配+back-load}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
+$$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{全秩矫正器}} \to \mathbf{5.05}\_{\text{+分配+后倾}} \to 4.15\_{\text{oracle}} \to 2.11\_{\text{教师}}$$
 
 | 瓶颈 | 架构根源 | 出路 |
 |---|---|---|
-| 截断税约 2.0（集中在后半段） | 内容通路的超位置存储、谱衰减极慢 | 改变 rank 的放置方式（跨矩阵联合分解、稀疏残差等）——在现有范式之外 |
-| 漂移残余约 0.9 | SwiGLU 乘法 + RMSNorm×巨通道 | 非线性矫正器可修，但参数效率与加 rank 持平——已榨干 |
+| 截断税约 2.0（集中在后半段） | 写回矩阵（v→o、up→down）的超位置存储、谱衰减极慢 | 改变 rank 的放置方式（跨矩阵联合分解、稀疏残差等）——在现有范式之外 |
+| 漂移残余约 0.9 | SwiGLU 乘法 + RMSNorm 的异常大通道 | 非线性矫正器可修，但参数效率与加 rank 持平——已榨干 |
 | 重组收益约 0.9 | 残差和的可重新分工 | 只有全局优化（训练） |
 
 三条从这轮实验里提炼的、可迁移的经验：
@@ -133,11 +133,11 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 1. **没有任何已发表的 training-free 方法在 70%+ 参数削减下报告过可用结果。** 纯闭式的最远数据点是 SVD-LLM 在 LLaMA-7B 删 60% 时 PPL 53.7——折成 loss 约 4.0，与我们的 oracle 界惊人吻合：文献从侧面证实这堵墙的量级是真的。我们在删 72% 拿 5.0x，在前沿之上。
 2. **非均匀 rank 分配是文献中最一致的收益来源**（Dobi-SVD、SVD-LLM v2、D-Rank、UniRank、AIR、LACE-SVD 六篇独立工作同向）：高压缩下"分配比分解本身更重要"。这直接触发了实验方向一。
 
-### 附录 B：实验方向二——巨激活通道的双负结果与真正的放大机制
+### 附录 B：实验方向二——激活值异常大的通道：双负结果与真正的放大机制
 
 测量教师的输出侧异常，发现巨幅激活（massive activations，[第三篇](/2026/08/22/closed-form-ceiling/)附录 A 提过的现象）在这个模型里是**两条贯穿全网的全局通道**：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。
 
-顺着第三篇"全秩矫正器"的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。**双双打平。** 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向**天然优先服务它们**——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。
+顺着第三篇"全秩矫正器"的思路做了两个等预算直通实验：激活最大的输入列不进 SVD 截断（每层 top-24 列原样保留）、幅度最大的输出行不进截断（o/down 的 top-8 行）。**双双打平。** 这个负结果反而更有价值：白化 SVD 的目标函数本来就被这些大行大列主导，最靠前的奇异方向**天然优先服务它们**——这些异常大的通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。
 
 但测量顺带揭示了"②漂移残余"的精确机制：**RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放**。这是一个把局部小误差全局化的耦合器，也是第三篇发现的 block 16 放大器（一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。
 
@@ -165,7 +165,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
-[The trilogy finale](/2026/08/22/closed-form-ceiling/) declared the closed-form track finished at 5.10. We then ran four more experimental directions, pushed the equal-budget record to **5.05**, and — this time — obtained structural evidence that it is truly over. This post covers how that 0.05 nat was earned, and four mechanistic findings worth far more than the 0.05: the pattern/content pathway split in loss sensitivity, the RMSNorm×massive-channel multiplicative amplifier, **the depth distribution of the truncation tax** (an oracle-decomposition experiment), and the rule that small improvements don't stack.
+[The trilogy finale](/2026/08/22/closed-form-ceiling/) declared the closed-form track finished at 5.10. We then ran four more experimental directions, pushed the equal-budget record to **5.05**, and — this time — obtained structural evidence that it is truly over. This post covers how that 0.05 nat was earned, and four mechanistic findings worth far more than the 0.05: the sharp split of loss sensitivity between the q/k side and the write-back side, the multiplicative amplifier formed by RMSNorm and the massive channels, **the depth distribution of the truncation tax** (an oracle-decomposition experiment), and the rule that small improvements don't stack.
 
 Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by rank-384 $AB$ (2.29B params, 72% removed); closed-form = layerwise trajectory-correcting regression + lm_head fix + residual-stream correctors, starting at 5.10.
 
@@ -191,7 +191,7 @@ $$2.11 \xrightarrow{\text{① truncation tax} \approx 2.0} 4.15\_{\text{oracle}}
 | up_proj | 82.9% | 983 |
 | **down_proj** | **66.2%** | **1839** |
 
-The network splits into two pathways: the **pattern pathway** (q/k → softmax) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the **content pathway** (v→o, up→down write path) has **slowly decaying spectra using the full width** — down_proj must decode features stored in superposition (packing far more features than dimensions, overlapped in the same coordinates) in the 12288-dim product space back into the residual stream, and such decoding matrices have no low-rank structure to exploit. This loss is information-theoretic; it is immune to "a better approximation algorithm".
+The table splits in two: the **q/k side** (which only computes the attention pattern) is intrinsically low-rank and drift-robust (softmax saturates; attention distributions are near-argmax), while the **v→o and up→down side** (which writes content back into the residual stream) has **slowly decaying spectra using the full width** — down_proj must decode features stored in superposition (packing far more features than dimensions, overlapped in the same coordinates) in the 12288-dim product space back into the residual stream, and such decoding matrices have no low-rank structure to exploit. This loss is information-theoretic; it is immune to "a better approximation algorithm".
 
 **② Drift residue**: the gap between the practical 5.06 and the oracle 4.15 is drift that survives linear correction after compounding through nonlinearities, carried by two multiplicative nonlinearities — SwiGLU's second-order $\delta\_g\delta\_u$ term and RMSNorm's division (its precise mechanism in Appendix B).
 
@@ -203,7 +203,7 @@ Three components, three different bottlenecks. All four experimental directions 
 
 We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.73). What the literature consistently endorses is **loss-sensitivity-driven** allocation (six independent works agree; the survey is in Appendix A) — a different thing: the former asks "how much does this layer's output change if I cut this direction," the latter asks "how much does the final loss change." Method: hang a multiplicative gate $\alpha\_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate $f\_i = \sum(\partial L/\partial\alpha\_i)^2$ (a sum of squared gradients — the diagonal approximation of Fisher information, measuring the loss's sensitivity to that direction); calibrate the whitened spectra with the tail values ($f\_{l,i}\approx c\_l\sigma\_{l,i}^2$), then hand rank to the most sensitive layers first until the fixed budget runs out.
 
-Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/content split:
+Fisher's optimal allocation is drastic, and maps perfectly onto the split above (q/k low, write-back side high):
 
 | Matrix | Fisher-optimal rank (mean) | vs uniform 316 |
 |---|---|---|
@@ -248,11 +248,11 @@ The last experiment stacked the two verified small improvements (back-load + rms
 
 **The final landscape** (85% compression, equal 2.29B budget):
 
-$$8.50\_{\text{collapse illusion}} \to 5.60\_{\text{traj. correction}} \to 5.10\_{\text{full-rank correctors}} \to \mathbf{5.05}\_{\text{+alloc+backload}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
+$$8.50\_{\text{collapse illusion}} \to 5.60\_{\text{traj. correction}} \to 5.10\_{\text{full-rank correctors}} \to \mathbf{5.05}\_{\text{+alloc+backload}} \to 4.15\_{\text{oracle}} \to 2.11\_{\text{teacher}}$$
 
 | Bottleneck | Architectural root | Way out |
 |---|---|---|
-| Truncation tax ~2.0 (concentrated late) | superposition storage on the content pathway, slowly decaying spectra | change where rank lives (cross-matrix joint decompositions, sparse residuals) — outside the current paradigm |
+| Truncation tax ~2.0 (concentrated late) | superposition storage in the write-back matrices (v→o, up→down), slowly decaying spectra | change where rank lives (cross-matrix joint decompositions, sparse residuals) — outside the current paradigm |
 | Drift residue ~0.9 | SwiGLU product + RMSNorm×massive channels | nonlinear correctors work but at par parameter efficiency — exhausted |
 | Reorganization gain ~0.9 | the residual sum's freedom to re-divide labor | global optimization (training) only |
 

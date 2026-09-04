@@ -207,13 +207,13 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到约 99——这是整个网络�
 | 指标（36 层平均） | Teacher | ASVD | Plain SVD |
 |---|---|---|---|
 | MLP 输出 pcos | 0.20 | **0.73** | 0.27 |
-| MLP override ratio | 0.40 | 0.30 | 1.40 |
+| MLP 输出/残差流幅度比 | 0.40 | 0.30 | 1.40 |
 
-（override ratio = MLP 输出与残差流本身的幅度之比，衡量 MLP 对残差流的改写力度。）
+（幅度比衡量 MLP 对残差流的改写力度。）
 
 **ASVD 的 MLP 对所有 token 输出几乎相同的向量**（pcos=0.73），而 plain SVD 的 MLP 输出对不同 token 是不同的（pcos=0.27）。
 
-这意味着在残差加法 $h\_{new} = h\_{old} + \text{MLP}(h\_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（override ratio=1.40），但每个 token 的偏移不同，所以不会收敛。
+这意味着在残差加法 $h\_{new} = h\_{old} + \text{MLP}(h\_{old})$ 中，ASVD 给每个 token 加了近乎相同的偏移，36 层累积后所有表示收敛到同一方向。而 plain SVD 虽然 MLP 幅度更大（幅度比 1.40），但每个 token 的偏移不同，所以不会收敛。
 
 **根本原因**：down\_proj 将 12288 维的 gate×up 结果映射回 4096 维时，rank=384 的 ASVD down\_proj 只保留了 384 个线性组合——这些组合恰好是所有 token **共享的成分**（因为 ASVD 的加权偏好保留 $s\_i$ 大的那些分量），而 **token-specific 的差异成分被丢弃**。
 
@@ -451,9 +451,9 @@ The key is not the MLP output magnitude, but **whether the MLP output differs ac
 | Metric (36-layer average) | Teacher | ASVD | Plain SVD |
 |---|---|---|---|
 | MLP output pcos | 0.20 | **0.73** | 0.27 |
-| MLP override ratio | 0.40 | 0.30 | 1.40 |
+| MLP output / residual-stream magnitude | 0.40 | 0.30 | 1.40 |
 
-(Override ratio = the magnitude of the MLP output relative to the residual stream itself — how strongly the MLP rewrites the stream.)
+(The magnitude ratio measures how strongly the MLP rewrites the stream.)
 
 **ASVD's MLP outputs are nearly identical across all tokens** (pcos=0.73), while plain SVD's MLP outputs differ per token (pcos=0.27).
 
