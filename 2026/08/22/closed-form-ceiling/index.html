@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  这是低秩压缩三部曲的完结篇（第一篇：表示坍缩，第二篇：轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-04T02:12:33.305Z">
+<meta property="article:modified_time" content="2026-09-04T03:09:44.288Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -360,9 +360,9 @@
 </tbody>
 </table>
 <p>同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。<strong>闭式同预算纪录：5.10。</strong></p>
-<p>本篇的完整方法如下。第 1–4 步就是第二篇的算法 1，<strong>加粗的第 5 步和循环后的收尾是本篇新增</strong>：</p>
+<p>本篇的完整方法如下。第 1–4 步就是<a href="/2026/08/19/trajectory-correcting-linear-distillation/">第二篇</a>的算法 1 原封不动，<strong>加粗的第 5 步和循环后的收尾是本篇新增</strong>：</p>
 <blockquote>
-<p><strong>算法 2：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）</strong></p>
+<p><strong>算法：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）</strong></p>
 <p><strong>输入</strong>：教师模型的全部权重矩阵 $W_1, \dots, W_N$，按前向顺序编号（$N = 252$：模型共 36 个 block，每个含 7 个）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$、矫正间隔 $K$（本文 $K = 3$；为配平矫正器的参数预算，$r$ 从 384 降到 316）</p>
 <p><strong>对 $\ell = 1, 2, \dots, N$ 依次执行</strong>（循环体内的变量都属于当前的 $W_\ell$，为简洁省略编号）：</p>
 <ol>
@@ -378,7 +378,7 @@
 <p>新旧两类回归的关键区别一目了然：第 3 步的 $M^*$ 必须截断到 rank $r$（付截断税），而第 5 步和收尾处的 $P$ 保持满秩——<strong>没有 rank 约束、最优解不损失精度，这正是&quot;免税&quot;的形式化含义</strong>。</p>
 <h3 id="3-剩余的差距在哪：几乎全在-block-16">3. 剩余的差距在哪：几乎全在 block 16</h3>
 <p>5.10 之后我们继续追问：剩下的误差到底在哪里产生？做法很直接——沿着模型逐个 block 检查，问&quot;走到这里为止，学生和教师的差距还有多少能用一个线性变换修回去&quot;。答案非常集中：修不掉的部分几乎全部产生自<strong>同一个位置</strong>——block 16 的 FFN。</p>
-<p>这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个<strong>非线性放大器</strong>。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在 ~5.1 附近。</p>
+<p>这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个<strong>非线性放大器</strong>。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在约 5.1 附近。</p>
 <h3 id="4-训练判决：好的闭式-init-值-200-步训练">4. 训练判决：好的闭式 init 值 200+ 步训练</h3>
 <p>双臂对照（同 seed、同数据序、同 global batch），只差初始化：</p>
 <table>
@@ -419,7 +419,7 @@
 <p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
 </li>
 <li>
-<p><strong>闭式极限的成因</strong>：卡在 ~5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃&quot;每层模仿教师对应层&quot;的做法、直接优化最终 loss——这正是训练在做的事。</p>
+<p><strong>闭式极限的成因</strong>：卡在约 5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃&quot;每层模仿教师对应层&quot;的做法、直接优化最终 loss——这正是训练在做的事。</p>
 </li>
 <li>
 <p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
@@ -437,7 +437,7 @@
 <li>完全不压缩 block 16 的 FFN（保留原始全秩权重）：5.40，比 5.10 更差；</li>
 <li>给前半段多分 rank（block 0–16 用 480、17–35 用 298），想让流进 block 16 的误差更小：5.38，也更差。</li>
 </ul>
-<p><strong>结论</strong>：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在 ~5.1。</p>
+<p><strong>结论</strong>：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在约 5.1。</p>
 <h3 id="附录-B：不同-loss-水平的模型在生成什么">附录 B：不同 loss 水平的模型在生成什么</h3>
 <p>文本采样给出了质变的直观刻度（temperature 0.8）：</p>
 <table>
@@ -542,9 +542,9 @@
 </tbody>
 </table>
 <p>Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. <strong>Closed-form equal-budget record: 5.10.</strong></p>
-<p>The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from part 2; <strong>the bold step 5 and the post-loop finish are new in this post</strong>:</p>
+<p>The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from <a href="/2026/08/19/trajectory-correcting-linear-distillation/">part 2</a>, unchanged; <strong>the bold step 5 and the post-loop finish are new in this post</strong>:</p>
 <blockquote>
-<p><strong>Algorithm 2: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)</strong></p>
+<p><strong>Algorithm: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)</strong></p>
 <p><strong>Input</strong>: all of the teacher's weight matrices $W_1, \dots, W_N$ in forward order ($N = 252$: 36 blocks with 7 matrices each), calibration data $D$, target rank $r$, regularization strength $\lambda$, corrector interval $K$ ($K = 3$ here; to pay for the correctors, $r$ drops from 384 to 316)</p>
 <p><strong>For $\ell = 1, 2, \dots, N$</strong> (inside the loop, all variables belong to the current $W_\ell$; the index is dropped for brevity):</p>
 <ol>

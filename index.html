@@ -261,7 +261,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -329,7 +329,7 @@
 <td>压缩前的原模型（Qwen3-8B，80 亿参数）</td>
 </tr>
 <tr>
-<td>~2.5</td>
+<td>约 2.5</td>
 <td>我们给压缩模型定的目标</td>
 </tr>
 </tbody>
@@ -966,7 +966,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -1282,7 +1282,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tr>
 </tbody>
 </table>
-<p>Block 3 的 MLP 一次性将 erank 从 233 砍到 ~99——这是整个网络中最致命的一击。</p>
+<p>Block 3 的 MLP 一次性将 erank 从 233 砍到约 99——这是整个网络中最致命的一击。</p>
 <p><strong>MLP 内部的追踪</strong>（以 Block 3 为例）：</p>
 <table>
 <thead>
@@ -1998,7 +1998,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -2135,7 +2135,7 @@ switchLang('zh');
 <p>完整版图：</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{训练}} \to \underbrace{2.11}_{\text{教师}}$$</p>
 <p>与坍缩模型有本质区别：预测行为完全健康——top-1 是正确的高频词 &quot; the&quot;（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。这是所有闭式方法中第一个真正在利用上下文的模型。</p>
-<p>方法在 ~5.6 收敛：进一步的精巧化尝试（不动点迭代重解、按奇异值谱分配 rank、调 $\lambda$）全部没有收益，细节见附录 A。这个平台是怎么来的、剩下的差距是什么性质——是下一节的问题。</p>
+<p>方法在 5.60 收敛：进一步的精巧化尝试（不动点迭代重解、按奇异值谱分配 rank、调 $\lambda$）全部没有收益，细节见附录 A。这个平台是怎么来的、剩下的差距是什么性质——是下一节的问题。</p>
 <h3 id="5-剩下的差距在哪：R²-诊断">5. 剩下的差距在哪：R² 诊断</h3>
 <p>逐层测量&quot;教师输入能从学生输入线性恢复的比例&quot;（回归的 $R^2$）：</p>
 <table>
@@ -2160,7 +2160,7 @@ switchLang('zh');
 </tr>
 <tr>
 <td>尾段</td>
-<td>回升至 ~0.6</td>
+<td>回升至约 0.6</td>
 </tr>
 </tbody>
 </table>
@@ -2169,13 +2169,13 @@ switchLang('zh');
 <ol>
 <li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.60。</li>
 <li><strong>闭式方法的正确姿势是回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
-<li><strong>逐层线性矫正在 ~5.6 收敛</strong>：漂移中线性可恢复的部分已经榨干，剩余差距是非线性的。这个&quot;天花板&quot;是否真的到头，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
+<li><strong>逐层线性矫正在 5.60 收敛</strong>：漂移中线性可恢复的部分已经榨干，剩余差距是非线性的。这个&quot;天花板&quot;是否真的到头，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
 <li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
 </ol>
 <hr>
 <h2 id="附录">附录</h2>
 <h3 id="附录-A：方法的平台——三个负结果">附录 A：方法的平台——三个负结果</h3>
-<p>进一步的优化尝试全部失败，方法在 ~5.6 收敛：</p>
+<p>进一步的优化尝试全部失败，方法在 5.60 收敛：</p>
 <ol>
 <li><strong>不动点迭代 → 5.95（变差）</strong>。想法是&quot;压缩后的学生漂移变了，那就用它重新采集统计、把所有层再解一遍，迭代到自洽&quot;。实测反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。<strong>单遍顺序处理就是最优做法。</strong></li>
 <li><strong>按奇异值谱分配 per-layer rank → 5.73（略差）</strong>。给谱衰减慢（更难压）的层多分 rank、衰减快的少分。均匀 rank 已接近最优；从均匀运行算出的分配也无法迁移到新运行（漂移模式随分配改变）。</li>
@@ -2302,7 +2302,7 @@ switchLang('zh');
 <p>The full landscape:</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{collapse illusion}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{trained}} \to \underbrace{2.11}_{\text{teacher}}$$</p>
 <p>The contrast with the collapsed model is essential: the behavior is healthy — top-1 is the correct high-frequency word &quot; the&quot; (same as the teacher), and the KL divergence between output distributions at different positions is 5.4, i.e. predictions really do vary with context (the collapsed model: 0.007, the same distribution everywhere). This is the first closed-form method that genuinely uses context.</p>
-<p>The method converges at ~5.6: further refinements (fixed-point re-solving, spectrum-driven rank allocation, tuning $\lambda$) all fail to pay — details in Appendix A. Where this plateau comes from, and what the remaining gap is made of, is the next section's question.</p>
+<p>The method converges at 5.60: further refinements (fixed-point re-solving, spectrum-driven rank allocation, tuning $\lambda$) all fail to pay — details in Appendix A. Where this plateau comes from, and what the remaining gap is made of, is the next section's question.</p>
 <h3 id="5-Where-the-Remaining-Gap-Lives-the-R²-Diagnostic">5. Where the Remaining Gap Lives: the R² Diagnostic</h3>
 <p>Per layer, measure the fraction of the teacher input linearly recoverable from the student input (the regression $R^2$):</p>
 <table>
@@ -2336,13 +2336,13 @@ switchLang('zh');
 <ol>
 <li><strong>The bottleneck of low-rank compression is not expressiveness but the optimization objective.</strong> A 3.79 point exists in the rank-384 space; &quot;approximate $W$ per layer&quot; cannot find it, while &quot;correct the trajectory per layer&quot; reaches 5.60.</li>
 <li><strong>The right closed-form primitive is regression, not factorization</strong>: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.</li>
-<li><strong>Layerwise linear correction converges at ~5.6</strong>: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this ceiling is truly final is the subject of <a href="/2026/08/22/closed-form-ceiling/">the next post</a>.</li>
+<li><strong>Layerwise linear correction converges at 5.60</strong>: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this ceiling is truly final is the subject of <a href="/2026/08/22/closed-form-ceiling/">the next post</a>.</li>
 <li>A correction to the previous post: &quot;closed-form methods cannot simultaneously break collapse and lower loss&quot; was wrong — what was broken was the shared &quot;approximate $W$&quot; objective of every method tested then, not closed-form itself.</li>
 </ol>
 <hr>
 <h2 id="Appendix">Appendix</h2>
 <h3 id="Appendix-A-The-Plateau-—-Three-Negative-Results">Appendix A: The Plateau — Three Negative Results</h3>
-<p>Further optimization attempts all failed; the method converges at ~5.6:</p>
+<p>Further optimization attempts all failed; the method converges at 5.60:</p>
 <ol>
 <li><strong>Fixed-point iteration → 5.95 (worse)</strong>. The idea: the compressed student's drift has changed, so re-collect statistics with it and re-solve every layer, iterating toward self-consistency. In practice this destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. <strong>A single sequential sweep is the best approach.</strong></li>
 <li><strong>Singular-spectrum-driven per-layer rank allocation → 5.73 (slightly worse)</strong>. Give more rank to layers whose spectrum decays slowly (harder to compress), less to the rest. Uniform ranks are already near-optimal, and an allocation computed from a uniform run does not transfer to a new run (the drift pattern changes with the allocation).</li>
@@ -2430,7 +2430,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -2517,9 +2517,9 @@ switchLang('zh');
 </tbody>
 </table>
 <p>同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。<strong>闭式同预算纪录：5.10。</strong></p>
-<p>本篇的完整方法如下。第 1–4 步就是第二篇的算法 1，<strong>加粗的第 5 步和循环后的收尾是本篇新增</strong>：</p>
+<p>本篇的完整方法如下。第 1–4 步就是<a href="/2026/08/19/trajectory-correcting-linear-distillation/">第二篇</a>的算法 1 原封不动，<strong>加粗的第 5 步和循环后的收尾是本篇新增</strong>：</p>
 <blockquote>
-<p><strong>算法 2：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）</strong></p>
+<p><strong>算法：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）</strong></p>
 <p><strong>输入</strong>：教师模型的全部权重矩阵 $W_1, \dots, W_N$，按前向顺序编号（$N = 252$：模型共 36 个 block，每个含 7 个）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$、矫正间隔 $K$（本文 $K = 3$；为配平矫正器的参数预算，$r$ 从 384 降到 316）</p>
 <p><strong>对 $\ell = 1, 2, \dots, N$ 依次执行</strong>（循环体内的变量都属于当前的 $W_\ell$，为简洁省略编号）：</p>
 <ol>
@@ -2535,7 +2535,7 @@ switchLang('zh');
 <p>新旧两类回归的关键区别一目了然：第 3 步的 $M^*$ 必须截断到 rank $r$（付截断税），而第 5 步和收尾处的 $P$ 保持满秩——<strong>没有 rank 约束、最优解不损失精度，这正是&quot;免税&quot;的形式化含义</strong>。</p>
 <h3 id="3-剩余的差距在哪：几乎全在-block-16">3. 剩余的差距在哪：几乎全在 block 16</h3>
 <p>5.10 之后我们继续追问：剩下的误差到底在哪里产生？做法很直接——沿着模型逐个 block 检查，问&quot;走到这里为止，学生和教师的差距还有多少能用一个线性变换修回去&quot;。答案非常集中：修不掉的部分几乎全部产生自<strong>同一个位置</strong>——block 16 的 FFN。</p>
-<p>这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个<strong>非线性放大器</strong>。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在 ~5.1 附近。</p>
+<p>这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个<strong>非线性放大器</strong>。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在约 5.1 附近。</p>
 <h3 id="4-训练判决：好的闭式-init-值-200-步训练">4. 训练判决：好的闭式 init 值 200+ 步训练</h3>
 <p>双臂对照（同 seed、同数据序、同 global batch），只差初始化：</p>
 <table>
@@ -2576,7 +2576,7 @@ switchLang('zh');
 <p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>免截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
 </li>
 <li>
-<p><strong>闭式极限的成因</strong>：卡在 ~5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃&quot;每层模仿教师对应层&quot;的做法、直接优化最终 loss——这正是训练在做的事。</p>
+<p><strong>闭式极限的成因</strong>：卡在约 5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃&quot;每层模仿教师对应层&quot;的做法、直接优化最终 loss——这正是训练在做的事。</p>
 </li>
 <li>
 <p><strong>工程结论</strong>：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把&quot;可用模型&quot;的到达时间提前数百步。</p>
@@ -2594,7 +2594,7 @@ switchLang('zh');
 <li>完全不压缩 block 16 的 FFN（保留原始全秩权重）：5.40，比 5.10 更差；</li>
 <li>给前半段多分 rank（block 0–16 用 480、17–35 用 298），想让流进 block 16 的误差更小：5.38，也更差。</li>
 </ul>
-<p><strong>结论</strong>：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在 ~5.1。</p>
+<p><strong>结论</strong>：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在约 5.1。</p>
 <h3 id="附录-B：不同-loss-水平的模型在生成什么">附录 B：不同 loss 水平的模型在生成什么</h3>
 <p>文本采样给出了质变的直观刻度（temperature 0.8）：</p>
 <table>
@@ -2699,9 +2699,9 @@ switchLang('zh');
 </tbody>
 </table>
 <p>Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. <strong>Closed-form equal-budget record: 5.10.</strong></p>
-<p>The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from part 2; <strong>the bold step 5 and the post-loop finish are new in this post</strong>:</p>
+<p>The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from <a href="/2026/08/19/trajectory-correcting-linear-distillation/">part 2</a>, unchanged; <strong>the bold step 5 and the post-loop finish are new in this post</strong>:</p>
 <blockquote>
-<p><strong>Algorithm 2: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)</strong></p>
+<p><strong>Algorithm: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)</strong></p>
 <p><strong>Input</strong>: all of the teacher's weight matrices $W_1, \dots, W_N$ in forward order ($N = 252$: 36 blocks with 7 matrices each), calibration data $D$, target rank $r$, regularization strength $\lambda$, corrector interval $K$ ($K = 3$ here; to pay for the correctors, $r$ drops from 384 to 316)</p>
 <p><strong>For $\ell = 1, 2, \dots, N$</strong> (inside the loop, all variables belong to the current $W_\ell$; the index is dropped for brevity):</p>
 <ol>
@@ -2892,7 +2892,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -2919,10 +2919,10 @@ switchLang('zh');
 <p>背景（一句话版）：Qwen3-8B（val loss 2.11）→ 每个 linear 换 rank-384 的 $AB$（2.29B，删 72% 参数），闭式方法 = 逐层轨迹矫正回归 + lm_head 矫正 + 残差流矫正器，起点 5.10。</p>
 <p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 3 节 oracle 分解的诊断数字是一次性实验、保持当时的测量口径，只用于相对比较。）</p>
 <h3 id="1-差距的三个组成部分：5-06-到-2-11-之间差在哪里">1. 差距的三个组成部分：5.06 到 2.11 之间差在哪里</h3>
-<p>在动手之前先回答一个架构级的问题：闭式为什么恰好卡在 5 附近？把全部实验证据（oracle 地板、block-16 诊断、消融）拼起来，从教师到闭式的 ~2.9 nat 可以拆成三个<strong>互相独立、机制不同</strong>的组成部分：</p>
+<p>在动手之前先回答一个架构级的问题：闭式为什么恰好卡在 5 附近？把全部实验证据（oracle 地板、block-16 诊断、消融）拼起来，从教师到闭式的约 2.9 nat 可以拆成三个<strong>互相独立、机制不同</strong>的组成部分：</p>
 <p>$$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15_{\text{oracle}} \xrightarrow{\text{②漂移残余} \approx 0.9} 5.06 \qquad 3.2_{\text{训练}} \xleftarrow{\text{③重组收益}}$$</p>
 <p>（&quot;oracle 地板&quot;来自一个允许作弊的诊断实验：运行时把每个子层的输入替换成教师的干净值，于是每层只贡献自己的局部截断误差。这个作弊模型的 loss（测得 4.15）就是&quot;每层模仿教师对应层&quot;这条路线无论怎么矫正都到不了的下限——任何矫正器最多把输入还原干净，不可能做得比干净输入更好。）</p>
-<p><strong>① 截断税（最大头）</strong>：即使每个子层都收到教师的干净输入，rank-384 的局部截断误差之和也要付 ~2 nat。为什么这么贵？白化谱给出答案——下表是 rank 384 下各类矩阵保留的能量（白化坐标里奇异值平方和的占比，即最优截断能留住多大比例的&quot;有效信号&quot;）：</p>
+<p><strong>① 截断税（最大头）</strong>：即使每个子层都收到教师的干净输入，rank-384 的局部截断误差之和也要付约 2 nat。为什么这么贵？白化谱给出答案——下表是 rank 384 下各类矩阵保留的能量（白化坐标里奇异值平方和的占比，即最优截断能留住多大比例的&quot;有效信号&quot;）：</p>
 <table>
 <thead>
 <tr>
@@ -3051,7 +3051,7 @@ switchLang('zh');
 </tbody>
 </table>
 <p>两个重磅结论：</p>
-<p><strong>其一：截断税几乎全部集中在后半段。</strong> 只把 block 18-35 的输入换干净，loss 就到了完整 oracle 的水平——意味着前半段的局部截断误差对 logits 的直接贡献只有 ~0.01 nat，它的全部危害走&quot;制造漂移&quot;这条间接通道；而漂移是（部分）可矫正的，后半段的截断税则无药可救。<strong>推论：边际 rank 在后半段的价值远高于前半段。</strong> 我们此前试过的恰好是反方向（front-load，5.38 失败——当时的理论&quot;减少流进 block 16 的漂移&quot;错得离谱）。</p>
+<p><strong>其一：截断税几乎全部集中在后半段。</strong> 只把 block 18-35 的输入换干净，loss 就到了完整 oracle 的水平——意味着前半段的局部截断误差对 logits 的直接贡献只有约 0.01 nat，它的全部危害走&quot;制造漂移&quot;这条间接通道；而漂移是（部分）可矫正的，后半段的截断税则无药可救。<strong>推论：边际 rank 在后半段的价值远高于前半段。</strong> 我们此前试过的恰好是反方向（front-load，5.38 失败——当时的理论&quot;减少流进 block 16 的漂移&quot;错得离谱）。</p>
 <p><strong>其二：局部&quot;清洁&quot;上游反而伤害下游（−0.40）。</strong> 顺序管线里每一层和矫正器都是<strong>适配上游特定误差模式</strong>拟合的，突然给它们干净的中间值，下游的补偿全部失配。这是矫正链自洽性的第三次独立验证（前两次：不动点迭代 5.95、跨层联合优化的文献负结果）。</p>
 <p>据此做 back-load（把 rank 往后半段倾斜）：前半 rank ×0.8、后半按预算配平放大（×1.24）。<strong>5.05——最终纪录</strong>，剂量曲线在 ×0.8 附近最优（不倾斜和 ×0.65 都略差）。不过要诚实标注幅度：它比阻尼分配的 5.06 只低约 0.014，与折间波动（±0.015）同量级——方向与 oracle 分解的预言一致，但收益已经小到接近测量精度。</p>
 <p>最后一个实验是把两个已验证的小改进叠加（back-load + rms-lift-256）：<strong>失败，比单独 back-load 还差</strong>。0.02 级的改进在同一块残余误差上重叠收割，合并后互相侵蚀。</p>
@@ -3068,17 +3068,17 @@ switchLang('zh');
 </thead>
 <tbody>
 <tr>
-<td>截断税 ~2.0（集中在后半段）</td>
+<td>截断税约 2.0（集中在后半段）</td>
 <td>内容通路的超位置存储、谱衰减极慢</td>
 <td>改变 rank 的放置方式（跨矩阵联合分解、稀疏残差等）——在现有范式之外</td>
 </tr>
 <tr>
-<td>漂移残余 ~0.9</td>
+<td>漂移残余约 0.9</td>
 <td>SwiGLU 乘法 + RMSNorm×巨通道</td>
 <td>非线性矫正器可修，但参数效率与加 rank 持平——已榨干</td>
 </tr>
 <tr>
-<td>重组收益 ~0.9</td>
+<td>重组收益约 0.9</td>
 <td>残差和的可重新分工</td>
 <td>只有全局优化（训练）</td>
 </tr>
@@ -3090,7 +3090,7 @@ switchLang('zh');
 <li><strong>矫正链是一个自洽整体。</strong> 顺序拟合的压缩管线里，每个组件都适配上游的特定误差。任何&quot;局部改善&quot;（不动点重解、跨层联合目标、部分输入清洁）都会破坏下游补偿——三次独立验证。诊断时可以作弊，部署时只能整链重拟合。</li>
 <li><strong>小改进不叠加。</strong> 当各手段（分配、直通、非线性 lift）都在收割同一块残余误差时，0.02 级的收益合并后互相侵蚀。判断两个改进能否叠加，看它们的机制是否攻击差距的不同组成部分——攻击同一部分的改进，合并前先打折。</li>
 </ol>
-<p>闭式赛道就此真正收官：等预算 ~5.05 是&quot;逐层回归 + 线性/轻非线性矫正 + rank 分配&quot;这套工具箱的终点。通往 2.5 的路在训练上（本文发稿时训练臂已到 2.87 且在下降），通往 4.15 以下的闭式路在范式外。</p>
+<p>闭式赛道就此真正收官：等预算 5.05 是&quot;逐层回归 + 线性/轻非线性矫正 + rank 分配&quot;这套工具箱的终点。通往 2.5 的路在训练上（本文发稿时训练臂已到 2.87 且在下降），通往 4.15 以下的闭式路在范式外。</p>
 <p>第三篇宣布过一次收官，被本篇推翻；本篇的收官宣言又能站多久？<a href="/2026/08/30/closed-form-moving-ceiling/">第五篇</a>见分晓。</p>
 <hr>
 <h2 id="附录">附录</h2>
@@ -3442,7 +3442,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -3474,7 +3474,7 @@ switchLang('zh');
 <p>其中 $y_j$ 是该层输出向量的第 $j$ 个分量，$w_j^2 = \mathbb{E}\big[(\partial \mathcal{L}/\partial y_j)^2\big]$（loss 对它的梯度平方的均值）；交替求解——AB 步是加权白化截断，S 步是取加权残差的 top-$k$ 元素。<strong>改动③</strong>不在式子里而在式子的原料里：所有统计量（$\Sigma_{ss}, \Sigma_{ts}, L, w$）改由 512 批 × 16 个数据分片的校准数据估计，本篇会证明这一条的贡献不小于任何算法改动。矫正器侧还有<strong>改动④</strong>（rms-lift：把矫正器输入从 $h$ 提升为 $[h;\ h(\bar{r}/\mathrm{rms}(h) - 1)]$，见第 5 节）。</p>
 <p>下面按发生顺序逐个讲这四处改动。</p>
 <h3 id="1-稀疏残差：W-≈-AB-S，第一次凿穿截断税">1. 稀疏残差：W ≈ AB + S，第一次凿穿截断税</h3>
-<p>截断税（~2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
+<p>截断税（约 2 nat，第四篇的组成部分①）的架构根源是内容通路的超位置存储：误差集中在少数几个又大又互不相关的矩阵元素上，低秩在数学上表达不了这种结构，但<strong>稀疏项可以</strong>——它天生就是&quot;少数任意位置的大元素&quot;。这是文献中证据最一致的换范式方向（OATS/HASSLE-free/LoSparse：等预算下 S+LR 一致优于纯 LR，且差距随压缩率放大）。</p>
 <p>做法：在每层的截断步里做交替求解（3 轮）——</p>
 <p>$$AB \leftarrow \text{whiten-SVD}(M^*-S,\ r), \qquad S \leftarrow \text{top-}k\big(|M^*-AB| \cdot \sigma_{col}\big)$$</p>
 <p>AB 步就是现成的白化截断，S 步按白化度量给残差打分取 top-nnz。预算严格配平：S 的每个非零值按 1.5 个参数计（含 index 开销；严格 CSR-int16 应为 2.0，勘误后纪录依然成立），从 rank 里扣。</p>
@@ -3547,10 +3547,10 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>从 4.88 到 4.61——<strong>校准数据工程独立贡献了 ~0.27 nat</strong>，比任何单个算法改进都大。两个可迁移的定量结论：</p>
+<p>从 4.88 到 4.61——<strong>校准数据工程独立贡献了约 0.27 nat</strong>，比任何单个算法改进都大。两个可迁移的定量结论：</p>
 <ol>
 <li><strong>数量与多样性是两个独立的轴。</strong> 数量的第一档收益最大（32→128 批：−0.15），它压的是采样方差；数量吃饱之后，批数不变、把 1 个 shard 换成 4 个仍有 −0.05——这是偏差-方差分解里的<strong>偏差项</strong>：同一个 shard 里加再多数据，分布的偏色一分不动，只有换数据源才能压掉。</li>
-<li>两轴各自饱和：多样性在 8 shards 处饱和、数量到 ~512 批仍有小幅收益。饱和点大约在&quot;统计噪声降到单个算法改进量级（±0.01）&quot;处，符合直觉。</li>
+<li>两轴各自饱和：多样性在 8 shards 处饱和、数量到 512 批仍有小幅收益。饱和点大约在&quot;统计噪声降到单个算法改进量级（±0.01）&quot;处，符合直觉。</li>
 </ol>
 <p>与四个胜利并排的还有四个干净的失败：每当我们把一个有效的简单机制&quot;做精&quot;（迭代重测梯度、完整协方差、更大稀疏份额、按损失分布图定向分配），结果都没有变好——<strong>在校准数据有限的闭式世界里，参数量少的估计器赢</strong>。清单和幅度见附录 A。</p>
 <h3 id="5-换度量的最后一笔收益：rms-lift-的平反">5. 换度量的最后一笔收益：rms-lift 的平反</h3>
@@ -3565,7 +3565,7 @@ switchLang('zh');
 <p>本篇新增的三条可迁移定律：</p>
 <ol>
 <li><strong>度量是一等公民。</strong> 逼近算法的&quot;最优性&quot;永远是相对某个度量的；换成 loss 感知的度量后，此前&quot;榨干&quot;的每个杠杆都重新有了改进空间。检查任何压缩管线时，先问它的截断在什么度量下最优。</li>
-<li><strong>校准数据是一个被忽略的工程对象。</strong> 数量和多样性各自独立贡献、各自饱和，两个轴都值得用剂量实验便宜地测一遍。~0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
+<li><strong>校准数据是一个被忽略的工程对象。</strong> 数量和多样性各自独立贡献、各自饱和，两个轴都值得用剂量实验便宜地测一遍。约 0.27 nat 的免费收益在文献的标准配置里全部躺着没人捡。</li>
 <li><strong>参数少的估计器赢</strong>（闭式版奥卡姆剃刀）：对角 &gt; 完整协方差，单遍 &gt; 迭代，阻尼 &gt; 全量执行。校准数据的信息量是硬约束，精巧化只是把它重新分配给噪声。</li>
 </ol>
 <p>天花板还会不会动？诚实的答案：本篇之后，配方内的所有维度（表达形式、度量、分配、矫正器、统计）都各自测到了饱和点，剩余的结构性候选只剩逐 head 的 (V,O) 联合分解一项。但第四篇也曾这样宣布过收官——这大概是这个系列最诚实的一课：<strong>&quot;到头了&quot;是一个关于当前假设集的陈述，不是关于问题本身的</strong>。</p>
@@ -3830,7 +3830,7 @@ switchLang('zh');
       <span class="post-meta-item-text">Posted on</span>
       
 
-      <time title="Created: 2026-09-04 00:00:00 / Modified: 02:12:33" itemprop="dateCreated datePublished" datetime="2026-09-04T00:00:00+00:00">2026-09-04</time>
+      <time title="Created: 2026-09-04 00:00:00 / Modified: 03:09:44" itemprop="dateCreated datePublished" datetime="2026-09-04T00:00:00+00:00">2026-09-04</time>
     </span>
 
   
@@ -4285,7 +4285,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
 
   
@@ -4950,7 +4950,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -5047,7 +5047,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 02:12:33" itemprop="dateModified" datetime="2026-09-04T02:12:33+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-04 03:09:44" itemprop="dateModified" datetime="2026-09-04T03:09:44+00:00">2026-09-04</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
