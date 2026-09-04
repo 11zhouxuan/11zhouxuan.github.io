@@ -20,7 +20,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, sparse, c
 
 [第四篇](/2026/08/25/closed-form-anatomy/)用三个组成部分的解剖宣布闭式赛道收官于 5.05。然后它在一周内被推到了 **4.59**——又砍掉近 0.5 nat，距离一个端到端蒸馏训练出来的模型（3.79）只剩 0.80。这篇讲天花板是怎么两次移动的。诚实地说，两次都源于同一件事：**合作者对"已经到头了"这个结论的不服气**。第一次的不服（"低秩逼近还有很大空间"）指向了度量修正，第二次（对统计地基的持续加码）打开了校准数据工程。"工具箱已榨干"的结论永远带着一个隐藏脚注：*在当前的度量、当前的表达形式、当前的统计地基下*。
 
-背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 免税矫正器 + loss 感知分配，第四篇终点 5.05。
+背景（一句话）：Qwen3-8B（2.11）→ 每个 linear 换 rank-r 低秩因子（2.29B 等预算，删 72% 参数），方法 = 逐层轨迹矫正回归 + 全秩矫正器 + loss 感知分配，第四篇终点 5.05。
 
 （本文 loss 均为严格协议重测值：800 段 × 8192 token、8 折，折间波动约 ±0.02。第 6 节的 oracle 诊断保持当时的测量口径。）
 
@@ -149,7 +149,7 @@ $$8.50 \to 5.60 \to 5.10 \to 5.05 \to \underbrace{4.88}\_{\text{稀疏×度量}}
 
 [Part 4](/2026/08/25/closed-form-anatomy/) closed the closed-form track at 5.05 with a three-component anatomy of the gap. It was then pushed to **4.59** within a week — nearly another 0.5 nat, leaving just 0.80 to an end-to-end-distilled, actually-trained model (3.79). This post is about how the ceiling moved twice. Honestly, both moves came from the same source: **a collaborator refusing to accept "it's over"**. The first refusal ("low-rank approximation still has plenty of room") led to the metric fix; the second (insisting on the statistical foundations) opened up calibration-data engineering. "The toolbox is exhausted" always carries a hidden footnote: *under the current metric, the current representation, and the current statistics*.
 
-Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + tax-free correctors + loss-aware allocation; part 4 endpoint 5.05.
+Background in one line: Qwen3-8B (2.11) → every linear replaced by rank-r factors (2.29B equal budget, 72% removed); method = layerwise trajectory-correcting regression + full-rank correctors + loss-aware allocation; part 4 endpoint 5.05.
 
 (All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The oracle diagnostics in Section 6 keep their original measurement window.)
 

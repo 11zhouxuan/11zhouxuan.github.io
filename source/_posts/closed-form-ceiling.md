@@ -1,5 +1,5 @@
 ---
-title: "Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier"
+title: "Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier"
 date: 2026-08-22
 mathjax: true
 sticky: 30
@@ -14,7 +14,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank]
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器
+## 低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -35,7 +35,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank]
 
 精心设计的特征工程收益微薄（纯误差二阶项 $\delta\_g\delta\_u$ 在扩展空间中依然不可表），而"免费"的那个贡献了近五倍的改善。两者基本可加：$5.60 - 0.29 - 0.06 = 5.26$，实测组合 5.23——比简单相加还略好一点，差距在折间波动的边缘。
 
-### 2. 免税矫正器原理
+### 2. 全秩矫正器原理
 
 先解释本篇反复出现的一个词：把一个矩阵砍到 rank 384 必然损失一部分逼近精度，这份不可避免的损失我们称为**截断税**。全网 252 个低秩层，每层都在交税。
 
@@ -45,7 +45,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它强在四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是**全秩**的——这是全网唯一不付截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。
 
-这提炼出一个通用原理：**把预算花在免截断税的位置**。全网还有一类这样的位置——block 之间的残差流。每 6 个 block 插一个满秩矫正 $h \leftarrow Ph + b$（拟合学生残差 → 教师残差，$W=I$ 无需截断，16.8M 参数/个），block rank 从 384 降到 353 配平预算：
+这提炼出一个通用原理：**把预算花在不付截断税的位置**。全网还有一类这样的位置——block 之间的残差流。每 6 个 block 插一个满秩矫正 $h \leftarrow Ph + b$（拟合学生残差 → 教师残差，$W=I$ 无需截断，16.8M 参数/个），block rank 从 384 降到 353 配平预算：
 
 | 同预算配置（2.29B） | val loss |
 |---|---|
@@ -55,11 +55,11 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 | + 11 个残差矫正器（K=3，rank 316） | **5.10** |
 | 对照：v2 rank=768（**2 倍参数**） | 5.12 |
 
-同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
+同预算的全秩矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
 
 本篇的完整方法如下。第 1–4 步就是[第二篇](/2026/08/19/trajectory-correcting-linear-distillation/)的算法 1 原封不动，**加粗的第 5 步和循环后的收尾是本篇新增**：
 
-> **算法：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）**
+> **算法：轨迹矫正线性蒸馏 + 全秩矫正器（完整流程）**
 >
 > **输入**：教师模型的全部权重矩阵 $W\_1, \dots, W\_N$，按前向顺序编号（$N = 252$：模型共 36 个 block，每个含 7 个）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$、矫正间隔 $K$（本文 $K = 3$；为配平矫正器的参数预算，$r$ 从 384 降到 316）
 >
@@ -75,7 +75,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 >
 > **输出**：学生模型 = $N$ 个低秩层 + 11 个残差流矫正器 + 矫正后的 lm_head（val loss = **5.10**；矫正器共约 185M 参数，由 $r$ 的下调支付，总参数量保持 2.29B）
 
-新旧两类回归的关键区别一目了然：第 3 步的 $M^\*$ 必须截断到 rank $r$（付截断税），而第 5 步和收尾处的 $P$ 保持满秩——**没有 rank 约束、最优解不损失精度，这正是"免税"的形式化含义**。
+新旧两类回归的关键区别一目了然：第 3 步的 $M^\*$ 必须截断到 rank $r$（付截断税），而第 5 步和收尾处的 $P$ 保持满秩——**没有 rank 约束，最优解不损失任何精度，"全秩矫正器"的价值全在这里**。
 
 ### 3. 剩余的差距在哪：几乎全在 block 16
 
@@ -103,7 +103,7 @@ lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 �
 
 $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
 
-2. **三条可迁移的原理**：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在**免截断税**的位置（lm\_head、残差流）；动手设计精巧特征之前，先**审计所有"没被压缩所以没人管"的环节**——收益最大的一击往往在盲区里。
+2. **三条可迁移的原理**：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在**不付截断税**的位置（lm\_head、残差流）；动手设计精巧特征之前，先**审计所有"没被压缩所以没人管"的环节**——收益最大的一击往往在盲区里。
 
 3. **闭式极限的成因**：卡在约 5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃"每层模仿教师对应层"的做法、直接优化最终 loss——这正是训练在做的事。
 
@@ -151,7 +151,7 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier
+## Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -172,7 +172,7 @@ The ablation (removing components one at a time to measure each one's contributi
 
 The carefully engineered features underdelivered (the pure second-order term $\delta\_g\delta\_u$ remains unrepresentable even in the extended space), while the free component contributed nearly 5× more. The two are essentially additive: $5.60 - 0.29 - 0.06 = 5.26$, versus 5.23 measured for the combination — slightly better than the plain sum, a gap at the edge of the fold noise.
 
-### 2. The Tax-Free Corrector Principle
+### 2. The Full-Rank Corrector Principle
 
 First, a word used throughout this post: cutting a matrix to rank 384 inevitably loses some approximation accuracy; we call this unavoidable loss the **truncation tax**. All 252 low-rank layers in the network pay it.
 
@@ -182,7 +182,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four multipliers: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is **full-rank** — the only spot in the network that pays no truncation tax; it is the last hop, feeding straight into logits; every token passes through it.
 
-This generalizes into a principle: **spend budget where corrections are truncation-tax-free**. One more family of such spots exists — the residual stream between blocks. Insert a full-rank corrector $h \leftarrow Ph + b$ every 6 blocks (student residual → teacher residual; $W=I$, no truncation needed; 16.8M params each), shrinking block ranks 384→353 to stay on budget:
+This generalizes into a principle: **spend budget where corrections pay no truncation tax**. One more family of such spots exists — the residual stream between blocks. Insert a full-rank corrector $h \leftarrow Ph + b$ every 6 blocks (student residual → teacher residual; $W=I$, no truncation needed; 16.8M params each), shrinking block ranks 384→353 to stay on budget:
 
 | Equal-budget configuration (2.29B) | val loss |
 |---|---|
@@ -192,11 +192,11 @@ This generalizes into a principle: **spend budget where corrections are truncati
 | + 11 residual correctors (K=3, rank 316) | **5.10** |
 | Reference: v2 rank=768 (**2× params**) | 5.12 |
 
-Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
+Equal-budget full-rank correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
 
 The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from [part 2](/2026/08/19/trajectory-correcting-linear-distillation/), unchanged; **the bold step 5 and the post-loop finish are new in this post**:
 
-> **Algorithm: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)**
+> **Algorithm: Trajectory-Correcting Linear Distillation + Full-Rank Correctors (complete pipeline)**
 >
 > **Input**: all of the teacher's weight matrices $W\_1, \dots, W\_N$ in forward order ($N = 252$: 36 blocks with 7 matrices each), calibration data $D$, target rank $r$, regularization strength $\lambda$, corrector interval $K$ ($K = 3$ here; to pay for the correctors, $r$ drops from 384 to 316)
 >
@@ -212,7 +212,7 @@ The complete method of this post is stated below. Steps 1–4 are exactly Algori
 >
 > **Output**: student model = $N$ low-rank layers + 11 residual-stream correctors + corrected lm_head (val loss = **5.10**; the correctors cost about 185M parameters, paid for by the lower $r$; the total stays at 2.29B)
 
-The contrast between the two kinds of regression is immediate: the $M^\*$ of step 3 must be truncated to rank $r$ (pays the truncation tax), while the $P$ of step 5 and the finish stays full-rank — **no rank constraint, no accuracy lost at the optimum, which is exactly what "tax-free" formalizes**.
+The contrast between the two kinds of regression is immediate: the $M^\*$ of step 3 must be truncated to rank $r$ (pays the truncation tax), while the $P$ of step 5 and the finish stays full-rank — **no rank constraint, no accuracy lost at the optimum: that is the entire value of a full-rank corrector**.
 
 ### 3. Where the Remaining Gap Lives: Almost Entirely in Block 16
 
@@ -240,7 +240,7 @@ The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed
 
 $$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champion}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
-2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget at **truncation-tax-free** spots (lm\_head, residual stream); before engineering clever features, **audit every "uncompressed, so unmanaged" station** — the biggest win tends to hide in the blind spot.
+2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget where **no truncation tax is paid** (lm\_head, residual stream); before engineering clever features, **audit every "uncompressed, so unmanaged" station** — the biggest win tends to hide in the blind spot.
 
 3. **Why the ceiling sits where it does**: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning "each layer imitates its teacher counterpart" and optimizing the final loss directly — which is exactly what training does.
 
@@ -295,7 +295,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——免税矫正器与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Tax-Free Correctors and a Nonlinear Amplifier'};
+  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }

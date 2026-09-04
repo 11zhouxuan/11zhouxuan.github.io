@@ -28,7 +28,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, oracle-bo
 
 在动手之前先回答一个架构级的问题：闭式为什么恰好卡在 5 附近？把全部实验证据（oracle 地板、block-16 诊断、消融）拼起来，从教师到闭式的约 2.9 nat 可以拆成三个**互相独立、机制不同**的组成部分：
 
-$$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{②漂移残余} \approx 0.9} 5.06 \qquad 3.2\_{\text{训练}} \xleftarrow{\text{③重组收益}}$$
+$$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{②漂移残余} \approx 0.9} 5.06 \qquad \text{训练} \xleftarrow{\text{③重组收益}}$$
 
 （"oracle 地板"来自一个允许作弊的诊断实验：运行时把每个子层的输入替换成教师的干净值，于是每层只贡献自己的局部截断误差。这个作弊模型的 loss（测得 4.15）就是"每层模仿教师对应层"这条路线无论怎么矫正都到不了的下限——任何矫正器最多把输入还原干净，不可能做得比干净输入更好。）
 
@@ -54,7 +54,7 @@ $$2.11 \xrightarrow{\text{①截断税} \approx 2.0} 4.15\_{\text{oracle}} \xrig
 
 ### 2. 实验方向一：loss 敏感度驱动的 rank 分配——方向对，但要阻尼
 
-我们之前试过从白化谱做分配（重构误差驱动），失败（5.73）。文献一致认可的是 **loss 敏感度驱动**（六篇独立工作同向；调研坐标见附录 A）——这是两回事：前者问"砍掉这个方向，本层输出变多少"，后者问"砍掉这个方向，最终 loss 变多少"。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha\_i=1$，反传时只求门的梯度，累积 $f\_i = \sum(\partial L/\partial\alpha\_i)^2$（梯度平方和，Fisher 信息的对角近似，衡量 loss 对该方向的敏感度）；用尾部的 $f$ 校准白化谱（$f\_{l,i}\approx c\_l\sigma\_{l,i}^2$），然后在总预算固定的约束下把 rank 优先分给敏感度高的层，直到预算用完。
+我们之前试过从白化谱做分配（重构误差驱动），失败（5.73）。文献一致认可的是 **loss 敏感度驱动**（六篇独立工作同向；文献调研见附录 A）——这是两回事：前者问"砍掉这个方向，本层输出变多少"，后者问"砍掉这个方向，最终 loss 变多少"。做法：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha\_i=1$，反传时只求门的梯度，累积 $f\_i = \sum(\partial L/\partial\alpha\_i)^2$（梯度平方和，Fisher 信息的对角近似，衡量 loss 对该方向的敏感度）；用尾部的 $f$ 校准白化谱（$f\_{l,i}\approx c\_l\sigma\_{l,i}^2$），然后在总预算固定的约束下把 rank 优先分给敏感度高的层，直到预算用完。
 
 Fisher 给出的分配极其激进，且完美对应模式/内容通路二分：
 
@@ -101,7 +101,7 @@ $$\min\_{\{r\_\ell\}}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_
 
 **最终版图**（85% 压缩率、等预算 2.29B）：
 
-$$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{免税矫正器}} \to \mathbf{5.05}\_{\text{+分配+back-load}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
+$$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{全秩矫正器}} \to \mathbf{5.05}\_{\text{+分配+back-load}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{训练@500}} \to 2.11\_{\text{教师}}$$
 
 | 瓶颈 | 架构根源 | 出路 |
 |---|---|---|
@@ -115,7 +115,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 2. **矫正链是一个自洽整体。** 顺序拟合的压缩管线里，每个组件都适配上游的特定误差。任何"局部改善"（不动点重解、跨层联合目标、部分输入清洁）都会破坏下游补偿——三次独立验证。诊断时可以作弊，部署时只能整链重拟合。
 3. **小改进不叠加。** 当各手段（分配、直通、非线性 lift）都在收割同一块残余误差时，0.02 级的收益合并后互相侵蚀。判断两个改进能否叠加，看它们的机制是否攻击差距的不同组成部分——攻击同一部分的改进，合并前先打折。
 
-闭式赛道就此真正收官：等预算 5.05 是"逐层回归 + 线性/轻非线性矫正 + rank 分配"这套工具箱的终点。通往 2.5 的路在训练上（本文发稿时训练臂已到 2.87 且在下降），通往 4.15 以下的闭式路在范式外。
+闭式赛道就此真正收官：等预算 5.05 是"逐层回归 + 线性/轻非线性矫正 + rank 分配"这套工具箱的终点。通往 2.5 的路在训练上，通往 4.15 以下的闭式路在范式外。
 
 第三篇宣布过一次收官，被本篇推翻；本篇的收官宣言又能站多久？[第五篇](/2026/08/30/closed-form-moving-ceiling/)见分晓。
 
@@ -126,7 +126,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 
 ## 附录
 
-### 附录 A：文献坐标——我们在前沿的什么位置
+### 附录 A：文献调研——我们在前沿的什么位置
 
 动手前做了一轮系统调研（2024-2026 的 training-free 低秩压缩文献），两个结论校准了预期：
 
@@ -137,7 +137,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 
 测量教师的输出侧异常，发现巨幅激活（massive activations，[第三篇](/2026/08/22/closed-form-ceiling/)附录 A 提过的现象）在这个模型里是**两条贯穿全网的全局通道**：维度 1838 和 2276，幅度是中位通道的 60-110 倍，从 block 0 单调增长到 block 33（mean|x| 从 4.9 涨到 607）；几乎每一层 o_proj/down_proj 的最大输出行都对准它们。
 
-顺着第三篇"免税矫正器"的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。**双双打平。** 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向**天然优先服务它们**——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。
+顺着第三篇"全秩矫正器"的思路做了两个等预算直通实验：巨输入列不进 SVD 截断（每层 top-24 列原样保留）、巨输出行不进截断（o/down 的 top-8 行）。**双双打平。** 这个负结果反而更有价值：白化 SVD 的目标函数本来就被巨行巨列主导，最靠前的奇异方向**天然优先服务它们**——巨通道根本不付截断税。这与 lm_head/残差矫正器的成功形成干净对比：那两处是整个矩阵没人矫正，这里是矩阵内部早已被照顾好的通道。
 
 但测量顺带揭示了"②漂移残余"的精确机制：**RMSNorm 的分母被这两维主导——它们一漂移，全部 4096 维跟着乘性重缩放**。这是一个把局部小误差全局化的耦合器，也是第三篇发现的 block 16 放大器（一层砍掉残差流 R² 0.54）的本体。伤害全部来自漂移的流动而非权重的近似——静态权重侧的任何安排（dense、front-load、直通，四连败）都碰不到它。
 
@@ -153,7 +153,7 @@ $$8.50\_{\text{坍缩假象}} \to 5.60\_{\text{轨迹矫正}} \to 5.10\_{\text{�
 | rms-lift 全秩（**+8% 参数**） | **4.99** | 闭式首次低于 5.0；block 16 之后的矫正器 R² 0.36→0.66 |
 | rms-lift 截断 rank-256（等预算） | 5.07 | 打平 |
 
-**机制证实，收益归零**：乘性漂移确实可修（R² 提升与低于 5.0 为证），但修复它的参数效率与直接加 rank 恰好持平——等预算下没有额外便宜可占。这与免税矫正器原理形成闭环：lm_head 和线性残差矫正器赢在修复"没人管的漂移"，而 lift 的非线性部分在修复"已被线性工具照顾过的残余"，边际收益自然持平。
+**机制证实，收益归零**：乘性漂移确实可修（R² 提升与低于 5.0 为证），但修复它的参数效率与直接加 rank 恰好持平——等预算下没有额外便宜可占。这与全秩矫正器原理形成闭环：lm_head 和线性残差矫正器赢在修复"没人管的漂移"，而 lift 的非线性部分在修复"已被线性工具照顾过的残余"，边际收益自然持平。
 
 
 </div>
@@ -175,7 +175,7 @@ Background in one line: Qwen3-8B (val loss 2.11) → every linear replaced by ra
 
 Before running anything, an architecture-level question: why is closed-form stuck near 5? Assembling all the evidence (oracle floor, block-16 diagnosis, ablations), the ~2.9 nats from teacher to closed-form split into three **independent components with distinct mechanisms**:
 
-$$2.11 \xrightarrow{\text{① truncation tax} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{② drift residue} \approx 0.9} 5.06 \qquad 3.2\_{\text{trained}} \xleftarrow{\text{③ reorganization gain}}$$
+$$2.11 \xrightarrow{\text{① truncation tax} \approx 2.0} 4.15\_{\text{oracle}} \xrightarrow{\text{② drift residue} \approx 0.9} 5.06 \qquad \text{training} \xleftarrow{\text{③ reorganization gain}}$$
 
 (The "oracle floor" comes from a diagnostic experiment that is allowed to cheat: at runtime, every sublayer's input is replaced with the teacher's clean value, so each layer contributes only its own local truncation error. This cheating model's loss — measured at 4.15 — is a lower limit that the "each layer imitates its teacher counterpart" route can never beat, however good the correction: no corrector can do better than restoring the inputs to clean.)
 
@@ -201,7 +201,7 @@ Three components, three different bottlenecks. All four experimental directions 
 
 ### 2. Direction 1: Loss-Aware Rank Allocation — Right Direction, Needs Damping
 
-We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.73). What the literature consistently endorses is **loss-sensitivity-driven** allocation (six independent works agree; the survey coordinates are in Appendix A) — a different thing: the former asks "how much does this layer's output change if I cut this direction," the latter asks "how much does the final loss change." Method: hang a multiplicative gate $\alpha\_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate $f\_i = \sum(\partial L/\partial\alpha\_i)^2$ (a sum of squared gradients — the diagonal approximation of Fisher information, measuring the loss's sensitivity to that direction); calibrate the whitened spectra with the tail values ($f\_{l,i}\approx c\_l\sigma\_{l,i}^2$), then hand rank to the most sensitive layers first until the fixed budget runs out.
+We had previously tried spectrum-driven allocation (reconstruction-error-based) and failed (5.73). What the literature consistently endorses is **loss-sensitivity-driven** allocation (six independent works agree; the survey is in Appendix A) — a different thing: the former asks "how much does this layer's output change if I cut this direction," the latter asks "how much does the final loss change." Method: hang a multiplicative gate $\alpha\_i=1$ on every kept rank-1 direction, backprop into the gates only, accumulate $f\_i = \sum(\partial L/\partial\alpha\_i)^2$ (a sum of squared gradients — the diagonal approximation of Fisher information, measuring the loss's sensitivity to that direction); calibrate the whitened spectra with the tail values ($f\_{l,i}\approx c\_l\sigma\_{l,i}^2$), then hand rank to the most sensitive layers first until the fixed budget runs out.
 
 Fisher's optimal allocation is drastic, and maps perfectly onto the pattern/content split:
 
@@ -248,7 +248,7 @@ The last experiment stacked the two verified small improvements (back-load + rms
 
 **The final landscape** (85% compression, equal 2.29B budget):
 
-$$8.50\_{\text{collapse illusion}} \to 5.60\_{\text{traj. correction}} \to 5.10\_{\text{tax-free correctors}} \to \mathbf{5.05}\_{\text{+alloc+backload}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
+$$8.50\_{\text{collapse illusion}} \to 5.60\_{\text{traj. correction}} \to 5.10\_{\text{full-rank correctors}} \to \mathbf{5.05}\_{\text{+alloc+backload}} \to 4.15\_{\text{oracle}} \to 3.2\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
 | Bottleneck | Architectural root | Way out |
 |---|---|---|
@@ -262,7 +262,7 @@ Three transferable lessons distilled from these experiments:
 2. **The corrector chain is a self-consistent whole.** In a sequentially-fit pipeline every component adapts to its upstream's specific errors. Any "local improvement" (fixed-point re-solving, cross-layer joint objectives, partial input cleaning) breaks downstream compensation — verified three independent ways. Cheat during diagnosis; refit the whole chain for deployment.
 3. **Small improvements don't stack.** When separate levers (allocation, passthrough, nonlinear lift) harvest the same residue, 0.02-level gains erode each other on combination. Before adding two improvements, check whether their mechanisms attack different components of the gap — gains on the same component discount each other before they add.
 
-The closed-form track is now genuinely closed: equal-budget ~5.05 is the terminus of the "layerwise regression + linear/light-nonlinear correctors + rank allocation" toolbox. The road to 2.5 runs through training (the training arm was at 2.87 and descending as this was published); the road below 4.15 for closed-form runs outside the paradigm.
+The closed-form track is now genuinely closed: equal-budget ~5.05 is the terminus of the "layerwise regression + linear/light-nonlinear correctors + rank allocation" toolbox. The road to 2.5 runs through training; the road below 4.15 for closed-form runs outside the paradigm.
 
 Part 3 declared closure once and this post overturned it — how long will this post's own declaration stand? [Part 5](/2026/08/30/closed-form-moving-ceiling/) has the answer.
 
@@ -273,7 +273,7 @@ Part 3 declared closure once and this post overturned it — how long will this 
 
 ## Appendix
 
-### Appendix A: Literature Coordinates — Where We Sit on the Frontier
+### Appendix A: Literature Survey — Where We Sit on the Frontier
 
 A systematic literature sweep (training-free low-rank LLM compression, 2024-2026) calibrated expectations with two findings:
 
@@ -284,7 +284,7 @@ A systematic literature sweep (training-free low-rank LLM compression, 2024-2026
 
 Measuring the teacher's output-side outliers revealed that massive activations (the phenomenon noted in [part 3](/2026/08/22/closed-form-ceiling/), Appendix A) are in this model **two global channels running the full depth**: dims 1838 and 2276, 60-110× the median channel, growing monotonically from block 0 to 33 (mean|x| 4.9 → 607); nearly every o_proj/down_proj's largest output row targets them.
 
-Following part 3's tax-free-corrector principle we ran two equal-budget passthrough experiments: exempt the massive input COLUMNS from SVD truncation (top-24 per layer, kept exact), and exempt the massive output ROWS (top-8 of o/down). **Both washed out.** The conclusion is worth more than a win: the whitened SVD's objective is dominated by those very rows/columns, so the top singular directions **serve them first** — massive channels pay no truncation tax to begin with. A clean contrast with the lm_head/residual-corrector successes: those fixed whole matrices nobody was correcting; these are channels inside matrices that were already well served.
+Following part 3's full-rank-corrector principle we ran two equal-budget passthrough experiments: exempt the massive input COLUMNS from SVD truncation (top-24 per layer, kept exact), and exempt the massive output ROWS (top-8 of o/down). **Both washed out.** The conclusion is worth more than a win: the whitened SVD's objective is dominated by those very rows/columns, so the top singular directions **serve them first** — massive channels pay no truncation tax to begin with. A clean contrast with the lm_head/residual-corrector successes: those fixed whole matrices nobody was correcting; these are channels inside matrices that were already well served.
 
 But the measurement exposed the precise mechanism of ② (drift residue): **RMSNorm's denominator is dominated by those two dims — when they drift, all 4096 channels get multiplicatively rescaled.** It is a coupler that globalizes local errors, and the true identity of the block-16 amplifier found in part 3 (one layer destroying residual R² by 0.54). The damage comes entirely from drift flowing at runtime, not from weight approximation — which is why every static weight-side arrangement (dense block, front-load, passthroughs; four failures) never touched it.
 
@@ -300,7 +300,7 @@ Two lessons arrived before the result. The first shot used the naive form $[h;\ 
 | rms-lift, full-rank ( **+8% params**) | **4.99** | first closed-form below 5.0; corrector R² after block 16 0.36→0.66 |
 | rms-lift, truncated to rank 256 (equal budget) | 5.07 | wash |
 
-**Mechanism confirmed, gain zero**: multiplicative drift is genuinely repairable (the R² gain and the sub-5.0 prove it), but the repair's parameter efficiency exactly matches just buying more rank — no extra bargain at equal budget. This closes the loop on the tax-free-corrector principle: lm_head and the linear residual correctors won by fixing drift nobody was managing; the lift's nonlinear part fixes residue the linear tools had already tended, so its marginal return is at par.
+**Mechanism confirmed, gain zero**: multiplicative drift is genuinely repairable (the R² gain and the sub-5.0 prove it), but the repair's parameter efficiency exactly matches just buying more rank — no extra bargain at equal budget. This closes the loop on the full-rank-corrector principle: lm_head and the linear residual correctors won by fixing drift nobody was managing; the lift's nonlinear part fixes residue the linear tools had already tended, so its marginal return is at par.
 
 
 </div>
