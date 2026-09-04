@@ -99,7 +99,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \mathbf{5.60}
 
 与坍缩模型有本质区别：预测行为完全健康——top-1 是正确的高频词 " the"（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。这是所有闭式方法中第一个真正在利用上下文的模型。
 
-方法在 ~5.6 收敛：进一步的精巧化尝试（不动点迭代重解、按奇异值谱分配 rank、调 $\lambda$）全部没有收益，细节见附录 A。这个平台是怎么来的、剩下的差距是什么性质——是下一节的问题。
+方法在 5.60 收敛：进一步的精巧化尝试（不动点迭代重解、按奇异值谱分配 rank、调 $\lambda$）全部没有收益，细节见附录 A。这个平台是怎么来的、剩下的差距是什么性质——是下一节的问题。
 
 ### 5. 剩下的差距在哪：R² 诊断
 
@@ -110,7 +110,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \mathbf{5.60}
 | 前几层 | 0.65~0.80 |
 | 中段（q/k/v 输入） | 0.52~0.60 |
 | 中段（down\_proj 输入，即 SwiGLU 乘积） | **0.25~0.40** |
-| 尾段 | 回升至 ~0.6 |
+| 尾段 | 回升至约 0.6 |
 
 中段网络的漂移有一半以上是**非线性**的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：**逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移**，原理上需要非线性矫正器或全局优化（训练）才能跨越。
 
@@ -118,7 +118,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \mathbf{5.60}
 
 1. **低秩压缩的瓶颈不在表达能力，在优化目标**。rank-384 空间中存在 3.79 的点；"逐层逼近 W"找不到它，"逐层矫正轨迹"能走到 5.60。
 2. **闭式方法的正确姿势是回归而不是分解**：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。
-3. **逐层线性矫正在 ~5.6 收敛**：漂移中线性可恢复的部分已经榨干，剩余差距是非线性的。这个"天花板"是否真的到头，是[下一篇](/2026/08/22/closed-form-ceiling/)的主题。
+3. **逐层线性矫正在 5.60 收敛**：漂移中线性可恢复的部分已经榨干，剩余差距是非线性的。这个"天花板"是否真的到头，是[下一篇](/2026/08/22/closed-form-ceiling/)的主题。
 4. 更正上一篇的结论："闭式方法无法同时打破坍缩又降低 loss"是错的——错的是当时测试的所有方法共享的"逼近 W"目标，而不是闭式本身。
 
 
@@ -128,7 +128,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \mathbf{5.60}
 
 ### 附录 A：方法的平台——三个负结果
 
-进一步的优化尝试全部失败，方法在 ~5.6 收敛：
+进一步的优化尝试全部失败，方法在 5.60 收敛：
 
 1. **不动点迭代 → 5.95（变差）**。想法是"压缩后的学生漂移变了，那就用它重新采集统计、把所有层再解一遍，迭代到自洽"。实测反而破坏了第一遍矫正链的自洽性——每层的解适配了上游的特定误差模式，重解任何一层都会让下游已学到的补偿失配。**单遍顺序处理就是最优做法。**
 2. **按奇异值谱分配 per-layer rank → 5.73（略差）**。给谱衰减慢（更难压）的层多分 rank、衰减快的少分。均匀 rank 已接近最优；从均匀运行算出的分配也无法迁移到新运行（漂移模式随分配改变）。
@@ -225,7 +225,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{collapse illusion}} \to \mathbf{
 
 The contrast with the collapsed model is essential: the behavior is healthy — top-1 is the correct high-frequency word " the" (same as the teacher), and the KL divergence between output distributions at different positions is 5.4, i.e. predictions really do vary with context (the collapsed model: 0.007, the same distribution everywhere). This is the first closed-form method that genuinely uses context.
 
-The method converges at ~5.6: further refinements (fixed-point re-solving, spectrum-driven rank allocation, tuning $\lambda$) all fail to pay — details in Appendix A. Where this plateau comes from, and what the remaining gap is made of, is the next section's question.
+The method converges at 5.60: further refinements (fixed-point re-solving, spectrum-driven rank allocation, tuning $\lambda$) all fail to pay — details in Appendix A. Where this plateau comes from, and what the remaining gap is made of, is the next section's question.
 
 ### 5. Where the Remaining Gap Lives: the R² Diagnostic
 
@@ -244,7 +244,7 @@ More than half of the mid-network drift is **nonlinear**, worst at the SwiGLU ga
 
 1. **The bottleneck of low-rank compression is not expressiveness but the optimization objective.** A 3.79 point exists in the rank-384 space; "approximate $W$ per layer" cannot find it, while "correct the trajectory per layer" reaches 5.60.
 2. **The right closed-form primitive is regression, not factorization**: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.
-3. **Layerwise linear correction converges at ~5.6**: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this ceiling is truly final is the subject of [the next post](/2026/08/22/closed-form-ceiling/).
+3. **Layerwise linear correction converges at 5.60**: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this ceiling is truly final is the subject of [the next post](/2026/08/22/closed-form-ceiling/).
 4. A correction to the previous post: "closed-form methods cannot simultaneously break collapse and lower loss" was wrong — what was broken was the shared "approximate $W$" objective of every method tested then, not closed-form itself.
 
 
@@ -254,7 +254,7 @@ More than half of the mid-network drift is **nonlinear**, worst at the SwiGLU ga
 
 ### Appendix A: The Plateau — Three Negative Results
 
-Further optimization attempts all failed; the method converges at ~5.6:
+Further optimization attempts all failed; the method converges at 5.60:
 
 1. **Fixed-point iteration → 5.95 (worse)**. The idea: the compressed student's drift has changed, so re-collect statistics with it and re-solve every layer, iterating toward self-consistency. In practice this destroys the self-consistency of the pass-1 corrector chain — each layer's solution is adapted to its upstream's specific error pattern; re-solving any layer invalidates downstream compensations. **A single sequential sweep is the best approach.**
 2. **Singular-spectrum-driven per-layer rank allocation → 5.73 (slightly worse)**. Give more rank to layers whose spectrum decays slowly (harder to compress), less to the rest. Uniform ranks are already near-optimal, and an allocation computed from a uniform run does not transfer to a new run (the drift pattern changes with the allocation).

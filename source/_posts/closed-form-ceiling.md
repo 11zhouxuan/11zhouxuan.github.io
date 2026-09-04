@@ -57,9 +57,9 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 同预算的免税矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
 
-本篇的完整方法如下。第 1–4 步就是第二篇的算法 1，**加粗的第 5 步和循环后的收尾是本篇新增**：
+本篇的完整方法如下。第 1–4 步就是[第二篇](/2026/08/19/trajectory-correcting-linear-distillation/)的算法 1 原封不动，**加粗的第 5 步和循环后的收尾是本篇新增**：
 
-> **算法 2：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）**
+> **算法：轨迹矫正线性蒸馏 + 免税矫正器（完整流程）**
 >
 > **输入**：教师模型的全部权重矩阵 $W\_1, \dots, W\_N$，按前向顺序编号（$N = 252$：模型共 36 个 block，每个含 7 个）、校准数据 $D$、目标秩 $r$、正则强度 $\lambda$、矫正间隔 $K$（本文 $K = 3$；为配平矫正器的参数预算，$r$ 从 384 降到 316）
 >
@@ -81,7 +81,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 5.10 之后我们继续追问：剩下的误差到底在哪里产生？做法很直接——沿着模型逐个 block 检查，问"走到这里为止，学生和教师的差距还有多少能用一个线性变换修回去"。答案非常集中：修不掉的部分几乎全部产生自**同一个位置**——block 16 的 FFN。
 
-这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个**非线性放大器**。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在 ~5.1 附近。
+这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个**非线性放大器**。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在约 5.1 附近。
 
 ### 4. 训练判决：好的闭式 init 值 200+ 步训练
 
@@ -105,7 +105,7 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\
 
 2. **三条可迁移的原理**：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在**免截断税**的位置（lm\_head、残差流）；动手设计精巧特征之前，先**审计所有"没被压缩所以没人管"的环节**——收益最大的一击往往在盲区里。
 
-3. **闭式极限的成因**：卡在 ~5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃"每层模仿教师对应层"的做法、直接优化最终 loss——这正是训练在做的事。
+3. **闭式极限的成因**：卡在约 5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃"每层模仿教师对应层"的做法、直接优化最终 loss——这正是训练在做的事。
 
 4. **工程结论**：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把"可用模型"的到达时间提前数百步。
 
@@ -129,7 +129,7 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\
 - 完全不压缩 block 16 的 FFN（保留原始全秩权重）：5.40，比 5.10 更差；
 - 给前半段多分 rank（block 0–16 用 480、17–35 用 298），想让流进 block 16 的误差更小：5.38，也更差。
 
-**结论**：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在 ~5.1。
+**结论**：不是我们把 block 16 压坏了，而是教师的这个层天生就会放大输入里的误差。走到它入口时，误差里约有 18% 是线性变换修不掉的；经过它的大幅度非线性计算之后，出口处修不掉的比例被放大到 73%。给它容量、给它 rank、给它线性矫正都碰不到这个机制，那 18% 对我们付得起的 rank 提升也不敏感。闭式方法的极限因此停在约 5.1。
 
 ### 附录 B：不同 loss 水平的模型在生成什么
 
@@ -194,9 +194,9 @@ This generalizes into a principle: **spend budget where corrections are truncati
 
 Equal-budget tax-free correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
 
-The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from part 2; **the bold step 5 and the post-loop finish are new in this post**:
+The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from [part 2](/2026/08/19/trajectory-correcting-linear-distillation/), unchanged; **the bold step 5 and the post-loop finish are new in this post**:
 
-> **Algorithm 2: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)**
+> **Algorithm: Trajectory-Correcting Linear Distillation + Tax-Free Correctors (complete pipeline)**
 >
 > **Input**: all of the teacher's weight matrices $W\_1, \dots, W\_N$ in forward order ($N = 252$: 36 blocks with 7 matrices each), calibration data $D$, target rank $r$, regularization strength $\lambda$, corrector interval $K$ ($K = 3$ here; to pay for the correctors, $r$ drops from 384 to 316)
 >
