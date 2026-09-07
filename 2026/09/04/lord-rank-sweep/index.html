@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English    低秩压缩系列（六）：秩扫描——rank 从 384 一路砍到 24，质量如何退化  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  前五篇把一件事做到了头：在 2.29B 等预算（全网 rank 384）这一个点上，闭式压缩从坍缩假象的 8.50 推到了 4.59。但整个系列只在这">
+    <meta name="description" content="中文   English    低秩压缩系列（五）：秩扫描——rank 从 384 到 24 的质量曲线  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  前四篇在 2.29B 等预算（全网 rank 384）这一个点上，把闭式压缩从坍缩假象的 8.50 推到了 4.59；整个系列此前只在这一个预算点上活动。第四">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24">
+<meta property="og:title" content="Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24">
 <meta property="og:url" content="https://11zhouxuan.github.io/2026/09/04/lord-rank-sweep/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English    低秩压缩系列（六）：秩扫描——rank 从 384 一路砍到 24，质量如何退化  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  前五篇把一件事做到了头：在 2.29B 等预算（全网 rank 384）这一个点上，闭式压缩从坍缩假象的 8.50 推到了 4.59。但整个系列只在这">
+<meta property="og:description" content="中文   English    低秩压缩系列（五）：秩扫描——rank 从 384 到 24 的质量曲线  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  前四篇在 2.29B 等预算（全网 rank 384）这一个点上，把闭式压缩从坍缩假象的 8.50 推到了 4.59；整个系列此前只在这一个预算点上活动。第四">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-09-04T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-04T06:04:44.129Z">
+<meta property="article:modified_time" content="2026-09-07T06:24:54.464Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -42,10 +42,10 @@
 <link rel="canonical" href="https://11zhouxuan.github.io/2026/09/04/lord-rank-sweep/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/09/04/lord-rank-sweep/","path":"2026/09/04/lord-rank-sweep/","title":"Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/09/04/lord-rank-sweep/","path":"2026/09/04/lord-rank-sweep/","title":"Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24 | Xuan's Blog</title>
+<title>Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24 | Xuan's Blog</title>
   
 
 
@@ -176,7 +176,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E5%85%AD%EF%BC%89%EF%BC%9A%E7%A7%A9%E6%89%AB%E6%8F%8F%E2%80%94%E2%80%94rank-%E4%BB%8E-384-%E4%B8%80%E8%B7%AF%E7%A0%8D%E5%88%B0-24%EF%BC%8C%E8%B4%A8%E9%87%8F%E5%A6%82%E4%BD%95%E9%80%80%E5%8C%96"><span class="nav-text">低秩压缩系列（六）：秩扫描——rank 从 384 一路砍到 24，质量如何退化</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE%EF%BC%9A%E9%85%8D%E6%96%B9%E4%B8%8D%E5%8A%A8%EF%BC%8C%E5%8F%AA%E7%BC%A9%E6%94%BE-rank"><span class="nav-text">1. 实验设置：配方不动，只缩放 rank</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E7%BB%93%E6%9E%9C%EF%BC%9A%E4%B8%80%E6%9D%A1%E5%BE%88%E5%B9%B3%E7%9A%84%E6%9B%B2%E7%BA%BF"><span class="nav-text">2. 结果：一条很平的曲线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%8F%82%E6%95%B0%E9%87%8F%E7%9A%84%E8%AF%9A%E5%AE%9E%E8%B4%A6%E6%9C%AC%EF%BC%9A%E5%9B%BA%E5%AE%9A%E5%9C%B0%E6%9D%BF"><span class="nav-text">3. 参数量的诚实账本：固定地板</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E8%AE%BA"><span class="nav-text">4. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%AF%8F%E4%B8%AA-rank-%E7%82%B9%E7%9A%84%E6%B4%BE%E7%94%9F%E9%85%8D%E7%BD%AE"><span class="nav-text">附录 A：每个 rank 点的派生配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E5%B0%8F-rank-%E4%B8%8B%E7%9A%84%E4%B8%80%E4%B8%AA%E6%95%B0%E5%80%BC%E5%9D%91"><span class="nav-text">附录 B：小 rank 下的一个数值坑</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-6-The-Rank-Sweep-%E2%80%94-How-Quality-Degrades-from-Rank-384-down-to-24"><span class="nav-text">Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Setup-Freeze-the-Recipe-Scale-Only-the-Rank"><span class="nav-text">1. Setup: Freeze the Recipe, Scale Only the Rank</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Results-a-Remarkably-Flat-Curve"><span class="nav-text">2. Results: a Remarkably Flat Curve</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-An-Honest-Parameter-Ledger-the-Fixed-Floor"><span class="nav-text">3. An Honest Parameter Ledger: the Fixed Floor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Conclusions"><span class="nav-text">4. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-Derived-Configuration-at-Each-Rank"><span class="nav-text">Appendix A: Derived Configuration at Each Rank</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-A-Numerical-Pitfall-at-Small-Ranks"><span class="nav-text">Appendix B: A Numerical Pitfall at Small Ranks</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%BA%94%EF%BC%89%EF%BC%9A%E7%A7%A9%E6%89%AB%E6%8F%8F%E2%80%94%E2%80%94rank-%E4%BB%8E-384-%E5%88%B0-24-%E7%9A%84%E8%B4%A8%E9%87%8F%E6%9B%B2%E7%BA%BF"><span class="nav-text">低秩压缩系列（五）：秩扫描——rank 从 384 到 24 的质量曲线</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE%EF%BC%9A%E9%85%8D%E6%96%B9%E4%B8%8D%E5%8A%A8%EF%BC%8C%E5%8F%AA%E7%BC%A9%E6%94%BE-rank"><span class="nav-text">1. 实验设置：配方不动，只缩放 rank</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E7%BB%93%E6%9E%9C%EF%BC%9A%E4%B8%80%E6%9D%A1%E5%BE%88%E5%B9%B3%E7%9A%84%E6%9B%B2%E7%BA%BF"><span class="nav-text">2. 结果：一条很平的曲线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%8F%82%E6%95%B0%E6%9E%84%E6%88%90%EF%BC%9A%E5%9B%BA%E5%AE%9A%E5%BC%80%E9%94%80%E4%B8%BB%E5%AF%BC%E4%BD%8E%E7%A7%A9%E7%AB%AF"><span class="nav-text">3. 参数构成：固定开销主导低秩端</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E8%AE%BA"><span class="nav-text">4. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%AF%8F%E4%B8%AA-rank-%E7%82%B9%E7%9A%84%E6%B4%BE%E7%94%9F%E9%85%8D%E7%BD%AE"><span class="nav-text">附录 A：每个 rank 点的派生配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E5%B0%8F-rank-%E4%B8%8B%E7%9A%84%E4%B8%80%E4%B8%AA%E6%95%B0%E5%80%BC%E5%9D%91"><span class="nav-text">附录 B：小 rank 下的一个数值坑</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-5-The-Rank-Sweep-%E2%80%94-How-Quality-Degrades-from-Rank-384-down-to-24"><span class="nav-text">Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Setup-Freeze-the-Recipe-Scale-Only-the-Rank"><span class="nav-text">1. Setup: Freeze the Recipe, Scale Only the Rank</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Results-a-Remarkably-Flat-Curve"><span class="nav-text">2. Results: a Remarkably Flat Curve</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-Parameter-Composition-the-Fixed-Overhead-Dominates-at-Low-Rank"><span class="nav-text">3. Parameter Composition: the Fixed Overhead Dominates at Low Rank</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Conclusions"><span class="nav-text">4. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-Derived-Configuration-at-Each-Rank"><span class="nav-text">Appendix A: Derived Configuration at Each Rank</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-A-Numerical-Pitfall-at-Small-Ranks"><span class="nav-text">Appendix B: A Numerical Pitfall at Small Ranks</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -189,7 +189,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -200,7 +200,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-count">27</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -245,12 +245,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24 | Xuan's Blog">
+      <meta itemprop="name" content="Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24 | Xuan's Blog">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24
+          Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24
         </h1>
 
         <div class="post-meta-container">
@@ -260,9 +260,15 @@
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-09-04 00:00:00 / Modified: 06:04:44" itemprop="dateCreated datePublished" datetime="2026-09-04T00:00:00+00:00">2026-09-04</time>
+      <time title="Created: 2026-09-04 00:00:00" itemprop="dateCreated datePublished" datetime="2026-09-04T00:00:00+00:00">2026-09-04</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
     </span>
 
   
@@ -287,16 +293,16 @@
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
-<h2 id="低秩压缩系列（六）：秩扫描——rank-从-384-一路砍到-24，质量如何退化">低秩压缩系列（六）：秩扫描——rank 从 384 一路砍到 24，质量如何退化</h2>
+<h2 id="低秩压缩系列（五）：秩扫描——rank-从-384-到-24-的质量曲线">低秩压缩系列（五）：秩扫描——rank 从 384 到 24 的质量曲线</h2>
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<p>前五篇把一件事做到了头：在 <strong>2.29B 等预算</strong>（全网 rank 384）这一个点上，闭式压缩从坍缩假象的 8.50 推到了 4.59。但整个系列只在这一个预算点上活动。<a href="/2026/08/30/closed-form-moving-ceiling/">第五篇</a>结尾提出的下一个问题是：这套方法离开 2.29B 还站得住吗？<strong>把 rank 一路砍半——384、192、96、48、24——质量怎么退化？有没有某个 rank 以下突然崩坏？</strong> 本篇交这份答卷。</p>
+<p>前四篇在 <strong>2.29B 等预算</strong>（全网 rank 384）这一个点上，把闭式压缩从坍缩假象的 8.50 推到了 4.59；整个系列此前只在这一个预算点上活动。<a href="/2026/08/30/closed-form-moving-ceiling/">第四篇</a>结尾留下的问题是：这套方法离开 2.29B 还成立吗？本篇把 rank 逐次减半（384、192、96、48、24），测量质量如何退化、是否存在某个 rank 以下突然崩坏的点。</p>
 <p>（本文的 loss 均为严格协议测量值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。教师 Qwen3-8B 为 2.11。）</p>
 <h3 id="1-实验设置：配方不动，只缩放-rank">1. 实验设置：配方不动，只缩放 rank</h3>
-<p>被扫描的对象是第五篇的终点配方（逐矩阵轨迹矫正回归 + 稀疏残差 + 梯度加权度量 + 残差流矫正器 + lm_head 矫正），<strong>所有算法成分保持不变，只把和 rank 相关的预算等比缩小</strong>。记名义 rank 为 $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$：</p>
+<p>被扫描的对象是第四篇的终点配方（逐矩阵轨迹矫正回归 + 稀疏残差 + 梯度加权度量 + 残差流矫正器 + lm_head 矫正），<strong>所有算法成分保持不变，只把和 rank 相关的预算等比缩小</strong>。记名义 rank 为 $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$：</p>
 <ul>
-<li><strong>逐矩阵 rank 分配</strong>：第四篇的 loss 敏感度分配给了每个矩阵一个基准秩 $\bar{r}_\ell$（均值 251、范围 [116, 478]，其余预算在稀疏项和矫正器手里）。扫描时按比例缩放并设下限：</li>
+<li><strong>逐矩阵 rank 分配</strong>：第四篇第 1 节的 loss 敏感度分配给了每个矩阵一个基准秩 $\bar{r}_\ell$（均值 251、范围 [116, 478]，其余预算在稀疏项和矫正器手里）。扫描时按比例缩放并设下限：</li>
 </ul>
 <p>$$r_\ell(R) = \max\big(8, \mathrm{round}(\bar{r}_\ell \cdot R / 384)\big)$$</p>
 <ul>
@@ -355,7 +361,7 @@
 <p>两个观察：</p>
 <p><strong>第一，没有崩坏点。</strong> 系列开头最担心的事情——某个 rank 以下模型突然坍缩成常数预测器——从未发生。哪怕在 $R=24$（逐矩阵 rank 均值只有 16、最小 8），模型依然健康。作为参照：第一篇里 rank <strong>384</strong> 的坍缩 ASVD 是 8.50、朴素 SVD 是 10.83——本篇 rank 只有它们 1/16 的模型（6.04）远好于它们。当年的&quot;坍缩&quot;确实是方法问题而不是容量问题，这条曲线是这个论点最完整的证据。</p>
 <p><strong>第二，减半的代价在递减</strong>：0.49 → 0.41 → 0.27 → 0.28 nat。低秩容量每砍一半，loss 涨幅反而变小，曲线在低秩端趋平。部分原因是下一节的固定地板——但即使只看 transformer 核心，从 0.86B 砍到 0.06B（−93%）总共只付了 1.45 nat，退化极其平缓。</p>
-<h3 id="3-参数量的诚实账本：固定地板">3. 参数量的诚实账本：固定地板</h3>
+<h3 id="3-参数构成：固定开销主导低秩端">3. 参数构成：固定开销主导低秩端</h3>
 <p>上表有一个容易误读的地方：rank 砍了 16 倍，总参数只从 2.29B 降到 1.49B（−35%）。原因是学生模型里有一大块<strong>完全不随 rank 变的固定开销</strong>：</p>
 <table>
 <thead>
@@ -396,7 +402,7 @@
 <p><strong>轨迹矫正配方对 rank 极其鲁棒</strong>：384 → 24（逐矩阵均值 251 → 16），loss 退化全程平缓（每减半 +0.27~0.49 nat），无任何坍缩迹象。&quot;低秩压缩在高压缩率下必然崩坏&quot;对这套方法不成立。</p>
 </li>
 <li>
-<p><strong>减半代价递减</strong>（0.49 → 0.28），说明轨迹矫正回归在极低秩下仍能把有限容量用在刀刃上——这正是白化截断&quot;按真实输入分布分配精度&quot;的设计初衷。</p>
+<p><strong>减半代价递减</strong>（0.49 → 0.28），说明轨迹矫正回归在极低秩下仍能把有限容量分配到最重要的方向——这正是白化截断&quot;按真实输入分布分配精度&quot;的设计目标。</p>
 </li>
 <li>
 <p><strong>低秩端的参数账本由词表矩阵主导</strong>（固定开销占比 62% → 96%）。秩扫描真正测量的是 transformer 核心的容量-质量关系；总参数口径下的任何结论都要先扣掉这 1.43B 的地板。</p>
@@ -467,16 +473,16 @@
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
-<h2 id="Low-Rank-Compression-Series-6-The-Rank-Sweep-—-How-Quality-Degrades-from-Rank-384-down-to-24">Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24</h2>
+<h2 id="Low-Rank-Compression-Series-5-The-Rank-Sweep-—-How-Quality-Degrades-from-Rank-384-down-to-24">Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24</h2>
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<p>The first five posts pushed one point to its limit: at the <strong>equal 2.29B budget</strong> (rank 384 everywhere), closed-form compression went from the collapse illusion's 8.50 down to 4.59. But the whole series lived at that single budget point. The question <a href="/2026/08/30/closed-form-moving-ceiling/">part 5</a> left open: does the method survive away from 2.29B? <strong>Keep halving the rank — 384, 192, 96, 48, 24 — how does quality degrade, and is there a rank below which things suddenly break?</strong> This post delivers the answer.</p>
+<p>The first four posts worked at a single point — the <strong>equal 2.29B budget</strong> (rank 384 everywhere) — taking closed-form compression from the collapse illusion's 8.50 down to 4.59. The question <a href="/2026/08/30/closed-form-moving-ceiling/">part 4</a> left open: does the method hold away from 2.29B? This post halves the rank repeatedly (384, 192, 96, 48, 24) and measures how quality degrades and whether a breaking point exists.</p>
 <p>(All losses are measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The teacher Qwen3-8B sits at 2.11.)</p>
 <h3 id="1-Setup-Freeze-the-Recipe-Scale-Only-the-Rank">1. Setup: Freeze the Recipe, Scale Only the Rank</h3>
-<p>The object under the sweep is part 5's endpoint recipe (per-matrix trajectory-correcting regression + sparse residuals + gradient-weighted metric + residual-stream correctors + lm_head fix). <strong>Every algorithmic ingredient stays fixed; only rank-related budgets scale proportionally.</strong> With nominal rank $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$:</p>
+<p>The object under the sweep is part 4's endpoint recipe (per-matrix trajectory-correcting regression + sparse residuals + gradient-weighted metric + residual-stream correctors + lm_head fix). <strong>Every algorithmic ingredient stays fixed; only rank-related budgets scale proportionally.</strong> With nominal rank $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$:</p>
 <ul>
-<li><strong>Per-matrix rank allocation</strong>: part 4's loss-sensitivity allocation assigned each matrix a base rank $\bar{r}_\ell$ (mean 251, range [116, 478]; the rest of the budget lives in the sparse terms and correctors). The sweep scales it with a floor:</li>
+<li><strong>Per-matrix rank allocation</strong>: the loss-sensitivity allocation of part 4, Section 1 assigned each matrix a base rank $\bar{r}_\ell$ (mean 251, range [116, 478]; the rest of the budget lives in the sparse terms and correctors). The sweep scales it with a floor:</li>
 </ul>
 <p>$$r_\ell(R) = \max\big(8, \mathrm{round}(\bar{r}_\ell \cdot R / 384)\big)$$</p>
 <ul>
@@ -535,7 +541,7 @@
 <p>Two observations:</p>
 <p><strong>First, there is no breaking point.</strong> The scenario the series began by fearing — below some rank, the model suddenly collapses into a constant predictor — never happens. Even at $R=24$ (per-matrix mean rank 16, minimum 8) the model stays healthy. For reference: part 1's collapsed ASVD at rank <strong>384</strong> scored 8.50 and plain SVD 10.83 — this post's model with <strong>1/16 of their rank</strong> (6.04) beats both by a wide margin. The old &quot;collapse&quot; really was a method problem, not a capacity problem, and this curve is the most complete evidence for that thesis.</p>
 <p><strong>Second, the cost of halving shrinks</strong>: 0.49 → 0.41 → 0.27 → 0.28 nats. Each halving of low-rank capacity costs less than the previous one; the curve flattens at the low end. Part of this is the fixed floor of the next section — but even counting only the transformer core, cutting it from 0.86B to 0.06B (−93%) costs a total of 1.45 nats. The degradation is remarkably graceful.</p>
-<h3 id="3-An-Honest-Parameter-Ledger-the-Fixed-Floor">3. An Honest Parameter Ledger: the Fixed Floor</h3>
+<h3 id="3-Parameter-Composition-the-Fixed-Overhead-Dominates-at-Low-Rank">3. Parameter Composition: the Fixed Overhead Dominates at Low Rank</h3>
 <p>The table above invites one misreading: rank dropped 16×, yet total parameters only fell from 2.29B to 1.49B (−35%). The reason is a large block of the student that <strong>does not depend on rank at all</strong>:</p>
 <table>
 <thead>
@@ -655,7 +661,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（六）：秩扫描——rank 从 384 一路砍到 24，质量如何退化', en: 'Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24'};
+  var postTitles = {zh: '低秩压缩系列（五）：秩扫描——rank 从 384 到 24 的质量曲线', en: 'Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }

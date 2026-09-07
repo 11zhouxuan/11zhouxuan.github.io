@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
+    <meta name="description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 起点：两个基线的对比 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Low-Rank Compression Series (1): Representation Collapse — When Low Loss Means a Broken Model">
 <meta property="og:url" content="https://11zhouxuan.github.io/2026/08/17/representation-collapse-in-low-rank-compression/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 一个意外的发现 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘">
+<meta property="og:description" content="中文   English    低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 起点：两个基线的对比 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-17T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-04T06:04:44.130Z">
+<meta property="article:modified_time" content="2026-09-07T06:24:54.465Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="MLP">
@@ -176,7 +176,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E8%A1%A8%E7%A4%BA%E5%9D%8D%E7%BC%A9%E2%80%94%E2%80%94%E4%B8%BA%E4%BB%80%E4%B9%88-val-loss-%E5%A5%BD%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%A8%A1%E5%9E%8B%E5%A5%BD"><span class="nav-text">低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E4%B8%80%E4%B8%AA%E6%84%8F%E5%A4%96%E7%9A%84%E5%8F%91%E7%8E%B0"><span class="nav-text">1. 一个意外的发现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9D%8D%E7%BC%A9%E5%8F%8D%E8%80%8C-loss-%E6%9B%B4%E4%BD%8E%EF%BC%9F"><span class="nav-text">2. 为什么坍缩反而 loss 更低？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9D%8D%E7%BC%A9%E7%9A%84%E6%9C%BA%E5%88%B6"><span class="nav-text">3. 坍缩的机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%89%93%E7%A0%B4%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%B0%9D%E8%AF%95"><span class="nav-text">4. 打破坍缩的尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E7%BB%93%E8%AE%BA"><span class="nav-text">5. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%BE%AE%E8%A7%82%E6%9C%BA%E5%88%B6%E2%80%94%E2%80%94MLP-%E6%98%AF%E5%87%B6%E6%89%8B"><span class="nav-text">附录 A：坍缩的微观机制——MLP 是凶手</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E4%B8%8E%E6%96%87%E7%8C%AE%E7%9A%84%E5%AF%B9%E5%BA%94"><span class="nav-text">附录 B：与文献的对应</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-C%EF%BC%9A%E7%8B%AC%E7%AB%8B%E5%A4%8D%E6%A0%B8%E2%80%94%E2%80%94%E5%9D%8D%E7%BC%A9%E5%8F%AF%E5%A4%8D%E7%8E%B0%EF%BC%8C%E4%BD%86%E5%AF%B9%E9%85%8D%E7%BD%AE%E6%95%8F%E6%84%9F"><span class="nav-text">附录 C：独立复核——坍缩可复现，但对配置敏感</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-1-Representation-Collapse-%E2%80%94-When-Low-Loss-Means-a-Broken-Model"><span class="nav-text">Low-Rank Compression Series (1): Representation Collapse — When Low Loss Means a Broken Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-An-Unexpected-Finding"><span class="nav-text">1. An Unexpected Finding</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Why-Does-Collapse-Produce-Lower-Loss"><span class="nav-text">2. Why Does Collapse Produce Lower Loss?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Collapse-Mechanism"><span class="nav-text">3. The Collapse Mechanism</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Attempts-to-Break-the-Collapse"><span class="nav-text">4. Attempts to Break the Collapse</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Conclusions"><span class="nav-text">5. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Microscopic-Mechanism-%E2%80%94-the-MLP-Is-the-Killer"><span class="nav-text">Appendix A: The Microscopic Mechanism — the MLP Is the Killer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-Connection-to-the-Literature"><span class="nav-text">Appendix B: Connection to the Literature</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-C-Independent-Verification-%E2%80%94-Reproducible-but-Config-Sensitive"><span class="nav-text">Appendix C: Independent Verification — Reproducible, but Config-Sensitive</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%B8%80%EF%BC%89%EF%BC%9A%E8%A1%A8%E7%A4%BA%E5%9D%8D%E7%BC%A9%E2%80%94%E2%80%94%E4%B8%BA%E4%BB%80%E4%B9%88-val-loss-%E5%A5%BD%E4%B8%8D%E7%AD%89%E4%BA%8E%E6%A8%A1%E5%9E%8B%E5%A5%BD"><span class="nav-text">低秩压缩系列（一）：表示坍缩——为什么 val loss 好不等于模型好</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E8%B5%B7%E7%82%B9%EF%BC%9A%E4%B8%A4%E4%B8%AA%E5%9F%BA%E7%BA%BF%E7%9A%84%E5%AF%B9%E6%AF%94"><span class="nav-text">1. 起点：两个基线的对比</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E4%B8%BA%E4%BB%80%E4%B9%88%E5%9D%8D%E7%BC%A9%E5%8F%8D%E8%80%8C-loss-%E6%9B%B4%E4%BD%8E%EF%BC%9F"><span class="nav-text">2. 为什么坍缩反而 loss 更低？</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%9D%8D%E7%BC%A9%E7%9A%84%E6%9C%BA%E5%88%B6"><span class="nav-text">3. 坍缩的机制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%89%93%E7%A0%B4%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%B0%9D%E8%AF%95"><span class="nav-text">4. 打破坍缩的尝试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E7%BB%93%E8%AE%BA"><span class="nav-text">5. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E5%9D%8D%E7%BC%A9%E7%9A%84%E5%BE%AE%E8%A7%82%E6%9C%BA%E5%88%B6%E2%80%94%E2%80%94MLP-%E6%98%AF%E5%87%B6%E6%89%8B"><span class="nav-text">附录 A：坍缩的微观机制——MLP 是凶手</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-B%EF%BC%9A%E4%B8%8E%E6%96%87%E7%8C%AE%E7%9A%84%E5%AF%B9%E5%BA%94"><span class="nav-text">附录 B：与文献的对应</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-C%EF%BC%9A%E7%8B%AC%E7%AB%8B%E5%A4%8D%E6%A0%B8%E2%80%94%E2%80%94%E5%9D%8D%E7%BC%A9%E5%8F%AF%E5%A4%8D%E7%8E%B0%EF%BC%8C%E4%BD%86%E5%AF%B9%E9%85%8D%E7%BD%AE%E6%95%8F%E6%84%9F"><span class="nav-text">附录 C：独立复核——坍缩可复现，但对配置敏感</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-1-Representation-Collapse-%E2%80%94-When-Low-Loss-Means-a-Broken-Model"><span class="nav-text">Low-Rank Compression Series (1): Representation Collapse — When Low Loss Means a Broken Model</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-Starting-Point-Two-Baselines-Compared"><span class="nav-text">1. Starting Point: Two Baselines Compared</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Why-Does-Collapse-Produce-Lower-Loss"><span class="nav-text">2. Why Does Collapse Produce Lower Loss?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Collapse-Mechanism"><span class="nav-text">3. The Collapse Mechanism</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Attempts-to-Break-the-Collapse"><span class="nav-text">4. Attempts to Break the Collapse</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Conclusions"><span class="nav-text">5. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Microscopic-Mechanism-%E2%80%94-the-MLP-Is-the-Killer"><span class="nav-text">Appendix A: The Microscopic Mechanism — the MLP Is the Killer</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-B-Connection-to-the-Literature"><span class="nav-text">Appendix B: Connection to the Literature</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-C-Independent-Verification-%E2%80%94-Reproducible-but-Config-Sensitive"><span class="nav-text">Appendix C: Independent Verification — Reproducible, but Config-Sensitive</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -189,7 +189,7 @@
   <nav class="site-state">
       <div class="site-state-item site-state-posts">
         <a href="/archives/">
-          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-count">10</span>
           <span class="site-state-item-name">posts</span>
         </a>
       </div>
@@ -200,7 +200,7 @@
       </div>
       <div class="site-state-item site-state-tags">
           <a href="/tags/">
-        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-count">27</span>
         <span class="site-state-item-name">tags</span></a>
       </div>
   </nav>
@@ -268,7 +268,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-04 06:04:44" itemprop="dateModified" datetime="2026-09-04T06:04:44+00:00">2026-09-04</time>
+      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
     </span>
 
   
@@ -297,7 +297,7 @@
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<h3 id="1-一个意外的发现">1. 一个意外的发现</h3>
+<h3 id="1-起点：两个基线的对比">1. 起点：两个基线的对比</h3>
 <p>实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘积 $AB$（低秩分解），把总参数量压到 2.29B，然后比较两种截断方式。</p>
 <p><strong>方法一：plain SVD</strong>，只用权重本身，不需要任何数据。</p>
 <blockquote>
@@ -333,7 +333,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p>在看结果之前，把<strong>真正的目标</strong>也写下来，它是全系列的参照系。压缩的本意是：把每个 $W_\ell$ 换成 $A_\ell B_\ell$ 得到学生网络 $\hat f$，在参数预算约束下让它的验证 loss 尽量低（$u$ 表示一段输入文本）：</p>
 <p>$$\min_{{A_\ell, B_\ell}_{\ell=1}^{N}}\ \mathbb{E}_u\Big[\mathrm{CE}\big(\hat f(u)\big)\Big] \qquad \text{s.t.}\quad \sum_{\ell=1}^{N} r_\ell (m_\ell + n_\ell) \le \text{预算}$$</p>
 <p>这个真目标关于因子是高度非凸的，没有闭式解。所以 plain SVD 和 ASVD 实际求解的都是上面那两个<strong>逐层代理目标</strong>——用&quot;每层各自把 $W_\ell$ 逼近好&quot;代替&quot;整个网络的输出好&quot;。本篇接下来的全部现象，都来自代理目标与真目标之间的裂缝。</p>
-<p>8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：</p>
+<p>8.50 对 18.65，ASVD 看起来好了一倍多。但检查模型实际预测的 token 时，发现两者的行为有质的区别：</p>
 <table>
 <thead>
 <tr>
@@ -552,7 +552,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tr>
 </tbody>
 </table>
-<p>惊人的发现：<strong>Plain SVD 在中间层比 ASVD 坍缩得更严重</strong>（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。</p>
+<p>一个与直觉相反的测量结果：<strong>Plain SVD 在中间层比 ASVD 坍缩得更严重</strong>（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。</p>
 <p><strong>SwiGLU MLP（即 Transformer 里的前馈网络 FFN）是逐层坍缩的主要驱动力。</strong> 逐 block 分解显示：</p>
 <table>
 <thead>
@@ -764,7 +764,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<h3 id="1-An-Unexpected-Finding">1. An Unexpected Finding</h3>
+<h3 id="1-Starting-Point-Two-Baselines-Compared">1. Starting Point: Two Baselines Compared</h3>
 <p>The subject is Qwen3-8B (36 layers, our teacher model, val loss 2.11). We replace every linear layer $W$ with a product of two thin matrices $AB$ (low-rank factorization), squeezing the total parameter count to 2.29B, and compare two truncation schemes.</p>
 <p><strong>Method 1: plain SVD</strong> — uses only the weights, needs no data at all.</p>
 <blockquote>
