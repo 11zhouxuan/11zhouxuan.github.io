@@ -54,7 +54,7 @@ $$\min\_{A,B} \lVert (W - AB)S \rVert\_F^2$$
 
 ### 3. 方法：逐层仿射岭回归
 
-先定义**校准数据** $D$：从训练集（FineWeb-Edu）里取出的一小批文本，本篇用 32 个 batch、每 batch 8 段 × 8192 token，合计约 210 万个 token 位置。它的唯一用途是**估计统计量**——把教师和学生在同样文本上跑一遍前向，收集每个权重矩阵入口处输入的均值与协方差，供下面的回归求解使用。全程没有任何梯度更新，所以这类方法叫"闭式"（closed-form，解方程直接得到答案）。$D$ 与用来报告 loss 的验证数据完全无重叠。（校准数据的用量和多样性本身对结果影响很大，这是[第五篇](/2026/08/30/closed-form-moving-ceiling/)的主题之一。）
+先定义**校准数据** $D$：从训练集（FineWeb-Edu）里取出的一小批文本，本篇用 32 个 batch、每 batch 8 段 × 8192 token，合计约 210 万个 token 位置。它的唯一用途是**估计统计量**——把教师和学生在同样文本上跑一遍前向，收集每个权重矩阵入口处输入的均值与协方差，供下面的回归求解使用。全程没有任何梯度更新，所以这类方法叫"闭式"（closed-form，解方程直接得到答案）。$D$ 与用来报告 loss 的验证数据完全无重叠。（校准数据的用量和多样性本身对结果影响很大，这是[第四篇](/2026/08/30/closed-form-moving-ceiling/)的主题之一。）
 
 完整算法只有一个循环：
 
@@ -93,7 +93,7 @@ $$(M^\*, b^\*) = \arg\min\_{M, b}\ \mathbb{E}\big\lVert W\_\ell x\_t - M x\_s - 
 
 （本系列的 loss 后来统一按严格协议重测：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。本文轨迹矫正系列的数字均为重测值；第 1 节坍缩时代的数字仍是早期窗口的测量，只作定性对照。）
 
-完整版图：
+完整的对照链：
 
 $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{训练}} \to \underbrace{2.11}\_{\text{教师}}$$
 
@@ -118,7 +118,7 @@ $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{坍缩假象}} \to \mathbf{5.60}
 
 1. **低秩压缩的瓶颈不在表达能力，在优化目标**。rank-384 空间中存在 3.79 的点；"逐层逼近 W"找不到它，"逐层矫正轨迹"能走到 5.60。
 2. **闭式方法的正确姿势是回归而不是分解**：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。
-3. **逐层线性矫正在 5.60 收敛**：漂移中线性可恢复的部分已经榨干，剩余差距是非线性的。这个"天花板"是否真的到头，是[下一篇](/2026/08/22/closed-form-ceiling/)的主题。
+3. **逐层线性矫正在 5.60 收敛**：漂移中线性可恢复的部分已经用尽，剩余差距是非线性的。这个"天花板"是否真的到头，是[下一篇](/2026/08/22/closed-form-ceiling/)的主题。
 4. 更正上一篇的结论："闭式方法无法同时打破坍缩又降低 loss"是错的——错的是当时测试的所有方法共享的"逼近 W"目标，而不是闭式本身。
 
 
@@ -180,7 +180,7 @@ Only the third CORRECTS drift. Each layer stops imitating $W$ and becomes a corr
 
 ### 3. The Method: Layerwise Affine Ridge Regression
 
-First, what **calibration data** $D$ means: a small batch of text drawn from the training set (FineWeb-Edu) — here 32 batches of 8 passages × 8192 tokens, about 2.1M token positions in total. Its only purpose is **estimating statistics**: run the teacher and the student over the same text and collect the means and covariances of the inputs at each weight matrix's entrance, to be consumed by the regressions below. No gradient update happens anywhere, which is why these methods are called closed-form (solve equations, get the answer directly). $D$ has no overlap with the validation data used to report losses. (How much calibration data, and how diverse, turns out to matter a great deal — one of [part 5](/2026/08/30/closed-form-moving-ceiling/)'s subjects.)
+First, what **calibration data** $D$ means: a small batch of text drawn from the training set (FineWeb-Edu) — here 32 batches of 8 passages × 8192 tokens, about 2.1M token positions in total. Its only purpose is **estimating statistics**: run the teacher and the student over the same text and collect the means and covariances of the inputs at each weight matrix's entrance, to be consumed by the regressions below. No gradient update happens anywhere, which is why these methods are called closed-form (solve equations, get the answer directly). $D$ has no overlap with the validation data used to report losses. (How much calibration data, and how diverse, turns out to matter a great deal — one of [part 4](/2026/08/30/closed-form-moving-ceiling/)'s subjects.)
 
 The complete algorithm is a single loop:
 
@@ -219,7 +219,7 @@ Why each step:
 
 (The series' losses were later re-measured under one rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The trajectory-correction numbers in this post are the re-measured values; the collapse-era numbers in Section 1 remain early-window measurements, kept for qualitative contrast only.)
 
-The full landscape:
+The full comparison chain:
 
 $$18.65 \to 10.83 \to \underbrace{8.50}\_{\text{collapse illusion}} \to \mathbf{5.60} \to \underbrace{3.79}\_{\text{trained}} \to \underbrace{2.11}\_{\text{teacher}}$$
 

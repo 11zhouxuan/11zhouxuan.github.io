@@ -18,7 +18,7 @@ tags: [math, linear-algebra, LLM, compression, representation-collapse, SwiGLU, 
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
-### 1. 一个意外的发现
+### 1. 起点：两个基线的对比
 
 实验对象是 Qwen3-8B（36 层，作为教师模型，val loss 2.11）。我们把它的每个线性层 $W$ 都替换成两个瘦矩阵的乘积 $AB$（低秩分解），把总参数量压到 2.29B，然后比较两种截断方式。
 
@@ -68,7 +68,7 @@ $$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{N}}\ \mathbb{E}\_u\Big[\mathrm{CE}\big(
 
 这个真目标关于因子是高度非凸的，没有闭式解。所以 plain SVD 和 ASVD 实际求解的都是上面那两个**逐层代理目标**——用"每层各自把 $W\_\ell$ 逼近好"代替"整个网络的输出好"。本篇接下来的全部现象，都来自代理目标与真目标之间的裂缝。
 
-8.50 对 18.65，ASVD 看起来好了一倍多。但当我们检查模型实际预测的 token 时，发现了一个惊人的事实：
+8.50 对 18.65，ASVD 看起来好了一倍多。但检查模型实际预测的 token 时，发现两者的行为有质的区别：
 
 | 方法 | val loss | 预测的 unique token 数 | top-1 预测占比 | top-1 是什么 |
 |---|---|---|---|---|
@@ -176,7 +176,7 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 | 35 | 301 | 57 | 25 |
 | 36（final norm 后） | 156 | **7** | **111** |
 
-惊人的发现：**Plain SVD 在中间层比 ASVD 坍缩得更严重**（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。
+一个与直觉相反的测量结果：**Plain SVD 在中间层比 ASVD 坍缩得更严重**（Block 3 erank=4.5 vs ASVD 的 233），但最终 plain SVD 恢复到 erank=111 而 ASVD 坍缩到 7。
 
 **SwiGLU MLP（即 Transformer 里的前馈网络 FFN）是逐层坍缩的主要驱动力。** 逐 block 分解显示：
 
@@ -262,7 +262,7 @@ Block 3 的 MLP 一次性将 erank 从 233 砍到约 99——这是整个网络�
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
-### 1. An Unexpected Finding
+### 1. Starting Point: Two Baselines Compared
 
 The subject is Qwen3-8B (36 layers, our teacher model, val loss 2.11). We replace every linear layer $W$ with a product of two thin matrices $AB$ (low-rank factorization), squeezing the total parameter count to 2.29B, and compare two truncation schemes.
 

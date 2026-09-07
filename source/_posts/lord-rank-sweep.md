@@ -1,5 +1,5 @@
 ---
-title: "Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24"
+title: "Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24"
 date: 2026-09-04
 mathjax: true
 sticky: 5
@@ -14,19 +14,19 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, rank-swee
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 低秩压缩系列（六）：秩扫描——rank 从 384 一路砍到 24，质量如何退化
+## 低秩压缩系列（五）：秩扫描——rank 从 384 到 24 的质量曲线
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
-前五篇把一件事做到了头：在 **2.29B 等预算**（全网 rank 384）这一个点上，闭式压缩从坍缩假象的 8.50 推到了 4.59。但整个系列只在这一个预算点上活动。[第五篇](/2026/08/30/closed-form-moving-ceiling/)结尾提出的下一个问题是：这套方法离开 2.29B 还站得住吗？**把 rank 一路砍半——384、192、96、48、24——质量怎么退化？有没有某个 rank 以下突然崩坏？** 本篇交这份答卷。
+前四篇在 **2.29B 等预算**（全网 rank 384）这一个点上，把闭式压缩从坍缩假象的 8.50 推到了 4.59；整个系列此前只在这一个预算点上活动。[第四篇](/2026/08/30/closed-form-moving-ceiling/)结尾留下的问题是：这套方法离开 2.29B 还成立吗？本篇把 rank 逐次减半（384、192、96、48、24），测量质量如何退化、是否存在某个 rank 以下突然崩坏的点。
 
 （本文的 loss 均为严格协议测量值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。教师 Qwen3-8B 为 2.11。）
 
 ### 1. 实验设置：配方不动，只缩放 rank
 
-被扫描的对象是第五篇的终点配方（逐矩阵轨迹矫正回归 + 稀疏残差 + 梯度加权度量 + 残差流矫正器 + lm\_head 矫正），**所有算法成分保持不变，只把和 rank 相关的预算等比缩小**。记名义 rank 为 $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$：
+被扫描的对象是第四篇的终点配方（逐矩阵轨迹矫正回归 + 稀疏残差 + 梯度加权度量 + 残差流矫正器 + lm\_head 矫正），**所有算法成分保持不变，只把和 rank 相关的预算等比缩小**。记名义 rank 为 $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$：
 
-- **逐矩阵 rank 分配**：第四篇的 loss 敏感度分配给了每个矩阵一个基准秩 $\bar{r}\_\ell$（均值 251、范围 [116, 478]，其余预算在稀疏项和矫正器手里）。扫描时按比例缩放并设下限：
+- **逐矩阵 rank 分配**：第四篇第 1 节的 loss 敏感度分配给了每个矩阵一个基准秩 $\bar{r}\_\ell$（均值 251、范围 [116, 478]，其余预算在稀疏项和矫正器手里）。扫描时按比例缩放并设下限：
 
 $$r\_\ell(R) = \max\big(8, \mathrm{round}(\bar{r}\_\ell \cdot R / 384)\big)$$
 
@@ -54,7 +54,7 @@ $$r\_\ell(R) = \max\big(8, \mathrm{round}(\bar{r}\_\ell \cdot R / 384)\big)$$
 
 **第二，减半的代价在递减**：0.49 → 0.41 → 0.27 → 0.28 nat。低秩容量每砍一半，loss 涨幅反而变小，曲线在低秩端趋平。部分原因是下一节的固定地板——但即使只看 transformer 核心，从 0.86B 砍到 0.06B（−93%）总共只付了 1.45 nat，退化极其平缓。
 
-### 3. 参数量的诚实账本：固定地板
+### 3. 参数构成：固定开销主导低秩端
 
 上表有一个容易误读的地方：rank 砍了 16 倍，总参数只从 2.29B 降到 1.49B（−35%）。原因是学生模型里有一大块**完全不随 rank 变的固定开销**：
 
@@ -73,7 +73,7 @@ $$r\_\ell(R) = \max\big(8, \mathrm{round}(\bar{r}\_\ell \cdot R / 384)\big)$$
 
 1. **轨迹矫正配方对 rank 极其鲁棒**：384 → 24（逐矩阵均值 251 → 16），loss 退化全程平缓（每减半 +0.27~0.49 nat），无任何坍缩迹象。"低秩压缩在高压缩率下必然崩坏"对这套方法不成立。
 
-2. **减半代价递减**（0.49 → 0.28），说明轨迹矫正回归在极低秩下仍能把有限容量用在刀刃上——这正是白化截断"按真实输入分布分配精度"的设计初衷。
+2. **减半代价递减**（0.49 → 0.28），说明轨迹矫正回归在极低秩下仍能把有限容量分配到最重要的方向——这正是白化截断"按真实输入分布分配精度"的设计目标。
 
 3. **低秩端的参数账本由词表矩阵主导**（固定开销占比 62% → 96%）。秩扫描真正测量的是 transformer 核心的容量-质量关系；总参数口径下的任何结论都要先扣掉这 1.43B 的地板。
 
@@ -106,19 +106,19 @@ rank 48 的蒸馏在第 12 个 block 处崩过一次：白化截断需要对统�
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24
+## Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
-The first five posts pushed one point to its limit: at the **equal 2.29B budget** (rank 384 everywhere), closed-form compression went from the collapse illusion's 8.50 down to 4.59. But the whole series lived at that single budget point. The question [part 5](/2026/08/30/closed-form-moving-ceiling/) left open: does the method survive away from 2.29B? **Keep halving the rank — 384, 192, 96, 48, 24 — how does quality degrade, and is there a rank below which things suddenly break?** This post delivers the answer.
+The first four posts worked at a single point — the **equal 2.29B budget** (rank 384 everywhere) — taking closed-form compression from the collapse illusion's 8.50 down to 4.59. The question [part 4](/2026/08/30/closed-form-moving-ceiling/) left open: does the method hold away from 2.29B? This post halves the rank repeatedly (384, 192, 96, 48, 24) and measures how quality degrades and whether a breaking point exists.
 
 (All losses are measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The teacher Qwen3-8B sits at 2.11.)
 
 ### 1. Setup: Freeze the Recipe, Scale Only the Rank
 
-The object under the sweep is part 5's endpoint recipe (per-matrix trajectory-correcting regression + sparse residuals + gradient-weighted metric + residual-stream correctors + lm\_head fix). **Every algorithmic ingredient stays fixed; only rank-related budgets scale proportionally.** With nominal rank $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$:
+The object under the sweep is part 4's endpoint recipe (per-matrix trajectory-correcting regression + sparse residuals + gradient-weighted metric + residual-stream correctors + lm\_head fix). **Every algorithmic ingredient stays fixed; only rank-related budgets scale proportionally.** With nominal rank $R \in \lbrace 384, 192, 96, 48, 24 \rbrace$:
 
-- **Per-matrix rank allocation**: part 4's loss-sensitivity allocation assigned each matrix a base rank $\bar{r}\_\ell$ (mean 251, range [116, 478]; the rest of the budget lives in the sparse terms and correctors). The sweep scales it with a floor:
+- **Per-matrix rank allocation**: the loss-sensitivity allocation of part 4, Section 1 assigned each matrix a base rank $\bar{r}\_\ell$ (mean 251, range [116, 478]; the rest of the budget lives in the sparse terms and correctors). The sweep scales it with a floor:
 
 $$r\_\ell(R) = \max\big(8, \mathrm{round}(\bar{r}\_\ell \cdot R / 384)\big)$$
 
@@ -146,7 +146,7 @@ Two observations:
 
 **Second, the cost of halving shrinks**: 0.49 → 0.41 → 0.27 → 0.28 nats. Each halving of low-rank capacity costs less than the previous one; the curve flattens at the low end. Part of this is the fixed floor of the next section — but even counting only the transformer core, cutting it from 0.86B to 0.06B (−93%) costs a total of 1.45 nats. The degradation is remarkably graceful.
 
-### 3. An Honest Parameter Ledger: the Fixed Floor
+### 3. Parameter Composition: the Fixed Overhead Dominates at Low Rank
 
 The table above invites one misreading: rank dropped 16×, yet total parameters only fell from 2.29B to 1.49B (−35%). The reason is a large block of the student that **does not depend on rank at all**:
 
@@ -205,7 +205,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（六）：秩扫描——rank 从 384 一路砍到 24，质量如何退化', en: 'Low-Rank Compression Series (6): The Rank Sweep — How Quality Degrades from Rank 384 down to 24'};
+  var postTitles = {zh: '低秩压缩系列（五）：秩扫描——rank 从 384 到 24 的质量曲线', en: 'Low-Rank Compression Series (5): The Rank Sweep — How Quality Degrades from Rank 384 down to 24'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }

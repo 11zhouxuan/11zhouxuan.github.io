@@ -441,7 +441,7 @@ $$\min\_{A,B}\ \mathbb{E} \lVert M^\* x - AB x \rVert^2, \qquad A \in \mathbb{R}
 
 Note the error is measured **under the true distribution of the input $x$**, not by comparing matrix entries directly — a matrix error of the same size does not matter if it lies along directions $x$ rarely takes. Folding that distributional factor into the SVD is exactly what whitening does below.
 
-So the full procedure is two steps: **solve the regression for a full-rank target $M^\*$, then low-rank-ify $M^\*$ into the $A, B$ actually deployed.** What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 5), adding a sparse term alongside $AB$ (part 5), and so on.
+So the full procedure is two steps: **solve the regression for a full-rank target $M^\*$, then low-rank-ify $M^\*$ into the $A, B$ actually deployed.** What the posts in this series improve are different parts of these two steps — the regression target (part 2), the metric used when low-rank-ifying (part 4), adding a sparse term alongside $AB$ (part 4), and so on.
 
 You might ask: why the detour — why not optimize $A, B$ directly? Because **the two-step procedure here yields the global optimum, provably.** The objective splits cleanly around $M^\*$ (the cross term vanishes):
 
@@ -459,12 +459,12 @@ This equivalence holds only for a **single layer with a quadratic loss**. Once t
 
 The difference is one subscript, yet under extreme compression the outcomes diverge sharply — we measured all three: approximating $W$ weighted by drifted statistics gives 19.40, matching $W x_s$ (following the drift) gives 12.22, matching $W x_t$ (correcting the drift) gives 5.59.
 
-Why quantization rarely needs this: 4-bit weight error is far smaller than discarding 80% of the rank, so with mild drift the two targets are nearly equivalent. The more extreme the compression, the more decisive the split between "follow the drift" and "correct the drift". Conversely, the tricks quantization matured — activation-importance weighting, sequential layerwise compensation — are all used here too; part 5's metric fix is close kin to them.
+Why quantization rarely needs this: 4-bit weight error is far smaller than discarding 80% of the rank, so with mild drift the two targets are nearly equivalent. The more extreme the compression, the more decisive the split between "follow the drift" and "correct the drift". Conversely, the tricks quantization matured — activation-importance weighting, sequential layerwise compensation — are all used here too; part 4's metric fix is close kin to them.
 
 
 Two extensions:
 
-- **Calibration data**: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever "sees". Its quantity and diversity decide how well the covariances are estimated (part 5 devotes a chapter to this).
+- **Calibration data**: the expectations $\mathbb{E}[\cdot]$ are estimated by averaging over a small batch of real text — the only data the closed-form method ever "sees". Its quantity and diversity decide how well the covariances are estimated (part 4 devotes a section to this).
 - **Whitening**: a change of coordinates whose purpose is to make error measurement fair.
 
   Why it is needed: low-rank truncation must discard some directions, and the input distribution is highly uneven — along some directions $x$ takes large, frequent values; along others it barely appears. Error along the latter is harmless (the component multiplying it is near zero), so "difference in matrix entries" is the wrong criterion for choosing what to discard.

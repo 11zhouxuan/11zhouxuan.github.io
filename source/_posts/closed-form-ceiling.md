@@ -18,11 +18,11 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank]
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
-这是低秩压缩三部曲的完结篇（[第一篇：表示坍缩](/2026/08/17/representation-collapse-in-low-rank-compression/)，[第二篇：轨迹矫正线性蒸馏](/2026/08/19/trajectory-correcting-linear-distillation/)）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对"闭式 init + 训练"的完整路线意味着什么。
+本篇承接[第一篇（表示坍缩）](/2026/08/17/representation-collapse-in-low-rank-compression/)和[第二篇（轨迹矫正线性蒸馏）](/2026/08/19/trajectory-correcting-linear-distillation/)。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对"闭式 init + 训练"的完整路线意味着什么。
 
 （本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 4 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）
 
-### 1. 消融的意外：便宜的赢了贵的
+### 1. 消融：lm_head 矫正的贡献远大于扩展特征
 
 上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down\_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维）——乘法处的误差交叉项 $g\delta\_u + u\delta\_g$（$\delta$ 是各自的漂移误差）在原空间里是非线性的，但在这个扩展空间里重新变成了线性可表，理论上非常对症。同时顺手加了一个"免费"组件：lm\_head 矫正。
 
@@ -55,7 +55,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 | + 11 个残差矫正器（K=3，rank 316） | **5.10** |
 | 对照：v2 rank=768（**2 倍参数**） | 5.12 |
 
-同预算的全秩矫正器追平甚至略胜两倍参数的暴力加 rank。K=6→3 只再赚 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
+同预算的全秩矫正器达到甚至略优于两倍参数的直接加 rank。K=6→3 只再改善 0.01，已在折间波动量级——收益在此饱和。**闭式同预算纪录：5.10。**
 
 本篇的完整方法如下。第 1–4 步就是[第二篇](/2026/08/19/trajectory-correcting-linear-distillation/)的算法 1 原封不动，**加粗的第 5 步和循环后的收尾是本篇新增**：
 
@@ -83,7 +83,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 这个层在教师里本来就特殊：输出幅度是相邻层的两倍，属于文献里说的 massive activation 层（少数激活值特别大的层）。它对输入误差极其敏感——入口处一点修不掉的小误差，经过它的大幅度非线性计算就变成出口处的大误差：一个**非线性放大器**。我们试了三种补救——不压缩它、调整 rank 分配、加线性矫正——全部无效（实验细节见附录 A）。闭式方法的极限因此停在约 5.1 附近。
 
-### 4. 训练判决：好的闭式 init 值 200+ 步训练
+### 4. 与训练的对照：好的闭式 init 相当于 200+ 步训练
 
 双臂对照（同 seed、同数据序、同 global batch），只差初始化：
 
@@ -95,7 +95,7 @@ $$W\_{lm}' = W\_{lm}P, \qquad b = W\_{lm}(\bar{x}\_t - P\bar{x}\_s)$$
 
 lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 步还不如 lindist 臂的起点。**好的闭式初始化至少值 200 步（4 亿 token）的训练量，且优势在观察窗口内持续存活。**
 
-（各个 loss 水平的模型实际生成的文本什么样——从词汤、复读机到通顺叙事——见附录 B 的采样对照，它给这些数字提供了直观刻度。）
+（各个 loss 水平的模型实际生成的文本什么样，见附录 B 的采样对照，它给这些数字提供了直观刻度。）
 
 ### 5. 结论
 
@@ -109,7 +109,7 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\
 
 4. **工程结论**：压缩-恢复的最优路线 = 闭式轨迹矫正 init（一次 90 分钟的 GPU 计算，5.10）+ 继续预训练。闭式研究的全部价值在于把训练起点从 8.5 拉到 5.1、把"可用模型"的到达时间提前数百步。
 
-5.10 是不是闭式的尽头？把剩下的差距拆开、看看还能从哪里再挤一点，是[第四篇](/2026/08/25/closed-form-anatomy/)的主题。
+5.10 之后，rank 分配、稀疏残差与更好的度量把纪录进一步推到 4.59，见[第四篇](/2026/08/30/closed-form-moving-ceiling/)。
 
 
 ---
@@ -137,13 +137,13 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\
 
 | loss | 实际观感 |
 |---|---|
-| 8.5（坍缩） | 词汤：". and. f, to. i,.,. as the.." |
+| 8.5（坍缩） | 无结构的词碎片：". and. f, to. i,.,. as the.." |
 | 5.6（lindist init） | 短语碎片 + 数字循环："the 1400-1400- 1922-1131..." |
-| 4.0（训练 100 步） | 语法流畅但复读机："...explorations to explore the history of mathematics that form the history of mathematics..." |
-| 3.2（训练 500 步） | **复读消失**，叙事结构出现，剩余问题是事实幻觉（"Apollo 11 在月球一段 7.5 英里的区域"） |
+| 4.0（训练 100 步） | 语法流畅但陷入重复循环："...explorations to explore the history of mathematics that form the history of mathematics..." |
+| 3.2（训练 500 步） | **重复消失**，叙事结构出现，剩余问题是事实幻觉（"Apollo 11 在月球一段 7.5 英里的区域"） |
 | 2.1（教师） | 流畅且事实正确 |
 
-复读机的消退符合"能力增长使复制策略失去 loss 优势"的预测——退化策略（坍缩、复读）是能力不足时交叉熵的理性选择，能力恢复到哪一层，对应的退化就消失到哪一层。
+重复循环的消退符合"能力增长使复制策略失去 loss 优势"的预测——退化策略（坍缩、重复）是能力不足时交叉熵下的合理选择，能力恢复到哪一层，对应的退化就消失到哪一层。
 
 
 </div>
@@ -155,11 +155,11 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{闭式冠军}} \to 3.20\
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
-This concludes the low-rank compression trilogy ([part 1: representation collapse](/2026/08/17/representation-collapse-in-low-rank-compression/), [part 2: trajectory-correcting linear distillation](/2026/08/19/trajectory-correcting-linear-distillation/)). Part 2 ended with closed-form (training-free) methods at val loss 5.60. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the "closed-form init + training" pipeline.
+This post follows [part 1 (representation collapse)](/2026/08/17/representation-collapse-in-low-rank-compression/) and [part 2 (trajectory-correcting linear distillation)](/2026/08/19/trajectory-correcting-linear-distillation/). Part 2 ended with closed-form (training-free) methods at val loss 5.60. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the "closed-form init + training" pipeline.
 
 (All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 4 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)
 
-### 1. An Ablation Surprise: the Cheap Component Beats the Expensive One
+### 1. Ablation: the lm_head Fix Contributes Far More Than the Extended Features
 
 Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down\_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim) — the error cross terms $g\delta\_u + u\delta\_g$ (where $\delta$ is each factor's drift) are nonlinear in the original space but become linearly representable in the extended one; theoretically well-aimed. We also added a "free" component along the way: an lm\_head correction.
 
@@ -192,7 +192,7 @@ This generalizes into a principle: **spend budget where corrections pay no trunc
 | + 11 residual correctors (K=3, rank 316) | **5.10** |
 | Reference: v2 rank=768 (**2× params**) | 5.12 |
 
-Equal-budget full-rank correctors match and slightly beat brute-force rank at twice the parameters. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
+Equal-budget full-rank correctors match and slightly beat simply doubling the parameters via rank. K=6→3 buys only 0.01 more, already at the fold-noise level — the gains saturate here. **Closed-form equal-budget record: 5.10.**
 
 The complete method of this post is stated below. Steps 1–4 are exactly Algorithm 1 from [part 2](/2026/08/19/trajectory-correcting-linear-distillation/), unchanged; **the bold step 5 and the post-loop finish are new in this post**:
 
@@ -220,7 +220,7 @@ After 5.10 we kept asking: where is the remaining error actually created? The pr
 
 That layer is special in the teacher to begin with: its output is twice its neighbors' magnitude, one of the massive-activation layers documented in the literature (a few layers with unusually large activations). It is hypersensitive to input error — a small unrepairable residue at its entrance comes out amplified into a large one: a **nonlinear amplifier**. Three rescues — leaving it uncompressed, reallocating rank, adding linear correction — all fail (details in Appendix A). The closed-form limit therefore stops near ~5.1.
 
-### 4. The Training Verdict: a Good Closed-Form Init Is Worth 200+ Steps
+### 4. Comparison With Training: a Good Closed-Form Init Is Worth 200+ Steps
 
 A two-arm controlled comparison (same seed, data order, global batch), differing only in initialization:
 
@@ -232,11 +232,11 @@ A two-arm controlled comparison (same seed, data order, global batch), differing
 
 The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed arm after 200 steps was still worse than the lindist arm's starting point. **A good closed-form init is worth at least 200 steps (~0.4B tokens) of training, and the advantage persists throughout the observation window.**
 
-(What models at each loss level actually generate — from word salad through broken-record loops to fluent narrative — is shown in Appendix B, which gives these numbers a tangible scale.)
+(What models at each loss level actually generate is shown in Appendix B, which gives these numbers a tangible scale.)
 
 ### 5. Conclusions
 
-1. **The final closed-form landscape** (85% compression, equal 2.29B budget):
+1. **The final closed-form chain** (85% compression, equal 2.29B budget):
 
 $$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champion}} \to 3.20\_{\text{trained@500}} \to 2.11\_{\text{teacher}}$$
 
@@ -246,7 +246,7 @@ $$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{closed-form champio
 
 4. **The engineering takeaway**: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.
 
-Is 5.10 the end of the closed-form road? Taking the remaining gap apart to see where a little more can be squeezed out is the subject of [part 4](/2026/08/25/closed-form-anatomy/).
+Beyond 5.10, rank allocation, sparse residuals, and a better metric pushed the record to 4.59 — see [part 4](/2026/08/30/closed-form-moving-ceiling/).
 
 
 ---
@@ -274,9 +274,9 @@ Text samples give the qualitative ladder (temperature 0.8):
 
 | loss | What it reads like |
 |---|---|
-| 8.5 (collapsed) | word salad: ". and. f, to. i,.,. as the.." |
+| 8.5 (collapsed) | unstructured word fragments: ". and. f, to. i,.,. as the.." |
 | 5.6 (lindist init) | phrase fragments + number loops: "the 1400-1400- 1922-1131..." |
-| 4.0 (100 steps) | grammatical but a broken record: "...explorations to explore the history of mathematics that form the history of mathematics..." |
+| 4.0 (100 steps) | grammatical but stuck in repetition loops: "...explorations to explore the history of mathematics that form the history of mathematics..." |
 | 3.2 (500 steps) | **repetition gone**, narrative structure emerges; remaining failure mode is factual hallucination ("a 7.5-mile-long section of the moon") |
 | 2.1 (teacher) | fluent and factual |
 
