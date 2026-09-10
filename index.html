@@ -261,7 +261,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -966,7 +966,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -1072,8 +1072,8 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p>这看似矛盾：一个&quot;更坏&quot;的模型（只能输出一个 token）怎么比&quot;更好&quot;的模型（能输出 433 种 token）loss 更低？</p>
 <p>原因在交叉熵 loss 的定义里：它只看模型给<strong>正确答案</strong>分了多少概率——每个位置计 $-\log q(\text{正确 token})$，再在所有位置上取平均。</p>
 <p>当模型完全没有区分能力时，最优策略不是乱猜，而是<strong>每个位置都输出同一个固定的概率分布</strong>，把概率按各 token 在语料中的真实频率来分。这样虽然每个位置都&quot;不知道答案&quot;，但至少高频 token（比如逗号，占英文文本约 3.6% 的位置）稳定拿到不低的概率，平均惩罚最小。坍缩模型正是这么做的：它在每个位置都给逗号约 10% 的概率（实测 top-1 prob = 0.0995），得到 CE ≈ 8.5。</p>
-<p>反过来，一个<strong>试图区分 token 但区分得很差</strong>的模型（random 权重、plain SVD）会把概率押在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，$\mathrm{CE} = \ln 151936 \approx 11.93$；押错注比平均分配更糟，所以 random 和 plain SVD 冲到了 17~19。</p>
-<p><strong>&quot;全押高频 token&quot;是预测能力为零时的 loss-最优退化策略。</strong> ASVD 的 8.50 不代表&quot;逼近得好&quot;，而是代表&quot;模型已经放弃预测，退化成了常数函数&quot;。</p>
+<p>反过来，一个<strong>试图区分 token 但区分得很差</strong>的模型（random 权重、plain SVD）会把概率集中在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，$\mathrm{CE} = \ln 151936 \approx 11.93$；集中在错误 token 上比平均分配更糟，所以 random 和 plain SVD 达到 17~19。</p>
+<p><strong>&quot;把概率集中在高频 token&quot;是预测能力为零时 loss 最优的退化策略。</strong> ASVD 的 8.50 不代表&quot;逼近得好&quot;，而是代表&quot;模型已经放弃预测，退化成了常数函数&quot;。</p>
 <p>信息论上可以精确验证这一点。如果模型是常数预测器（每个位置输出同一个分布 $q$），它的 CE 就等于语料的 unigram 分布 $p$（即各 token 的出现频率分布）与 $q$ 之间的交叉熵，其下界是 $p$ 自己的熵：</p>
 <p>$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats（在我们的 val 数据上实测）}$$</p>
 <p>坍缩模型的 8.50 恰好落在这个下界之上 1 nat——它是一个接近最优的常数预测器。直接测量也证实了&quot;常数函数&quot;：采样 64 个位置，输出分布之间的两两 KL 散度（衡量两个概率分布差异的量，完全相同时为 0）平均只有 <strong>0.007</strong>，而正常模型在 1~10 量级。</p>
@@ -1130,7 +1130,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>最后一层 cos=0.95 看起来&quot;对齐得很好&quot;——但这是一个<strong>假象</strong>。不是模型对每个 token 都和教师对齐，而是<strong>所有 token 都坍缩到了同一个方向</strong>，这个固定方向恰好和教师的某个&quot;平均方向&quot; cos=0.95。</p>
-<p>（更微观的追踪——多样性在网络每个子组件中如何被逐步耗尽、为什么 down_proj 是主要凶手——见附录 A；这一现象在 Transformer 理论文献中的对应见附录 B。）</p>
+<p>（更微观的追踪——多样性在网络每个子组件中如何被逐步耗尽、为什么 down_proj 是主要来源——见附录 A；这一现象在 Transformer 理论文献中的对应见附录 B。）</p>
 <h3 id="4-打破坍缩的尝试">4. 打破坍缩的尝试</h3>
 <p>既然坍缩来自&quot;36 层反复保留同一组方向&quot;，一个自然的对策是强迫相邻层保留的方向互相错开：在每层截断时加一个正交惩罚项（表中的 0.3 是惩罚权重），或者干脆让 ASVD 和 plain SVD 逐层交替：</p>
 <table>
@@ -1190,7 +1190,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </ol>
 <hr>
 <h2 id="附录">附录</h2>
-<h3 id="附录-A：坍缩的微观机制——MLP-是凶手">附录 A：坍缩的微观机制——MLP 是凶手</h3>
+<h3 id="附录-A：坍缩的微观机制——MLP-是主要来源">附录 A：坍缩的微观机制——MLP 是主要来源</h3>
 <p>进一步的诊断实验追踪了 <strong>effective rank（有效秩，下称 erank）</strong> 在网络每个子组件中的变化。erank 衡量一批向量实际张开了多少个独立方向：hidden state 名义上是 4096 维，但如果所有 token 的向量都挤在少数几个方向上，erank 就只有个位数。它是&quot;表示多样性&quot;的直接读数。</p>
 <blockquote>
 <p><strong>测量对象说明</strong>：本节的追踪数据来自均匀 rank=384、$\alpha=0.5$ 的 ASVD 变体（val loss 10.83）。它没有完全坍缩成常数函数（保留了 546 个 unique 预测），但表示已高度退化：最终 erank=7，不同 token 输出向量的两两平均 cosine 相似度（下称 pcos，越接近 1 表示所有 token 的输出越趋同）高达 0.92——是观察&quot;多样性如何被逐层耗尽&quot;的合适对象。完全坍缩的 8.50 模型（$\alpha=1.0$ + 逐层 rank）是同一机制的更极端版本。</p>
@@ -1539,8 +1539,8 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 <p>This seems paradoxical: how can a &quot;worse&quot; model (only one token) have lower loss than a &quot;better&quot; one (433 distinct tokens)?</p>
 <p>The answer is in the definition of cross-entropy loss: it only measures how much probability the model assigns to the <strong>correct answer</strong> — each position scores $-\log q(\text{correct token})$, averaged over all positions.</p>
 <p>When a model has no ability to distinguish tokens, the optimal strategy is not to guess wildly, but to <strong>output the same fixed probability distribution at every position</strong>, allocating probability according to each token's true frequency in the corpus. Every position is still &quot;wrong,&quot; but at least the frequent tokens (like the comma, which fills about 3.6% of positions in English text) reliably receive decent probability, minimizing the average penalty. That is exactly what the collapsed model does: it gives the comma about 10% probability at every position (measured top-1 prob = 0.0995), yielding CE ≈ 8.5.</p>
-<p>Conversely, a model that <strong>tries to distinguish tokens but fails</strong> (random weights, plain SVD) bets its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty explodes. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives $\mathrm{CE} = \ln 151936 \approx 11.93$; betting wrong is worse than spreading uniformly, which is how random and plain SVD reach 17–19.</p>
-<p><strong>&quot;All-in on frequent tokens&quot; is the loss-optimal degenerate strategy when predictive ability is zero.</strong> ASVD's 8.50 does not mean &quot;good approximation&quot; — it means &quot;the model has given up predicting and collapsed to a constant function.&quot;</p>
+<p>Conversely, a model that <strong>tries to distinguish tokens but fails</strong> (random weights, plain SVD) concentrates its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty is large. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives $\mathrm{CE} = \ln 151936 \approx 11.93$; concentrating on wrong tokens is worse than spreading uniformly, which is how random and plain SVD reach 17–19.</p>
+<p><strong>Concentrating probability on frequent tokens is the loss-optimal degenerate strategy when predictive ability is zero.</strong> ASVD's 8.50 does not mean &quot;good approximation&quot; — it means &quot;the model has given up predicting and collapsed to a constant function.&quot;</p>
 <p>This can be verified information-theoretically. If the model is a constant predictor (outputting the same distribution $q$ at every position), its CE equals the cross-entropy between $q$ and the corpus unigram distribution $p$ (the frequency distribution of tokens), lower-bounded by the entropy of $p$ itself:</p>
 <p>$$\min_q H(p, q) = H(p) \approx 7.51 \text{ nats (measured on our val data)}$$</p>
 <p>The collapsed model's 8.50 sits just 1 nat above this floor — a near-optimal constant predictor. Direct measurement confirms constancy: across 64 sampled positions, the mean pairwise KL divergence between output distributions (a measure of how much two distributions differ; 0 means identical) is only <strong>0.007</strong>, versus 1–10 for normal models.</p>
@@ -1597,7 +1597,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </tbody>
 </table>
 <p>The final cos=0.95 looks like &quot;good alignment&quot; — but it is an <strong>illusion</strong>. It is not that each token aligns with its teacher counterpart, but that <strong>all tokens have collapsed to the same direction</strong>, and that fixed direction happens to have cos=0.95 with some &quot;average direction&quot; of the teacher.</p>
-<p>(For the finer-grained trace — how diversity gets depleted in each sub-component, and why down_proj is the main culprit — see Appendix A; the correspondence with the Transformer theory literature is in Appendix B.)</p>
+<p>(For the finer-grained trace — how diversity gets depleted in each sub-component, and why down_proj is the main source — see Appendix A; the correspondence with the Transformer theory literature is in Appendix B.)</p>
 <h3 id="4-Attempts-to-Break-the-Collapse">4. Attempts to Break the Collapse</h3>
 <p>Since the collapse comes from &quot;36 layers repeatedly keeping the same set of directions,&quot; a natural countermeasure is to force adjacent layers to keep different directions: add an orthogonality penalty during each layer's truncation (0.3 in the table is the penalty weight), or simply alternate ASVD and plain SVD across layers:</p>
 <table>
@@ -1657,7 +1657,7 @@ $$s^{(\ell)}_i = \frac{1}{\lvert D\rvert}\sum_{x^{(\ell)} \in D} \big\lvert x^{(
 </ol>
 <hr>
 <h2 id="Appendix">Appendix</h2>
-<h3 id="Appendix-A-The-Microscopic-Mechanism-—-the-MLP-Is-the-Killer">Appendix A: The Microscopic Mechanism — the MLP Is the Killer</h3>
+<h3 id="Appendix-A-The-Microscopic-Mechanism-—-the-MLP-Is-the-Main-Source">Appendix A: The Microscopic Mechanism — the MLP Is the Main Source</h3>
 <p>Further diagnostic experiments traced the <strong>effective rank (erank)</strong> through every sub-component of the network. Erank measures how many independent directions a batch of vectors actually spans: the hidden state is nominally 4096-dimensional, but if all tokens' vectors crowd into a few directions, the erank is in the single digits. It is a direct readout of representation diversity.</p>
 <blockquote>
 <p><strong>What was measured</strong>: the traces in this section come from the uniform rank=384, $\alpha=0.5$ ASVD variant (val loss 10.83). It does not fully collapse into a constant function (it retains 546 unique predictions), but its representations are severely degenerate: final erank=7, and the mean pairwise cosine similarity between different tokens' output vectors (hereafter pcos; closer to 1 means the outputs are more alike) reaches 0.92 — a suitable subject for observing how token diversity gets depleted layer by layer. The fully collapsed 8.50 model ($\alpha=1.0$ + per-layer ranks) is a more extreme instance of the same mechanism.</p>
@@ -1980,7 +1980,7 @@ switchLang('zh');
           
               <span class="post-sticky-flag" title="Sticky">
                 <i class="fa fa-thumbtack"></i>
-              </span><a href="/2026/08/19/trajectory-correcting-linear-distillation/" class="post-title-link" itemprop="url">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier</a>
+              </span><a href="/2026/08/19/trajectory-correcting-linear-distillation/" class="post-title-link" itemprop="url">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation</a>
         </h2>
 
         <div class="post-meta-container">
@@ -1998,7 +1998,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -2017,12 +2017,12 @@ switchLang('zh');
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
-<h2 id="低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界">低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界</h2>
+<h2 id="低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近">低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近</h2>
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<h3 id="1-问题：闭式方法卡在一堵-坍缩墙-上">1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上</h3>
-<p><a href="/2026/08/17/representation-collapse-in-low-rank-compression/">上一篇</a>里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练）方法卡在一条边界上：</p>
+<h3 id="1-问题：所有闭式方法都停在-8-50-以上">1. 问题：所有闭式方法都停在 8.50 以上</h3>
+<p><a href="/2026/08/17/representation-collapse-in-low-rank-compression/">上一篇</a>里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练）方法都停在一条边界之上：</p>
 <table>
 <thead>
 <tr>
@@ -2051,12 +2051,12 @@ switchLang('zh');
 </table>
 <p>两行 ASVD 是同一方法的不同配置：把加权指数从 0.5 提到 1.0、均匀 rank 换成逐矩阵分配（最小的矩阵被饿到 rank 32），模型就从&quot;高度退化&quot;滑进&quot;完全坍缩&quot;。</p>
 <p>8.50 看似最好，实为假象：上一篇已经证明它是&quot;放弃预测、只按词频输出&quot;的常数函数。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。</p>
-<p>但有一个关键事实说明这堵墙不是低秩本身的极限：<strong>从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构</strong>。也就是说，rank-384 参数空间里存在好得多的点，只是&quot;逐层逼近 $W$&quot;这类局部目标找不到它。</p>
-<h3 id="2-洞察：错的不是低秩，是逐层目标">2. 洞察：错的不是低秩，是逐层目标</h3>
+<p>一个关键事实说明这条边界不是低秩本身的极限：<strong>从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构</strong>。也就是说，rank-384 参数空间里存在好得多的点，只是&quot;逐层逼近 $W$&quot;这类局部目标找不到它。</p>
+<h3 id="2-原因：逐层目标假设了干净输入">2. 原因：逐层目标假设了干净输入</h3>
 <p>所有失败的闭式方法都在解同一类问题——用某种范数逼近教师权重：</p>
 <p>$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$</p>
 <p>这个目标有一个隐含假设：这一层在推理时会收到<strong>教师轨迹上的干净输入</strong>。但压缩后的模型里，第 $i$ 层收到的是<strong>已经被前 $i-1$ 层的压缩误差污染的输入</strong>。误差逐层累积，36 层后不是坍缩就是爆炸。</p>
-<p>记 $x_t$ 为这一层在教师模型里本来会收到的干净输入，$x_s$ 为压缩后的学生模型实际送进来的、已经漂移的输入。三个&quot;考虑误差传播&quot;的目标，只差在<strong>输入用谁、目标用谁</strong>，结果天壤之别：</p>
+<p>记 $x_t$ 为这一层在教师模型里本来会收到的干净输入，$x_s$ 为压缩后的学生模型实际送进来的、已经漂移的输入。三个&quot;考虑误差传播&quot;的目标，只差在<strong>输入用谁、目标用谁</strong>，结果相差一个量级以上：</p>
 <table>
 <thead>
 <tr>
@@ -2073,7 +2073,7 @@ switchLang('zh');
 </tr>
 <tr>
 <td>匹配 $W x_{s}$</td>
-<td>教师权重作用在脏输入上——<strong>顺从漂移</strong></td>
+<td>教师权重作用在脏输入上——<strong>不纠正漂移</strong></td>
 <td>12.22</td>
 </tr>
 <tr>
@@ -2131,7 +2131,7 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>（本系列的 loss 后来统一按严格协议重测：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。本文轨迹矫正系列的数字均为重测值；第 1 节坍缩时代的数字仍是早期窗口的测量，只作定性对照。）</p>
+<p>（本系列的 loss 后来统一按严格协议重测：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。本文轨迹矫正系列的数字均为重测值；第 1 节坍缩基线的数字仍是早期窗口的测量，只作定性对照。）</p>
 <p>完整的对照链：</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{训练}} \to \underbrace{2.11}_{\text{教师}}$$</p>
 <p>与坍缩模型有本质区别：预测行为完全健康——top-1 是正确的高频词 &quot; the&quot;（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。这是所有闭式方法中第一个真正在利用上下文的模型。</p>
@@ -2164,11 +2164,11 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>中段网络的漂移有一半以上是<strong>非线性</strong>的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：<strong>逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移</strong>，原理上需要非线性矫正器或全局优化（训练）才能跨越。</p>
+<p>中段网络的漂移有一半以上是<strong>非线性</strong>的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：<strong>逐层线性矫正已经取尽了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移</strong>，原理上需要非线性矫正器或全局优化（训练）才能跨越。</p>
 <h3 id="6-结论">6. 结论</h3>
 <ol>
 <li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.60。</li>
-<li><strong>闭式方法的正确姿势是回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
+<li><strong>闭式方法应当做回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
 <li><strong>逐层线性矫正在 5.60 收敛</strong>：漂移中线性可恢复的部分已经用尽，剩余差距是非线性的。这个&quot;天花板&quot;是否真的到头，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
 <li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
 </ol>
@@ -2184,11 +2184,11 @@ switchLang('zh');
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
-<h2 id="Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-—-Breaking-the-Closed-Form-Frontier">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier</h2>
+<h2 id="Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-—-Regression-Instead-of-Weight-Approximation">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation</h2>
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<h3 id="1-The-Problem-A-Collapse-Wall-for-Closed-Form-Methods">1. The Problem: A &quot;Collapse Wall&quot; for Closed-Form Methods</h3>
+<h3 id="1-The-Problem-Every-Closed-Form-Method-Stops-Above-8-50">1. The Problem: Every Closed-Form Method Stops Above 8.50</h3>
 <p>In the <a href="/2026/08/17/representation-collapse-in-low-rank-compression/">previous post</a> we replaced every linear layer of Qwen3-8B with a rank-384 factorization $AB$ (85% compression) and found all closed-form (training-free) methods stuck at a frontier:</p>
 <table>
 <thead>
@@ -2218,8 +2218,8 @@ switchLang('zh');
 </table>
 <p>The two ASVD rows are the same method under different configurations: raising the weighting exponent from 0.5 to 1.0 and swapping uniform ranks for per-matrix allocation (the smallest matrix starved to rank 32) slides the model from &quot;severely degenerate&quot; into &quot;fully collapsed.&quot;</p>
 <p>The 8.50 is an illusion: part 1 showed it is a constant function that gave up predicting and just emits word frequencies. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.</p>
-<p>One fact showed the wall is not intrinsic to low rank: <strong>end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure</strong>. A far better point exists in the same parameter space; layerwise &quot;approximate $W$&quot; objectives simply cannot find it.</p>
-<h3 id="2-The-Insight-Low-Rank-Isn-t-Wrong-—-the-Layerwise-Objective-Is">2. The Insight: Low Rank Isn't Wrong — the Layerwise Objective Is</h3>
+<p>One fact shows this boundary is not intrinsic to low rank: <strong>end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure</strong>. A far better point exists in the same parameter space; layerwise &quot;approximate $W$&quot; objectives simply cannot find it.</p>
+<h3 id="2-The-Cause-the-Layerwise-Objective-Assumes-Clean-Inputs">2. The Cause: the Layerwise Objective Assumes Clean Inputs</h3>
 <p>Every failed closed-form method solves some version of</p>
 <p>$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$</p>
 <p>with a hidden assumption: at inference this layer will receive <strong>clean inputs from the teacher's trajectory</strong>. In the compressed model, layer $i$ actually receives inputs <strong>corrupted by the accumulated error of layers $0..i-1$</strong>. Over 36 layers the error either collapses or explodes.</p>
@@ -2359,7 +2359,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界', en: 'Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier'};
+  var postTitles = {zh: '低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近', en: 'Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
@@ -2430,7 +2430,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -2456,8 +2456,8 @@ switchLang('zh');
 <p>本篇承接<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">第一篇（表示坍缩）</a>和<a href="/2026/08/19/trajectory-correcting-linear-distillation/">第二篇（轨迹矫正线性蒸馏）</a>。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对&quot;闭式 init + 训练&quot;的完整路线意味着什么。</p>
 <p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 4 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）</p>
 <h3 id="1-消融：lm-head-矫正的贡献远大于扩展特征">1. 消融：lm_head 矫正的贡献远大于扩展特征</h3>
-<p>上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维）——乘法处的误差交叉项 $g\delta_u + u\delta_g$（$\delta$ 是各自的漂移误差）在原空间里是非线性的，但在这个扩展空间里重新变成了线性可表，理论上非常对症。同时顺手加了一个&quot;免费&quot;组件：lm_head 矫正。</p>
-<p>消融实验（逐个拆掉组件、分别测量每个组件的贡献）的结果完全出乎预料（同为 rank-384 基础）：</p>
+<p>上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维）——乘法处的误差交叉项 $g\delta_u + u\delta_g$（$\delta$ 是各自的漂移误差）在原空间里是非线性的，但在这个扩展空间里重新变成了线性可表，正好针对诊断出的误差项。同时加入了一个几乎零参数成本的组件：lm_head 矫正。</p>
+<p>消融实验（逐个拆掉组件、分别测量每个组件的贡献）的结果与预期相反（同为 rank-384 基础）：</p>
 <table>
 <thead>
 <tr>
@@ -2479,12 +2479,12 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>精心设计的特征工程收益微薄（纯误差二阶项 $\delta_g\delta_u$ 在扩展空间中依然不可表），而&quot;免费&quot;的那个贡献了近五倍的改善。两者基本可加：$5.60 - 0.29 - 0.06 = 5.26$，实测组合 5.23——比简单相加还略好一点，差距在折间波动的边缘。</p>
+<p>针对性设计的扩展特征收益很小（纯误差二阶项 $\delta_g\delta_u$ 在扩展空间中依然不可表），而近零成本的 lm_head 矫正贡献了近五倍的改善。两者基本可加：$5.60 - 0.29 - 0.06 = 5.26$，实测组合 5.23——比简单相加还略好一点，差距在折间波动的边缘。</p>
 <h3 id="2-全秩矫正器原理">2. 全秩矫正器原理</h3>
 <p>先解释本篇反复出现的一个词：把一个矩阵砍到 rank 384 必然损失一部分逼近精度，这份不可避免的损失我们称为<strong>截断税</strong>。全网 252 个低秩层，每层都在交税。</p>
-<p>lm_head 矫正为什么这么值？出口流水线是：36 个 block → final RMSNorm → lm_head（4096→151936，未压缩）→ logits。所有压缩方法只矫正被压缩的层，而 lm_head &quot;没被压缩所以没人碰&quot;——但它收到的<strong>输入</strong>已经漂移了。解一个 4096×4096 的全秩回归 $P$（学生 final hidden → 教师 final hidden），吸收进头部权重：</p>
+<p>lm_head 矫正为什么有效？出口流水线是：36 个 block → final RMSNorm → lm_head（4096→151936，未压缩）→ logits。所有压缩方法只矫正被压缩的层，而 lm_head &quot;没被压缩所以没人碰&quot;——但它收到的<strong>输入</strong>已经漂移了。解一个 4096×4096 的全秩回归 $P$（学生 final hidden → 教师 final hidden），吸收进头部权重：</p>
 <p>$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$</p>
-<p>形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它强在四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是<strong>全秩</strong>的——这是全网唯一不付截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。</p>
+<p>形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它有效的原因有四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是<strong>全秩</strong>的——这是全网唯一不付截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。</p>
 <p>这提炼出一个通用原理：<strong>把预算花在不付截断税的位置</strong>。全网还有一类这样的位置——block 之间的残差流。每 6 个 block 插一个满秩矫正 $h \leftarrow Ph + b$（拟合学生残差 → 教师残差，$W=I$ 无需截断，16.8M 参数/个），block rank 从 384 降到 353 配平预算：</p>
 <table>
 <thead>
@@ -2564,16 +2564,16 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 步还不如 lindist 臂的起点。<strong>好的闭式初始化至少值 200 步（4 亿 token）的训练量，且优势在观察窗口内持续存活。</strong></p>
+<p>lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 步还不如 lindist 臂的起点。<strong>好的闭式初始化相当于至少 200 步（约 4 亿 token）的训练量，且优势在观察窗口内持续存在。</strong></p>
 <p>（各个 loss 水平的模型实际生成的文本什么样，见附录 B 的采样对照，它给这些数字提供了直观刻度。）</p>
 <h3 id="5-结论">5. 结论</h3>
 <ol>
-<li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
+<li><strong>本篇结束时的对照链</strong>（85% 压缩率，2.29B 同预算）：</li>
 </ol>
-<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{本篇闭式}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
 <ol start="2">
 <li>
-<p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>不付截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
+<p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>不付截断税</strong>的位置（lm_head、残差流）；设计复杂特征之前，先<strong>检查所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的改动往往在这些位置。</p>
 </li>
 <li>
 <p><strong>闭式极限的成因</strong>：卡在约 5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃&quot;每层模仿教师对应层&quot;的做法、直接优化最终 loss——这正是训练在做的事。</p>
@@ -2638,8 +2638,8 @@ switchLang('zh');
 <p>This post follows <a href="/2026/08/17/representation-collapse-in-low-rank-compression/">part 1 (representation collapse)</a> and <a href="/2026/08/19/trajectory-correcting-linear-distillation/">part 2 (trajectory-correcting linear distillation)</a>. Part 2 ended with closed-form (training-free) methods at val loss 5.60. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the &quot;closed-form init + training&quot; pipeline.</p>
 <p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 4 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)</p>
 <h3 id="1-Ablation-the-lm-head-Fix-Contributes-Far-More-Than-the-Extended-Features">1. Ablation: the lm_head Fix Contributes Far More Than the Extended Features</h3>
-<p>Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim) — the error cross terms $g\delta_u + u\delta_g$ (where $\delta$ is each factor's drift) are nonlinear in the original space but become linearly representable in the extended one; theoretically well-aimed. We also added a &quot;free&quot; component along the way: an lm_head correction.</p>
-<p>The ablation (removing components one at a time to measure each one's contribution) was a complete surprise (rank-384 base):</p>
+<p>Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim) — the error cross terms $g\delta_u + u\delta_g$ (where $\delta$ is each factor's drift) are nonlinear in the original space but become linearly representable in the extended one; directly targeting the diagnosed error term. We also added a near-zero-cost component: an lm_head correction.</p>
+<p>The ablation (removing components one at a time to measure each one's contribution) came out opposite to expectation (rank-384 base):</p>
 <table>
 <thead>
 <tr>
@@ -2661,12 +2661,12 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>The carefully engineered features underdelivered (the pure second-order term $\delta_g\delta_u$ remains unrepresentable even in the extended space), while the free component contributed nearly 5× more. The two are essentially additive: $5.60 - 0.29 - 0.06 = 5.26$, versus 5.23 measured for the combination — slightly better than the plain sum, a gap at the edge of the fold noise.</p>
+<p>The purpose-built extended features gained little (the pure second-order term $\delta_g\delta_u$ remains unrepresentable even in the extended space), while the near-zero-cost component contributed nearly 5× more. The two are essentially additive: $5.60 - 0.29 - 0.06 = 5.26$, versus 5.23 measured for the combination — slightly better than the plain sum, a gap at the edge of the fold noise.</p>
 <h3 id="2-The-Full-Rank-Corrector-Principle">2. The Full-Rank Corrector Principle</h3>
 <p>First, a word used throughout this post: cutting a matrix to rank 384 inevitably loses some approximation accuracy; we call this unavoidable loss the <strong>truncation tax</strong>. All 252 low-rank layers in the network pay it.</p>
-<p>Why is the lm_head fix so valuable? The exit pipeline is: 36 blocks → final RMSNorm → lm_head (4096→151936, uncompressed) → logits. Every compression method corrects only compressed layers, and lm_head is &quot;uncompressed, so nobody touches it&quot; — yet its <strong>input</strong> has drifted. Solve a full-rank 4096×4096 regression $P$ (student final hidden → teacher final hidden) and absorb it:</p>
+<p>Why does the lm_head fix work? The exit pipeline is: 36 blocks → final RMSNorm → lm_head (4096→151936, uncompressed) → logits. Every compression method corrects only compressed layers, and lm_head is &quot;uncompressed, so nobody touches it&quot; — yet its <strong>input</strong> has drifted. Solve a full-rank 4096×4096 regression $P$ (student final hidden → teacher final hidden) and absorb it:</p>
 <p>$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$</p>
-<p>Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four multipliers: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is <strong>full-rank</strong> — the only spot in the network that pays no truncation tax; it is the last hop, feeding straight into logits; every token passes through it.</p>
+<p>Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four reasons it works: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is <strong>full-rank</strong> — the only spot in the network that pays no truncation tax; it is the last hop, feeding straight into logits; every token passes through it.</p>
 <p>This generalizes into a principle: <strong>spend budget where corrections pay no truncation tax</strong>. One more family of such spots exists — the residual stream between blocks. Insert a full-rank corrector $h \leftarrow Ph + b$ every 6 blocks (student residual → teacher residual; $W=I$, no truncation needed; 16.8M params each), shrinking block ranks 384→353 to stay on budget:</p>
 <table>
 <thead>
@@ -2746,16 +2746,16 @@ switchLang('zh');
 </tr>
 </tbody>
 </table>
-<p>The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed arm after 200 steps was still worse than the lindist arm's starting point. <strong>A good closed-form init is worth at least 200 steps (~0.4B tokens) of training, and the advantage persists throughout the observation window.</strong></p>
+<p>The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed arm after 200 steps was still worse than the lindist arm's starting point. <strong>A good closed-form init is equivalent to at least 200 steps (~0.4B tokens) of training, and the advantage persists throughout the observation window.</strong></p>
 <p>(What models at each loss level actually generate is shown in Appendix B, which gives these numbers a tangible scale.)</p>
 <h3 id="5-Conclusions">5. Conclusions</h3>
 <ol>
-<li><strong>The final closed-form chain</strong> (85% compression, equal 2.29B budget):</li>
+<li><strong>The comparison chain at this post's end</strong> (85% compression, equal 2.29B budget):</li>
 </ol>
-<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{this post, closed-form}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
 <ol start="2">
 <li>
-<p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget where <strong>no truncation tax is paid</strong> (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
+<p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget where <strong>no truncation tax is paid</strong> (lm_head, residual stream); before engineering complex features, <strong>check every &quot;uncompressed, so unmanaged&quot; component</strong> — the largest gains tend to sit there.</p>
 </li>
 <li>
 <p><strong>Why the ceiling sits where it does</strong>: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning &quot;each layer imitates its teacher counterpart&quot; and optimizing the final loss directly — which is exactly what training does.</p>
@@ -2892,7 +2892,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -3350,7 +3350,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -3805,7 +3805,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -4470,7 +4470,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4567,7 +4567,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4665,7 +4665,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">

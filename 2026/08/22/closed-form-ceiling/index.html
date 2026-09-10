@@ -27,7 +27,7 @@
 <meta property="og:description" content="中文   English    低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  本篇承接第一篇（表示坍缩）和第二篇（轨迹矫正线性蒸馏）。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-22T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-07T06:24:54.464Z">
+<meta property="article:modified_time" content="2026-09-10T08:19:46.433Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -267,7 +267,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -299,8 +299,8 @@
 <p>本篇承接<a href="/2026/08/17/representation-collapse-in-low-rank-compression/">第一篇（表示坍缩）</a>和<a href="/2026/08/19/trajectory-correcting-linear-distillation/">第二篇（轨迹矫正线性蒸馏）</a>。上一篇结束时，闭式（无训练）方法停在 val loss 5.60。本篇回答三个问题：还能推到哪？极限在哪、为什么？以及这一切对&quot;闭式 init + 训练&quot;的完整路线意味着什么。</p>
 <p>（本文的 loss 均为严格协议重测值：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。第 4 节训练过程中的 loss 来自训练时的快速评估，口径略有不同，只用于组内对比。）</p>
 <h3 id="1-消融：lm-head-矫正的贡献远大于扩展特征">1. 消融：lm_head 矫正的贡献远大于扩展特征</h3>
-<p>上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维）——乘法处的误差交叉项 $g\delta_u + u\delta_g$（$\delta$ 是各自的漂移误差）在原空间里是非线性的，但在这个扩展空间里重新变成了线性可表，理论上非常对症。同时顺手加了一个&quot;免费&quot;组件：lm_head 矫正。</p>
-<p>消融实验（逐个拆掉组件、分别测量每个组件的贡献）的结果完全出乎预料（同为 rank-384 基础）：</p>
+<p>上一篇的 R² 诊断指出剩余差距主要是 SwiGLU 乘法处的非线性漂移。我们据此设计了 v3：给 down_proj 的回归输入扩展为 $[gu;\ \mathrm{silu}(g);\ u]$（36864 维）——乘法处的误差交叉项 $g\delta_u + u\delta_g$（$\delta$ 是各自的漂移误差）在原空间里是非线性的，但在这个扩展空间里重新变成了线性可表，正好针对诊断出的误差项。同时加入了一个几乎零参数成本的组件：lm_head 矫正。</p>
+<p>消融实验（逐个拆掉组件、分别测量每个组件的贡献）的结果与预期相反（同为 rank-384 基础）：</p>
 <table>
 <thead>
 <tr>
@@ -322,12 +322,12 @@
 </tr>
 </tbody>
 </table>
-<p>精心设计的特征工程收益微薄（纯误差二阶项 $\delta_g\delta_u$ 在扩展空间中依然不可表），而&quot;免费&quot;的那个贡献了近五倍的改善。两者基本可加：$5.60 - 0.29 - 0.06 = 5.26$，实测组合 5.23——比简单相加还略好一点，差距在折间波动的边缘。</p>
+<p>针对性设计的扩展特征收益很小（纯误差二阶项 $\delta_g\delta_u$ 在扩展空间中依然不可表），而近零成本的 lm_head 矫正贡献了近五倍的改善。两者基本可加：$5.60 - 0.29 - 0.06 = 5.26$，实测组合 5.23——比简单相加还略好一点，差距在折间波动的边缘。</p>
 <h3 id="2-全秩矫正器原理">2. 全秩矫正器原理</h3>
 <p>先解释本篇反复出现的一个词：把一个矩阵砍到 rank 384 必然损失一部分逼近精度，这份不可避免的损失我们称为<strong>截断税</strong>。全网 252 个低秩层，每层都在交税。</p>
-<p>lm_head 矫正为什么这么值？出口流水线是：36 个 block → final RMSNorm → lm_head（4096→151936，未压缩）→ logits。所有压缩方法只矫正被压缩的层，而 lm_head &quot;没被压缩所以没人碰&quot;——但它收到的<strong>输入</strong>已经漂移了。解一个 4096×4096 的全秩回归 $P$（学生 final hidden → 教师 final hidden），吸收进头部权重：</p>
+<p>lm_head 矫正为什么有效？出口流水线是：36 个 block → final RMSNorm → lm_head（4096→151936，未压缩）→ logits。所有压缩方法只矫正被压缩的层，而 lm_head &quot;没被压缩所以没人碰&quot;——但它收到的<strong>输入</strong>已经漂移了。解一个 4096×4096 的全秩回归 $P$（学生 final hidden → 教师 final hidden），吸收进头部权重：</p>
 <p>$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$</p>
-<p>形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它强在四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是<strong>全秩</strong>的——这是全网唯一不付截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。</p>
+<p>形状不变、计算量不变、零新增参数（除一个 0.15M 的 bias）。它有效的原因有四点：final norm 处的漂移 74% 线性可恢复（$R^2=0.742$）；矫正是<strong>全秩</strong>的——这是全网唯一不付截断税的位置；它是最后一跳，矫正直通 logits；每个 token 都经过它。</p>
 <p>这提炼出一个通用原理：<strong>把预算花在不付截断税的位置</strong>。全网还有一类这样的位置——block 之间的残差流。每 6 个 block 插一个满秩矫正 $h \leftarrow Ph + b$（拟合学生残差 → 教师残差，$W=I$ 无需截断，16.8M 参数/个），block rank 从 384 降到 353 配平预算：</p>
 <table>
 <thead>
@@ -407,16 +407,16 @@
 </tr>
 </tbody>
 </table>
-<p>lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 步还不如 lindist 臂的起点。<strong>好的闭式初始化至少值 200 步（4 亿 token）的训练量，且优势在观察窗口内持续存活。</strong></p>
+<p>lindist 臂 step 150 就超过了端到端蒸馏的 3.79；坍缩臂跑了 200 步还不如 lindist 臂的起点。<strong>好的闭式初始化相当于至少 200 步（约 4 亿 token）的训练量，且优势在观察窗口内持续存在。</strong></p>
 <p>（各个 loss 水平的模型实际生成的文本什么样，见附录 B 的采样对照，它给这些数字提供了直观刻度。）</p>
 <h3 id="5-结论">5. 结论</h3>
 <ol>
-<li><strong>闭式赛道的最终格局</strong>（85% 压缩率，2.29B 同预算）：</li>
+<li><strong>本篇结束时的对照链</strong>（85% 压缩率，2.29B 同预算）：</li>
 </ol>
-<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{闭式冠军}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
+<p>$$8.50_{\text{坍缩假象}} \to \mathbf{5.10}_{\text{本篇闭式}} \to 3.20_{\text{训练@500}} \to 2.11_{\text{教师}}$$</p>
 <ol start="2">
 <li>
-<p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>不付截断税</strong>的位置（lm_head、残差流）；动手设计精巧特征之前，先<strong>审计所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的一击往往在盲区里。</p>
+<p><strong>三条可迁移的原理</strong>：闭式压缩的正确原语是回归而不是分解（第二篇）；预算应优先花在<strong>不付截断税</strong>的位置（lm_head、残差流）；设计复杂特征之前，先<strong>检查所有&quot;没被压缩所以没人管&quot;的环节</strong>——收益最大的改动往往在这些位置。</p>
 </li>
 <li>
 <p><strong>闭式极限的成因</strong>：卡在约 5.1 的直接原因是 block 16——教师原生的一个对输入误差极其敏感的层，把线性修不掉的小误差放大成大误差（这是教师自己的特性，不是压缩的错）。要低于它，就得放弃&quot;每层模仿教师对应层&quot;的做法、直接优化最终 loss——这正是训练在做的事。</p>
@@ -481,8 +481,8 @@
 <p>This post follows <a href="/2026/08/17/representation-collapse-in-low-rank-compression/">part 1 (representation collapse)</a> and <a href="/2026/08/19/trajectory-correcting-linear-distillation/">part 2 (trajectory-correcting linear distillation)</a>. Part 2 ended with closed-form (training-free) methods at val loss 5.60. This post answers: how much further can they go, where is the hard ceiling and why, and what it all means for the &quot;closed-form init + training&quot; pipeline.</p>
 <p>(All losses in this post are re-measured under the rigorous protocol: 800 validation passages × 8192 tokens, 8 folds, fold-to-fold spread about ±0.02. The training-curve losses in Section 4 come from the quick in-training evaluation, a slightly different measurement used only for within-group comparison.)</p>
 <h3 id="1-Ablation-the-lm-head-Fix-Contributes-Far-More-Than-the-Extended-Features">1. Ablation: the lm_head Fix Contributes Far More Than the Extended Features</h3>
-<p>Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim) — the error cross terms $g\delta_u + u\delta_g$ (where $\delta$ is each factor's drift) are nonlinear in the original space but become linearly representable in the extended one; theoretically well-aimed. We also added a &quot;free&quot; component along the way: an lm_head correction.</p>
-<p>The ablation (removing components one at a time to measure each one's contribution) was a complete surprise (rank-384 base):</p>
+<p>Part 2's R² diagnostic blamed the remaining gap on nonlinear drift at the SwiGLU multiplication. We designed v3 accordingly: widen down_proj's regression input to $[gu;\ \mathrm{silu}(g);\ u]$ (36864-dim) — the error cross terms $g\delta_u + u\delta_g$ (where $\delta$ is each factor's drift) are nonlinear in the original space but become linearly representable in the extended one; directly targeting the diagnosed error term. We also added a near-zero-cost component: an lm_head correction.</p>
+<p>The ablation (removing components one at a time to measure each one's contribution) came out opposite to expectation (rank-384 base):</p>
 <table>
 <thead>
 <tr>
@@ -504,12 +504,12 @@
 </tr>
 </tbody>
 </table>
-<p>The carefully engineered features underdelivered (the pure second-order term $\delta_g\delta_u$ remains unrepresentable even in the extended space), while the free component contributed nearly 5× more. The two are essentially additive: $5.60 - 0.29 - 0.06 = 5.26$, versus 5.23 measured for the combination — slightly better than the plain sum, a gap at the edge of the fold noise.</p>
+<p>The purpose-built extended features gained little (the pure second-order term $\delta_g\delta_u$ remains unrepresentable even in the extended space), while the near-zero-cost component contributed nearly 5× more. The two are essentially additive: $5.60 - 0.29 - 0.06 = 5.26$, versus 5.23 measured for the combination — slightly better than the plain sum, a gap at the edge of the fold noise.</p>
 <h3 id="2-The-Full-Rank-Corrector-Principle">2. The Full-Rank Corrector Principle</h3>
 <p>First, a word used throughout this post: cutting a matrix to rank 384 inevitably loses some approximation accuracy; we call this unavoidable loss the <strong>truncation tax</strong>. All 252 low-rank layers in the network pay it.</p>
-<p>Why is the lm_head fix so valuable? The exit pipeline is: 36 blocks → final RMSNorm → lm_head (4096→151936, uncompressed) → logits. Every compression method corrects only compressed layers, and lm_head is &quot;uncompressed, so nobody touches it&quot; — yet its <strong>input</strong> has drifted. Solve a full-rank 4096×4096 regression $P$ (student final hidden → teacher final hidden) and absorb it:</p>
+<p>Why does the lm_head fix work? The exit pipeline is: 36 blocks → final RMSNorm → lm_head (4096→151936, uncompressed) → logits. Every compression method corrects only compressed layers, and lm_head is &quot;uncompressed, so nobody touches it&quot; — yet its <strong>input</strong> has drifted. Solve a full-rank 4096×4096 regression $P$ (student final hidden → teacher final hidden) and absorb it:</p>
 <p>$$W_{lm}' = W_{lm}P, \qquad b = W_{lm}(\bar{x}_t - P\bar{x}_s)$$</p>
-<p>Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four multipliers: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is <strong>full-rank</strong> — the only spot in the network that pays no truncation tax; it is the last hop, feeding straight into logits; every token passes through it.</p>
+<p>Same shape, same FLOPs, zero new parameters (besides a 0.15M bias). Four reasons it works: final-norm drift is 74% linearly recoverable ($R^2=0.742$); the correction is <strong>full-rank</strong> — the only spot in the network that pays no truncation tax; it is the last hop, feeding straight into logits; every token passes through it.</p>
 <p>This generalizes into a principle: <strong>spend budget where corrections pay no truncation tax</strong>. One more family of such spots exists — the residual stream between blocks. Insert a full-rank corrector $h \leftarrow Ph + b$ every 6 blocks (student residual → teacher residual; $W=I$, no truncation needed; 16.8M params each), shrinking block ranks 384→353 to stay on budget:</p>
 <table>
 <thead>
@@ -589,16 +589,16 @@
 </tr>
 </tbody>
 </table>
-<p>The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed arm after 200 steps was still worse than the lindist arm's starting point. <strong>A good closed-form init is worth at least 200 steps (~0.4B tokens) of training, and the advantage persists throughout the observation window.</strong></p>
+<p>The lindist arm passed end-to-end distillation's 3.79 by step 150; the collapsed arm after 200 steps was still worse than the lindist arm's starting point. <strong>A good closed-form init is equivalent to at least 200 steps (~0.4B tokens) of training, and the advantage persists throughout the observation window.</strong></p>
 <p>(What models at each loss level actually generate is shown in Appendix B, which gives these numbers a tangible scale.)</p>
 <h3 id="5-Conclusions">5. Conclusions</h3>
 <ol>
-<li><strong>The final closed-form chain</strong> (85% compression, equal 2.29B budget):</li>
+<li><strong>The comparison chain at this post's end</strong> (85% compression, equal 2.29B budget):</li>
 </ol>
-<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{closed-form champion}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
+<p>$$8.50_{\text{collapse illusion}} \to \mathbf{5.10}_{\text{this post, closed-form}} \to 3.20_{\text{trained@500}} \to 2.11_{\text{teacher}}$$</p>
 <ol start="2">
 <li>
-<p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget where <strong>no truncation tax is paid</strong> (lm_head, residual stream); before engineering clever features, <strong>audit every &quot;uncompressed, so unmanaged&quot; station</strong> — the biggest win tends to hide in the blind spot.</p>
+<p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget where <strong>no truncation tax is paid</strong> (lm_head, residual stream); before engineering complex features, <strong>check every &quot;uncompressed, so unmanaged&quot; component</strong> — the largest gains tend to sit there.</p>
 </li>
 <li>
 <p><strong>Why the ceiling sits where it does</strong>: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning &quot;each layer imitates its teacher counterpart&quot; and optimizing the final loss directly — which is exactly what training does.</p>
@@ -691,8 +691,8 @@ switchLang('zh');
 
           <div class="post-nav">
             <div class="post-nav-item">
-                <a href="/2026/08/19/trajectory-correcting-linear-distillation/" rel="prev" title="Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier">
-                  <i class="fa fa-angle-left"></i> Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier
+                <a href="/2026/08/19/trajectory-correcting-linear-distillation/" rel="prev" title="Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation">
+                  <i class="fa fa-angle-left"></i> Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation
                 </a>
             </div>
             <div class="post-nav-item">

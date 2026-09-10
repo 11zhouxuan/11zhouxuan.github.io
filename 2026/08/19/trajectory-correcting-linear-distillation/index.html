@@ -19,15 +19,15 @@
 
 <script class="next-config" data-name="main" type="application/json">{"hostname":"11zhouxuan.github.io","root":"/","images":"/images","scheme":"Mist","darkmode":false,"version":"8.27.0","exturl":false,"sidebar":{"position":"right","width_expanded":320,"width_dual_column":240,"display":"hide","padding":18,"offset":12},"hljswrap":true,"codeblock":{"theme":{"light":"default","dark":"stackoverflow-dark"},"prism":{"light":"prism","dark":"prism-dark"},"copy_button":{"enable":true,"style":"mac"},"fold":{"enable":false,"height":500},"language":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"duration":200,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"},"path":"/search.json","localsearch":{"enable":true,"top_n_per_article":3,"unescape":false,"preload":false,"trigger":"auto"}}</script><script src="/js/config.js" defer></script>
 
-    <meta name="description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所">
+    <meta name="description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：所有闭式方法都停在 8.50 以上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier">
+<meta property="og:title" content="Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation">
 <meta property="og:url" content="https://11zhouxuan.github.io/2026/08/19/trajectory-correcting-linear-distillation/index.html">
 <meta property="og:site_name" content="Xuan&#39;s Blog">
-<meta property="og:description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所">
+<meta property="og:description" content="中文   English    低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近  📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读预备知识篇，10 分钟即可补齐全部背景。  1. 问题：所有闭式方法都停在 8.50 以上 上一篇里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-19T00:00:00.000Z">
-<meta property="article:modified_time" content="2026-09-07T06:24:54.465Z">
+<meta property="article:modified_time" content="2026-09-10T08:19:46.435Z">
 <meta property="article:author" content="Xuan Zhou">
 <meta property="article:tag" content="LLM">
 <meta property="article:tag" content="compression">
@@ -42,10 +42,10 @@
 <link rel="canonical" href="https://11zhouxuan.github.io/2026/08/19/trajectory-correcting-linear-distillation/">
 
 
-<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/19/trajectory-correcting-linear-distillation/","path":"2026/08/19/trajectory-correcting-linear-distillation/","title":"Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier"}</script>
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"https://11zhouxuan.github.io/2026/08/19/trajectory-correcting-linear-distillation/","path":"2026/08/19/trajectory-correcting-linear-distillation/","title":"Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation"}</script>
 
 <script class="next-config" data-name="calendar" type="application/json">""</script>
-<title>Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier | Xuan's Blog</title>
+<title>Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation | Xuan's Blog</title>
   
 
 
@@ -176,7 +176,7 @@
       <div class="sidebar-panel-container">
         <!--noindex-->
         <div class="post-toc-wrap sidebar-panel">
-            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9A%E8%BD%A8%E8%BF%B9%E7%9F%AB%E6%AD%A3%E7%BA%BF%E6%80%A7%E8%92%B8%E9%A6%8F%E2%80%94%E2%80%94%E7%AA%81%E7%A0%B4%E9%97%AD%E5%BC%8F%E6%96%B9%E6%B3%95%E7%9A%84%E8%BE%B9%E7%95%8C"><span class="nav-text">低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E9%97%AE%E9%A2%98%EF%BC%9A%E9%97%AD%E5%BC%8F%E6%96%B9%E6%B3%95%E5%8D%A1%E5%9C%A8%E4%B8%80%E5%A0%B5-%E5%9D%8D%E7%BC%A9%E5%A2%99-%E4%B8%8A"><span class="nav-text">1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%B4%9E%E5%AF%9F%EF%BC%9A%E9%94%99%E7%9A%84%E4%B8%8D%E6%98%AF%E4%BD%8E%E7%A7%A9%EF%BC%8C%E6%98%AF%E9%80%90%E5%B1%82%E7%9B%AE%E6%A0%87"><span class="nav-text">2. 洞察：错的不是低秩，是逐层目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%96%B9%E6%B3%95%EF%BC%9A%E9%80%90%E5%B1%82%E4%BB%BF%E5%B0%84%E5%B2%AD%E5%9B%9E%E5%BD%92"><span class="nav-text">3. 方法：逐层仿射岭回归</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E6%9E%9C"><span class="nav-text">4. 结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%89%A9%E4%B8%8B%E7%9A%84%E5%B7%AE%E8%B7%9D%E5%9C%A8%E5%93%AA%EF%BC%9AR%C2%B2-%E8%AF%8A%E6%96%AD"><span class="nav-text">5. 剩下的差距在哪：R² 诊断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E7%BB%93%E8%AE%BA"><span class="nav-text">6. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%96%B9%E6%B3%95%E7%9A%84%E5%B9%B3%E5%8F%B0%E2%80%94%E2%80%94%E4%B8%89%E4%B8%AA%E8%B4%9F%E7%BB%93%E6%9E%9C"><span class="nav-text">附录 A：方法的平台——三个负结果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-%E2%80%94-Breaking-the-Closed-Form-Frontier"><span class="nav-text">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-The-Problem-A-Collapse-Wall-for-Closed-Form-Methods"><span class="nav-text">1. The Problem: A &quot;Collapse Wall&quot; for Closed-Form Methods</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-The-Insight-Low-Rank-Isn-t-Wrong-%E2%80%94-the-Layerwise-Objective-Is"><span class="nav-text">2. The Insight: Low Rank Isn&#39;t Wrong — the Layerwise Objective Is</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Method-Layerwise-Affine-Ridge-Regression"><span class="nav-text">3. The Method: Layerwise Affine Ridge Regression</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Results"><span class="nav-text">4. Results</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Where-the-Remaining-Gap-Lives-the-R%C2%B2-Diagnostic"><span class="nav-text">5. Where the Remaining Gap Lives: the R² Diagnostic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Conclusions"><span class="nav-text">6. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Plateau-%E2%80%94-Three-Negative-Results"><span class="nav-text">Appendix A: The Plateau — Three Negative Results</span></a></li></ol></li></ol></div>
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%8E%E7%A7%A9%E5%8E%8B%E7%BC%A9%E7%B3%BB%E5%88%97%EF%BC%88%E4%BA%8C%EF%BC%89%EF%BC%9A%E8%BD%A8%E8%BF%B9%E7%9F%AB%E6%AD%A3%E7%BA%BF%E6%80%A7%E8%92%B8%E9%A6%8F%E2%80%94%E2%80%94%E7%94%A8%E5%9B%9E%E5%BD%92%E4%BB%A3%E6%9B%BF%E6%9D%83%E9%87%8D%E9%80%BC%E8%BF%91"><span class="nav-text">低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E9%97%AE%E9%A2%98%EF%BC%9A%E6%89%80%E6%9C%89%E9%97%AD%E5%BC%8F%E6%96%B9%E6%B3%95%E9%83%BD%E5%81%9C%E5%9C%A8-8-50-%E4%BB%A5%E4%B8%8A"><span class="nav-text">1. 问题：所有闭式方法都停在 8.50 以上</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E5%8E%9F%E5%9B%A0%EF%BC%9A%E9%80%90%E5%B1%82%E7%9B%AE%E6%A0%87%E5%81%87%E8%AE%BE%E4%BA%86%E5%B9%B2%E5%87%80%E8%BE%93%E5%85%A5"><span class="nav-text">2. 原因：逐层目标假设了干净输入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E6%96%B9%E6%B3%95%EF%BC%9A%E9%80%90%E5%B1%82%E4%BB%BF%E5%B0%84%E5%B2%AD%E5%9B%9E%E5%BD%92"><span class="nav-text">3. 方法：逐层仿射岭回归</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E7%BB%93%E6%9E%9C"><span class="nav-text">4. 结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E5%89%A9%E4%B8%8B%E7%9A%84%E5%B7%AE%E8%B7%9D%E5%9C%A8%E5%93%AA%EF%BC%9AR%C2%B2-%E8%AF%8A%E6%96%AD"><span class="nav-text">5. 剩下的差距在哪：R² 诊断</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-%E7%BB%93%E8%AE%BA"><span class="nav-text">6. 结论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%99%84%E5%BD%95"><span class="nav-text">附录</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%99%84%E5%BD%95-A%EF%BC%9A%E6%96%B9%E6%B3%95%E7%9A%84%E5%B9%B3%E5%8F%B0%E2%80%94%E2%80%94%E4%B8%89%E4%B8%AA%E8%B4%9F%E7%BB%93%E6%9E%9C"><span class="nav-text">附录 A：方法的平台——三个负结果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-%E2%80%94-Regression-Instead-of-Weight-Approximation"><span class="nav-text">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-The-Problem-Every-Closed-Form-Method-Stops-Above-8-50"><span class="nav-text">1. The Problem: Every Closed-Form Method Stops Above 8.50</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-The-Cause-the-Layerwise-Objective-Assumes-Clean-Inputs"><span class="nav-text">2. The Cause: the Layerwise Objective Assumes Clean Inputs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-The-Method-Layerwise-Affine-Ridge-Regression"><span class="nav-text">3. The Method: Layerwise Affine Ridge Regression</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-Results"><span class="nav-text">4. Results</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-Where-the-Remaining-Gap-Lives-the-R%C2%B2-Diagnostic"><span class="nav-text">5. Where the Remaining Gap Lives: the R² Diagnostic</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-Conclusions"><span class="nav-text">6. Conclusions</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Appendix"><span class="nav-text">Appendix</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Appendix-A-The-Plateau-%E2%80%94-Three-Negative-Results"><span class="nav-text">Appendix A: The Plateau — Three Negative Results</span></a></li></ol></li></ol></div>
         </div>
         <!--/noindex-->
 
@@ -245,12 +245,12 @@
     </span>
 
     <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
-      <meta itemprop="name" content="Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier | Xuan's Blog">
+      <meta itemprop="name" content="Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation | Xuan's Blog">
       <meta itemprop="description" content="">
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier
+          Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation
         </h1>
 
         <div class="post-meta-container">
@@ -268,7 +268,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-07 06:24:54" itemprop="dateModified" datetime="2026-09-07T06:24:54+00:00">2026-09-07</time>
+      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
     </span>
 
   
@@ -293,12 +293,12 @@
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
-<h2 id="低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界">低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界</h2>
+<h2 id="低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近">低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近</h2>
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
-<h3 id="1-问题：闭式方法卡在一堵-坍缩墙-上">1. 问题：闭式方法卡在一堵&quot;坍缩墙&quot;上</h3>
-<p><a href="/2026/08/17/representation-collapse-in-low-rank-compression/">上一篇</a>里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练）方法卡在一条边界上：</p>
+<h3 id="1-问题：所有闭式方法都停在-8-50-以上">1. 问题：所有闭式方法都停在 8.50 以上</h3>
+<p><a href="/2026/08/17/representation-collapse-in-low-rank-compression/">上一篇</a>里我们把 Qwen3-8B 的每个线性层替换为 rank-384 的 $AB$（85% 压缩率），发现所有闭式（无训练）方法都停在一条边界之上：</p>
 <table>
 <thead>
 <tr>
@@ -327,12 +327,12 @@
 </table>
 <p>两行 ASVD 是同一方法的不同配置：把加权指数从 0.5 提到 1.0、均匀 rank 换成逐矩阵分配（最小的矩阵被饿到 rank 32），模型就从&quot;高度退化&quot;滑进&quot;完全坍缩&quot;。</p>
 <p>8.50 看似最好，实为假象：上一篇已经证明它是&quot;放弃预测、只按词频输出&quot;的常数函数。所有试图打破坍缩的手段（正交约束、rank 重分配、给关键组件 70% 更多参数）都让 loss 变得更差。</p>
-<p>但有一个关键事实说明这堵墙不是低秩本身的极限：<strong>从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构</strong>。也就是说，rank-384 参数空间里存在好得多的点，只是&quot;逐层逼近 $W$&quot;这类局部目标找不到它。</p>
-<h3 id="2-洞察：错的不是低秩，是逐层目标">2. 洞察：错的不是低秩，是逐层目标</h3>
+<p>一个关键事实说明这条边界不是低秩本身的极限：<strong>从 8.50 出发做端到端训练能到 3.79——而训练出的模型就是同样的 rank-384 结构</strong>。也就是说，rank-384 参数空间里存在好得多的点，只是&quot;逐层逼近 $W$&quot;这类局部目标找不到它。</p>
+<h3 id="2-原因：逐层目标假设了干净输入">2. 原因：逐层目标假设了干净输入</h3>
 <p>所有失败的闭式方法都在解同一类问题——用某种范数逼近教师权重：</p>
 <p>$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$</p>
 <p>这个目标有一个隐含假设：这一层在推理时会收到<strong>教师轨迹上的干净输入</strong>。但压缩后的模型里，第 $i$ 层收到的是<strong>已经被前 $i-1$ 层的压缩误差污染的输入</strong>。误差逐层累积，36 层后不是坍缩就是爆炸。</p>
-<p>记 $x_t$ 为这一层在教师模型里本来会收到的干净输入，$x_s$ 为压缩后的学生模型实际送进来的、已经漂移的输入。三个&quot;考虑误差传播&quot;的目标，只差在<strong>输入用谁、目标用谁</strong>，结果天壤之别：</p>
+<p>记 $x_t$ 为这一层在教师模型里本来会收到的干净输入，$x_s$ 为压缩后的学生模型实际送进来的、已经漂移的输入。三个&quot;考虑误差传播&quot;的目标，只差在<strong>输入用谁、目标用谁</strong>，结果相差一个量级以上：</p>
 <table>
 <thead>
 <tr>
@@ -349,7 +349,7 @@
 </tr>
 <tr>
 <td>匹配 $W x_{s}$</td>
-<td>教师权重作用在脏输入上——<strong>顺从漂移</strong></td>
+<td>教师权重作用在脏输入上——<strong>不纠正漂移</strong></td>
 <td>12.22</td>
 </tr>
 <tr>
@@ -407,7 +407,7 @@
 </tr>
 </tbody>
 </table>
-<p>（本系列的 loss 后来统一按严格协议重测：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。本文轨迹矫正系列的数字均为重测值；第 1 节坍缩时代的数字仍是早期窗口的测量，只作定性对照。）</p>
+<p>（本系列的 loss 后来统一按严格协议重测：800 段 × 8192 token 的验证数据、8 折，折间波动约 ±0.02。本文轨迹矫正系列的数字均为重测值；第 1 节坍缩基线的数字仍是早期窗口的测量，只作定性对照。）</p>
 <p>完整的对照链：</p>
 <p>$$18.65 \to 10.83 \to \underbrace{8.50}_{\text{坍缩假象}} \to \mathbf{5.60} \to \underbrace{3.79}_{\text{训练}} \to \underbrace{2.11}_{\text{教师}}$$</p>
 <p>与坍缩模型有本质区别：预测行为完全健康——top-1 是正确的高频词 &quot; the&quot;（教师也是），不同位置输出分布之间的 KL=5.4，说明预测确实随上下文变化（坍缩模型是 0.007，即每个位置都输出同一个分布）。这是所有闭式方法中第一个真正在利用上下文的模型。</p>
@@ -440,11 +440,11 @@
 </tr>
 </tbody>
 </table>
-<p>中段网络的漂移有一半以上是<strong>非线性</strong>的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：<strong>逐层线性矫正已经榨干了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移</strong>，原理上需要非线性矫正器或全局优化（训练）才能跨越。</p>
+<p>中段网络的漂移有一半以上是<strong>非线性</strong>的，其中 SwiGLU 的 gate×up 乘积处最严重——两个带误差的量相乘，误差项会出现平方与交叉项，这是任何线性算子都无法还原的成分。这就是 5.6 平台的成因：<strong>逐层线性矫正已经取尽了漂移中的线性可恢复部分，剩余 1.8 nat 的差距（5.60 到训练的 3.79）属于非线性漂移</strong>，原理上需要非线性矫正器或全局优化（训练）才能跨越。</p>
 <h3 id="6-结论">6. 结论</h3>
 <ol>
 <li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.60。</li>
-<li><strong>闭式方法的正确姿势是回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
+<li><strong>闭式方法应当做回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
 <li><strong>逐层线性矫正在 5.60 收敛</strong>：漂移中线性可恢复的部分已经用尽，剩余差距是非线性的。这个&quot;天花板&quot;是否真的到头，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
 <li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
 </ol>
@@ -460,11 +460,11 @@
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
-<h2 id="Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-—-Breaking-the-Closed-Form-Frontier">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier</h2>
+<h2 id="Low-Rank-Compression-Series-2-Trajectory-Correcting-Linear-Distillation-—-Regression-Instead-of-Weight-Approximation">Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation</h2>
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
-<h3 id="1-The-Problem-A-Collapse-Wall-for-Closed-Form-Methods">1. The Problem: A &quot;Collapse Wall&quot; for Closed-Form Methods</h3>
+<h3 id="1-The-Problem-Every-Closed-Form-Method-Stops-Above-8-50">1. The Problem: Every Closed-Form Method Stops Above 8.50</h3>
 <p>In the <a href="/2026/08/17/representation-collapse-in-low-rank-compression/">previous post</a> we replaced every linear layer of Qwen3-8B with a rank-384 factorization $AB$ (85% compression) and found all closed-form (training-free) methods stuck at a frontier:</p>
 <table>
 <thead>
@@ -494,8 +494,8 @@
 </table>
 <p>The two ASVD rows are the same method under different configurations: raising the weighting exponent from 0.5 to 1.0 and swapping uniform ranks for per-matrix allocation (the smallest matrix starved to rank 32) slides the model from &quot;severely degenerate&quot; into &quot;fully collapsed.&quot;</p>
 <p>The 8.50 is an illusion: part 1 showed it is a constant function that gave up predicting and just emits word frequencies. Every attempt to break the collapse (orthogonality constraints, rank reallocation, 70% more parameters for key components) made loss worse.</p>
-<p>One fact showed the wall is not intrinsic to low rank: <strong>end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure</strong>. A far better point exists in the same parameter space; layerwise &quot;approximate $W$&quot; objectives simply cannot find it.</p>
-<h3 id="2-The-Insight-Low-Rank-Isn-t-Wrong-—-the-Layerwise-Objective-Is">2. The Insight: Low Rank Isn't Wrong — the Layerwise Objective Is</h3>
+<p>One fact shows this boundary is not intrinsic to low rank: <strong>end-to-end training from 8.50 reaches 3.79 — and the trained model has exactly the same rank-384 structure</strong>. A far better point exists in the same parameter space; layerwise &quot;approximate $W$&quot; objectives simply cannot find it.</p>
+<h3 id="2-The-Cause-the-Layerwise-Objective-Assumes-Clean-Inputs">2. The Cause: the Layerwise Objective Assumes Clean Inputs</h3>
 <p>Every failed closed-form method solves some version of</p>
 <p>$$\min_{A,B} \lVert (W - AB)S \rVert_F^2$$</p>
 <p>with a hidden assumption: at inference this layer will receive <strong>clean inputs from the teacher's trajectory</strong>. In the compressed model, layer $i$ actually receives inputs <strong>corrupted by the accumulated error of layers $0..i-1$</strong>. Over 36 layers the error either collapses or explodes.</p>
@@ -635,7 +635,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（二）：轨迹矫正线性蒸馏——突破闭式方法的边界', en: 'Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Breaking the Closed-Form Frontier'};
+  var postTitles = {zh: '低秩压缩系列（二）：轨迹矫正线性蒸馏——用回归代替权重逼近', en: 'Low-Rank Compression Series (2): Trajectory-Correcting Linear Distillation — Regression Instead of Weight Approximation'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
