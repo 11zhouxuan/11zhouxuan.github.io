@@ -87,9 +87,9 @@ $$\min\_{\{A\_\ell, B\_\ell\}\_{\ell=1}^{N}}\ \mathbb{E}\_u\Big[\mathrm{CE}\big(
 
 当模型完全没有区分能力时，最优策略不是乱猜，而是**每个位置都输出同一个固定的概率分布**，把概率按各 token 在语料中的真实频率来分。这样虽然每个位置都"不知道答案"，但至少高频 token（比如逗号，占英文文本约 3.6% 的位置）稳定拿到不低的概率，平均惩罚最小。坍缩模型正是这么做的：它在每个位置都给逗号约 10% 的概率（实测 top-1 prob = 0.0995），得到 CE ≈ 8.5。
 
-反过来，一个**试图区分 token 但区分得很差**的模型（random 权重、plain SVD）会把概率押在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，$\mathrm{CE} = \ln 151936 \approx 11.93$；押错注比平均分配更糟，所以 random 和 plain SVD 冲到了 17~19。
+反过来，一个**试图区分 token 但区分得很差**的模型（random 权重、plain SVD）会把概率集中在错误的 token 上，正确答案分到的概率极小，$-\log$ 惩罚巨大。参照系：把概率在全部 151936 个词表 token 上平均分配，$\mathrm{CE} = \ln 151936 \approx 11.93$；集中在错误 token 上比平均分配更糟，所以 random 和 plain SVD 达到 17~19。
 
-**"全押高频 token"是预测能力为零时的 loss-最优退化策略。** ASVD 的 8.50 不代表"逼近得好"，而是代表"模型已经放弃预测，退化成了常数函数"。
+**"把概率集中在高频 token"是预测能力为零时 loss 最优的退化策略。** ASVD 的 8.50 不代表"逼近得好"，而是代表"模型已经放弃预测，退化成了常数函数"。
 
 信息论上可以精确验证这一点。如果模型是常数预测器（每个位置输出同一个分布 $q$），它的 CE 就等于语料的 unigram 分布 $p$（即各 token 的出现频率分布）与 $q$ 之间的交叉熵，其下界是 $p$ 自己的熵：
 
@@ -123,7 +123,7 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 
 最后一层 cos=0.95 看起来"对齐得很好"——但这是一个**假象**。不是模型对每个 token 都和教师对齐，而是**所有 token 都坍缩到了同一个方向**，这个固定方向恰好和教师的某个"平均方向" cos=0.95。
 
-（更微观的追踪——多样性在网络每个子组件中如何被逐步耗尽、为什么 down_proj 是主要凶手——见附录 A；这一现象在 Transformer 理论文献中的对应见附录 B。）
+（更微观的追踪——多样性在网络每个子组件中如何被逐步耗尽、为什么 down_proj 是主要来源——见附录 A；这一现象在 Transformer 理论文献中的对应见附录 B。）
 
 ### 4. 打破坍缩的尝试
 
@@ -159,7 +159,7 @@ Plain SVD 不做加权，保留的方向由各层矩阵自身的奇异值决定�
 
 ## 附录
 
-### 附录 A：坍缩的微观机制——MLP 是凶手
+### 附录 A：坍缩的微观机制——MLP 是主要来源
 
 进一步的诊断实验追踪了 **effective rank（有效秩，下称 erank）** 在网络每个子组件中的变化。erank 衡量一批向量实际张开了多少个独立方向：hidden state 名义上是 4096 维，但如果所有 token 的向量都挤在少数几个方向上，erank 就只有个位数。它是"表示多样性"的直接读数。
 
@@ -331,9 +331,9 @@ The answer is in the definition of cross-entropy loss: it only measures how much
 
 When a model has no ability to distinguish tokens, the optimal strategy is not to guess wildly, but to **output the same fixed probability distribution at every position**, allocating probability according to each token's true frequency in the corpus. Every position is still "wrong," but at least the frequent tokens (like the comma, which fills about 3.6% of positions in English text) reliably receive decent probability, minimizing the average penalty. That is exactly what the collapsed model does: it gives the comma about 10% probability at every position (measured top-1 prob = 0.0995), yielding CE ≈ 8.5.
 
-Conversely, a model that **tries to distinguish tokens but fails** (random weights, plain SVD) bets its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty explodes. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives $\mathrm{CE} = \ln 151936 \approx 11.93$; betting wrong is worse than spreading uniformly, which is how random and plain SVD reach 17–19.
+Conversely, a model that **tries to distinguish tokens but fails** (random weights, plain SVD) concentrates its probability on wrong tokens — the correct answer gets a tiny share, and the $-\log$ penalty is large. For reference: spreading probability uniformly over all 151936 vocabulary tokens gives $\mathrm{CE} = \ln 151936 \approx 11.93$; concentrating on wrong tokens is worse than spreading uniformly, which is how random and plain SVD reach 17–19.
 
-**"All-in on frequent tokens" is the loss-optimal degenerate strategy when predictive ability is zero.** ASVD's 8.50 does not mean "good approximation" — it means "the model has given up predicting and collapsed to a constant function."
+**Concentrating probability on frequent tokens is the loss-optimal degenerate strategy when predictive ability is zero.** ASVD's 8.50 does not mean "good approximation" — it means "the model has given up predicting and collapsed to a constant function."
 
 This can be verified information-theoretically. If the model is a constant predictor (outputting the same distribution $q$ at every position), its CE equals the cross-entropy between $q$ and the corpus unigram distribution $p$ (the frequency distribution of tokens), lower-bounded by the entropy of $p$ itself:
 
@@ -367,7 +367,7 @@ Experiments confirm this. Measuring the cosine similarity between student and te
 
 The final cos=0.95 looks like "good alignment" — but it is an **illusion**. It is not that each token aligns with its teacher counterpart, but that **all tokens have collapsed to the same direction**, and that fixed direction happens to have cos=0.95 with some "average direction" of the teacher.
 
-(For the finer-grained trace — how diversity gets depleted in each sub-component, and why down_proj is the main culprit — see Appendix A; the correspondence with the Transformer theory literature is in Appendix B.)
+(For the finer-grained trace — how diversity gets depleted in each sub-component, and why down_proj is the main source — see Appendix A; the correspondence with the Transformer theory literature is in Appendix B.)
 
 ### 4. Attempts to Break the Collapse
 
@@ -403,7 +403,7 @@ Because "the whole model predicts only commas" is so counter-intuitive, we re-ve
 
 ## Appendix
 
-### Appendix A: The Microscopic Mechanism — the MLP Is the Killer
+### Appendix A: The Microscopic Mechanism — the MLP Is the Main Source
 
 Further diagnostic experiments traced the **effective rank (erank)** through every sub-component of the network. Erank measures how many independent directions a batch of vectors actually spans: the hidden state is nominally 4096-dimensional, but if all tokens' vectors crowd into a few directions, the erank is in the single digits. It is a direct readout of representation diversity.
 
