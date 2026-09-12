@@ -261,7 +261,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
 
   
@@ -966,7 +966,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
 
   
@@ -1998,7 +1998,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
 
   
@@ -2169,7 +2169,7 @@ switchLang('zh');
 <ol>
 <li><strong>低秩压缩的瓶颈不在表达能力，在优化目标</strong>。rank-384 空间中存在 3.79 的点；&quot;逐层逼近 W&quot;找不到它，&quot;逐层矫正轨迹&quot;能走到 5.60。</li>
 <li><strong>闭式方法应当做回归而不是分解</strong>：输入取自学生的真实（漂移）分布，目标取自教师的理想轨迹——每层既是压缩，也是对上游误差的一次线性纠错。</li>
-<li><strong>逐层线性矫正在 5.60 收敛</strong>：漂移中线性可恢复的部分已经用尽，剩余差距是非线性的。这个&quot;天花板&quot;是否真的到头，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
+<li><strong>逐层线性矫正在 5.60 收敛</strong>：漂移中线性可恢复的部分已经用尽，剩余差距是非线性的。这个收敛点是否就是极限，是<a href="/2026/08/22/closed-form-ceiling/">下一篇</a>的主题。</li>
 <li>更正上一篇的结论：&quot;闭式方法无法同时打破坍缩又降低 loss&quot;是错的——错的是当时测试的所有方法共享的&quot;逼近 W&quot;目标，而不是闭式本身。</li>
 </ol>
 <hr>
@@ -2336,7 +2336,7 @@ switchLang('zh');
 <ol>
 <li><strong>The bottleneck of low-rank compression is not expressiveness but the optimization objective.</strong> A 3.79 point exists in the rank-384 space; &quot;approximate $W$ per layer&quot; cannot find it, while &quot;correct the trajectory per layer&quot; reaches 5.60.</li>
 <li><strong>The right closed-form primitive is regression, not factorization</strong>: inputs from the student's real (drifted) distribution, targets from the teacher's ideal trajectory — each layer is simultaneously compression and one step of linear error correction.</li>
-<li><strong>Layerwise linear correction converges at 5.60</strong>: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this ceiling is truly final is the subject of <a href="/2026/08/22/closed-form-ceiling/">the next post</a>.</li>
+<li><strong>Layerwise linear correction converges at 5.60</strong>: the linearly recoverable part of the drift is exhausted; what remains is nonlinear. Whether this convergence point is the true limit is the subject of <a href="/2026/08/22/closed-form-ceiling/">the next post</a>.</li>
 <li>A correction to the previous post: &quot;closed-form methods cannot simultaneously break collapse and lower loss&quot; was wrong — what was broken was the shared &quot;approximate $W$&quot; objective of every method tested then, not closed-form itself.</li>
 </ol>
 <hr>
@@ -2412,7 +2412,7 @@ switchLang('zh');
           
               <span class="post-sticky-flag" title="Sticky">
                 <i class="fa fa-thumbtack"></i>
-              </span><a href="/2026/08/22/closed-form-ceiling/" class="post-title-link" itemprop="url">Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier</a>
+              </span><a href="/2026/08/22/closed-form-ceiling/" class="post-title-link" itemprop="url">Low-Rank Compression Series (3): Full-Rank Correctors and the Limit of Closed-Form Methods</a>
         </h2>
 
         <div class="post-meta-container">
@@ -2430,7 +2430,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
 
   
@@ -2449,7 +2449,7 @@ switchLang('zh');
 </div>
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
-<h2 id="低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器">低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器</h2>
+<h2 id="低秩压缩系列（三）：全秩矫正器与闭式方法的极限">低秩压缩系列（三）：全秩矫正器与闭式方法的极限</h2>
 <blockquote>
 <p>📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读<a href="/2026/08/30/lord-compression-primer/">预备知识篇</a>，10 分钟即可补齐全部背景。</p>
 </blockquote>
@@ -2631,7 +2631,7 @@ switchLang('zh');
 </div>
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
-<h2 id="Low-Rank-Compression-Series-3-The-Closed-Form-Ceiling-—-Full-Rank-Correctors-and-a-Nonlinear-Amplifier">Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier</h2>
+<h2 id="Low-Rank-Compression-Series-3-Full-Rank-Correctors-and-the-Limit-of-Closed-Form-Methods">Low-Rank Compression Series (3): Full-Rank Correctors and the Limit of Closed-Form Methods</h2>
 <blockquote>
 <p>📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read <a href="/2026/08/30/lord-compression-primer/">the primer</a> first — ten minutes covers all the background.</p>
 </blockquote>
@@ -2758,7 +2758,7 @@ switchLang('zh');
 <p><strong>Three transferable principles</strong>: the right closed-form primitive is regression, not factorization (part 2); spend budget where <strong>no truncation tax is paid</strong> (lm_head, residual stream); before engineering complex features, <strong>check every &quot;uncompressed, so unmanaged&quot; component</strong> — the largest gains tend to sit there.</p>
 </li>
 <li>
-<p><strong>Why the ceiling sits where it does</strong>: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning &quot;each layer imitates its teacher counterpart&quot; and optimizing the final loss directly — which is exactly what training does.</p>
+<p><strong>Why the limit sits where it does</strong>: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning &quot;each layer imitates its teacher counterpart&quot; and optimizing the final loss directly — which is exactly what training does.</p>
 </li>
 <li>
 <p><strong>The engineering takeaway</strong>: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.</p>
@@ -2821,7 +2821,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier'};
+  var postTitles = {zh: '低秩压缩系列（三）：全秩矫正器与闭式方法的极限', en: 'Low-Rank Compression Series (3): Full-Rank Correctors and the Limit of Closed-Form Methods'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
@@ -2892,7 +2892,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
 
   
@@ -3350,7 +3350,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
 
   
@@ -3805,7 +3805,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
 
   
@@ -4470,7 +4470,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4567,7 +4567,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -4665,7 +4665,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-09-10 08:19:46" itemprop="dateModified" datetime="2026-09-10T08:19:46+00:00">2026-09-10</time>
+      <time title="Modified: 2026-09-12 10:14:25" itemprop="dateModified" datetime="2026-09-12T10:14:25+00:00">2026-09-12</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
