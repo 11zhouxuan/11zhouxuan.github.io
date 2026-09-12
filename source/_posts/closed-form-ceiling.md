@@ -1,5 +1,5 @@
 ---
-title: "Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier"
+title: "Low-Rank Compression Series (3): Full-Rank Correctors and the Limit of Closed-Form Methods"
 date: 2026-08-22
 mathjax: true
 sticky: 30
@@ -14,7 +14,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank]
 <!-- Chinese Version -->
 <div class="lang-content lang-zh">
 
-## 低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器
+## 低秩压缩系列（三）：全秩矫正器与闭式方法的极限
 
 > 📖 如果你不熟悉语言模型的基本词汇（loss、残差流、SVD、蒸馏……），建议先读[预备知识篇](/2026/08/30/lord-compression-primer/)，10 分钟即可补齐全部背景。
 
@@ -151,7 +151,7 @@ $$8.50\_{\text{坍缩假象}} \to \mathbf{5.10}\_{\text{本篇闭式}} \to 3.20\
 <!-- English Version -->
 <div class="lang-content lang-en" style="display:none">
 
-## Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier
+## Low-Rank Compression Series (3): Full-Rank Correctors and the Limit of Closed-Form Methods
 
 > 📖 New to language-model vocabulary (loss, residual stream, SVD, distillation...)? Read [the primer](/2026/08/30/lord-compression-primer/) first — ten minutes covers all the background.
 
@@ -242,7 +242,7 @@ $$8.50\_{\text{collapse illusion}} \to \mathbf{5.10}\_{\text{this post, closed-f
 
 2. **Three transferable principles**: the right closed-form primitive is regression, not factorization (part 2); spend budget where **no truncation tax is paid** (lm\_head, residual stream); before engineering complex features, **check every "uncompressed, so unmanaged" component** — the largest gains tend to sit there.
 
-3. **Why the ceiling sits where it does**: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning "each layer imitates its teacher counterpart" and optimizing the final loss directly — which is exactly what training does.
+3. **Why the limit sits where it does**: the direct cause of the ~5.1 limit is block 16 — a layer in the teacher that is natively hypersensitive to input error, amplifying the small linearly-unrepairable residue into a large one (the teacher's own trait, not compression's fault). Going lower means abandoning "each layer imitates its teacher counterpart" and optimizing the final loss directly — which is exactly what training does.
 
 4. **The engineering takeaway**: the optimal compress-and-recover pipeline = closed-form trajectory-correcting init (one 90-minute GPU computation, 5.10) + continued pretraining. The entire value of the closed-form program is moving the training start from 8.5 to 5.1 and pulling the arrival of a usable model forward by hundreds of steps.
 
@@ -295,7 +295,7 @@ function switchLang(lang) {
   });
   document.querySelector('.lang-' + lang).style.display = 'block';
   document.getElementById('btn-' + lang).classList.add('active');
-  var postTitles = {zh: '低秩压缩系列（三）：闭式压缩的天花板——全秩矫正器与非线性放大器', en: 'Low-Rank Compression Series (3): The Closed-Form Ceiling — Full-Rank Correctors and a Nonlinear Amplifier'};
+  var postTitles = {zh: '低秩压缩系列（三）：全秩矫正器与闭式方法的极限', en: 'Low-Rank Compression Series (3): Full-Rank Correctors and the Limit of Closed-Form Methods'};
   var titleEl = document.querySelector('.post-title');
   if (titleEl) titleEl.textContent = postTitles[lang];
 }
