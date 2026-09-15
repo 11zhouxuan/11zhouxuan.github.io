@@ -28,7 +28,7 @@ tags: [math, linear-algebra, LLM, compression, distillation, low-rank, rank-allo
 
 第二篇确立的逐层做法是：解出回归目标 $M^\*$ 后，在白化度量下截断到 rank $r$，即 $\min\_{A,B} \lVert (M^\* - AB) L \rVert\_F^2$。本篇终点的逐层目标变成：
 
-$$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{改动③：按 loss 敏感度加权}} \big(M^\* - AB - \underbrace{S}\_{\text{改动②：稀疏残差}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le \underbrace{r\_\ell}\_{\text{改动①：逐矩阵分配}}, \quad \mathrm{nnz}(S) \le k$$
+$$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{③}} \big(M^\* - AB - \underbrace{S}\_{\text{②}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le \underbrace{r\_\ell}\_{\text{①}}, \quad \mathrm{nnz}(S) \le k$$
 
 四处改动，两处在式子里、两处在式子外：
 
@@ -45,7 +45,7 @@ $$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{改动③：
 
 怎么知道每个方向值多少？直接问 loss：在每个保留的 rank-1 方向上挂一个乘性门 $\alpha\_i = 1$，反传时只求门的梯度，累积 $f\_{\ell,i} = \sum (\partial \mathcal{L}/\partial \alpha\_i)^2$——它衡量"砍掉第 $\ell$ 个矩阵的第 $i$ 个方向，最终 loss 会多痛"。然后解一个分配问题：
 
-$$\min\_{\lbrace r\_\ell \rbrace}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{矩阵 }\ell\text{ 被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{总预算}, \qquad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{幅度限制（不可省略）}}$$
+$$\min\_{\lbrace r\_\ell \rbrace}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{被砍方向的预期损害}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{总预算}, \quad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{幅度限制}}$$
 
 第二个约束是必要的。敏感度 $f$ 给出的分配幅度很大（v/o 加倍、q/k 砍到 1/4），直接采用它反而变差（5.27）：$f$ 是在当前解附近测得的局部量，rank 砍到 1/4 已超出它的适用范围。把偏离限制在均匀值的 0.6~1.6 倍之内，得到 5.06。三档对照（不限制 5.27 / 限制 5.06 / 不分配 5.10）显示限制本身贡献了改进的一半。
 
@@ -186,7 +186,7 @@ Background in one line: teacher Qwen3-8B (val loss 2.11) → all 252 weight matr
 
 Part 2's per-layer procedure: solve the regression target $M^\*$, then truncate to rank $r$ in the whitened metric, $\min\_{A,B} \lVert (M^\* - AB) L \rVert\_F^2$. This post's endpoint objective per layer:
 
-$$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{change ③: loss-sensitivity weighting}} \big(M^\* - AB - \underbrace{S}\_{\text{change ②: sparse residual}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le \underbrace{r\_\ell}\_{\text{change ①: per-matrix allocation}}, \quad \mathrm{nnz}(S) \le k$$
+$$\min\_{A, B, S}\ \Big\lVert \underbrace{\mathrm{diag}(w)}\_{\text{③}} \big(M^\* - AB - \underbrace{S}\_{\text{②}}\big) L \Big\rVert\_F^2 \qquad \text{s.t.}\quad \mathrm{rank}(AB) \le \underbrace{r\_\ell}\_{\text{①}}, \quad \mathrm{nnz}(S) \le k$$
 
 Four changes, two inside the formula and two outside:
 
@@ -203,7 +203,7 @@ Until now all 252 matrices used rank 384. Their compressibility differs widely: 
 
 How much is each direction worth? Ask the loss directly: attach a multiplicative gate $\alpha\_i = 1$ to every kept rank-1 direction, backpropagate into the gates only, and accumulate $f\_{\ell,i} = \sum (\partial \mathcal{L}/\partial \alpha\_i)^2$ — a measure of how much the final loss suffers if direction $i$ of matrix $\ell$ is cut. Then solve an allocation problem:
 
-$$\min\_{\lbrace r\_\ell \rbrace}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{expected damage of matrix }\ell\text{'s cut directions}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{budget}, \qquad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{deviation limit (required)}}$$
+$$\min\_{\lbrace r\_\ell \rbrace}\ \sum\_\ell \underbrace{\sum\_{i > r\_\ell} f\_{\ell,i}}\_{\text{expected damage}} \qquad \text{s.t.}\quad \sum\_\ell r\_\ell (m\_\ell + n\_\ell) = \text{budget}, \quad \underbrace{r\_\ell \in [0.6\bar{r},\ 1.6\bar{r}]}\_{\text{deviation limit}}$$
 
 The second constraint is required. The sensitivities $f$ prescribe large deviations (double v/o, cut q/k to a quarter), and adopting them at face value makes things worse (5.27): $f$ is a local quantity measured around the current solution, and a 4× cut is outside its range of validity. Limiting the deviation to 0.6–1.6× of uniform gives 5.06. A three-point comparison (unlimited 5.27 / limited 5.06 / no allocation 5.10) shows the limit itself contributes half of the improvement.
 
@@ -269,7 +269,7 @@ Re-measured for the final recipe, the limit is **3.75** — below an end-to-end-
 
 **The final chain** (85% linear-layer compression, equal 2.29B budget, no training):
 
-$$8.50 \to 5.60 \to 5.10 \to \underbrace{5.05}\_{\text{①allocation}} \to \underbrace{5.01}\_{\text{②sparse}} \to \underbrace{4.88}\_{\text{③metric}} \to \underbrace{4.61}\_{\text{④calibration}} \to \underbrace{\mathbf{4.59}}\_{\text{⑤scale feature}} \to 3.79\_{\text{e2e distilled}} \to 2.11\_{\text{teacher}}$$
+$$8.50 \to 5.60 \to 5.10 \to \underbrace{5.05}\_{\text{①}} \to \underbrace{5.01}\_{\text{②}} \to \underbrace{4.88}\_{\text{③}} \to \underbrace{4.61}\_{\text{④}} \to \underbrace{\mathbf{4.59}}\_{\text{⑤}} \to 3.79\_{\text{trained}} \to 2.11\_{\text{teacher}}$$
 
 Three transferable findings:
 
