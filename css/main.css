@@ -1266,7 +1266,7 @@ pre code {
   vertical-align: middle;
 }
 .links-of-author a::before {
-  background: #ffcbac;
+  background: #ff0b83;
   display: inline-block;
   margin-right: 3px;
   transform: translateY(-2px);
@@ -3095,6 +3095,27 @@ pre {
 .post-body table th:not(:first-child),
 .post-body table td:not(:first-child) {
   text-align: center !important;
+}
+.post-body figure.highlight table,
+.post-body figure.highlight table tr,
+.post-body figure.highlight table td,
+.post-body figure.highlight table th,
+.post-body figure.highlight pre,
+.post-body figure.highlight code {
+  text-align: left !important;
+  white-space: pre;
+}
+.post-body figure.highlight table td {
+  padding: 0 !important;
+  border: none !important;
+  background: none !important;
+}
+.post-body figure.highlight table td.gutter {
+  padding-right: 1em !important;
+  user-select: none;
+}
+.post-body figure.highlight table td.gutter pre {
+  text-align: right !important;
 }
 .post-body table thead th {
   border-bottom: 1px solid #2f3e4e !important;
