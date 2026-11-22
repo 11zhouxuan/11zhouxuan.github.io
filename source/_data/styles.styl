@@ -393,6 +393,34 @@ code, pre {
   text-align: center !important;
 }
 
+// hexo highlight (line_number: true) renders code blocks as
+// <figure class="highlight"><table><td class="gutter">…<td class="code">… —
+// undo the table cell styling above so code stays left-aligned monospace
+.post-body figure.highlight table,
+.post-body figure.highlight table tr,
+.post-body figure.highlight table td,
+.post-body figure.highlight table th,
+.post-body figure.highlight pre,
+.post-body figure.highlight code {
+  text-align: left !important;
+  white-space: pre;
+}
+
+.post-body figure.highlight table td {
+  padding: 0 !important;
+  border: none !important;
+  background: none !important;
+}
+
+.post-body figure.highlight table td.gutter {
+  padding-right: 1em !important;
+  user-select: none;
+}
+
+.post-body figure.highlight table td.gutter pre {
+  text-align: right !important;
+}
+
 .post-body table thead th {
   border-bottom: 1px solid #2f3e4e !important;
   font-weight: 600;
