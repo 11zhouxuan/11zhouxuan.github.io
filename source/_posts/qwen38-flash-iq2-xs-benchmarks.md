@@ -23,6 +23,15 @@ mathjax: true
 
 ## 单卡消费级显卡跑 125B MoE：2.5 bit 量化到底损失了什么？
 
+{% note info %}
+**TL;DR**
+
+- 一张 24 GB 的 RX 7900 XTX + 64 GB 内存，跑 2.5 bit 量化的 125B MoE（Qwen3.8-Flash-Next），解码 **89–95 token/s**，256K 上下文，3 路并发合计约 116 token/s。
+- 和官方 BF16 比，六个榜单的实测结果是：**视觉理解 102%、知识推理 94%、指令遵循 90%、代码生成 87%、看图算数学 81–86%、仓库级 agent 任务 ≈ 0%**。
+- 一句话结论：**2.5 bit 量化不伤"理解"，只伤"精确性"** —— 越需要逐字符、逐数字、多步累积的任务，掉得越狠。
+- 适合：读文档、问答、写小段代码、看图描述。不适合：长时间自主的仓库级代码修改。
+{% endnote %}
+
 ### 1. 背景
 
 Qwen3.8-Flash-Next 是一个 125B 总参数、6B 激活的稀疏 MoE 模型（外加 51B n-gram 嵌入表与 4B MTP 头）。官方权重是 BF16，而消费级显卡显然装不下。社区里最流行的做法是用 2–3 bit 的 GGUF 量化，把权重压到 40 GB 上下，再靠"专家分页"（把放不进显存的部分留在内存、按需搬运）跑起来。
@@ -77,6 +86,24 @@ Qwen3.8-Flash-Next 是一个 125B 总参数、6B 激活的稀疏 MoE 模型（�
 
 IFBench 的分项更能说明问题：`count:numbers`、`words:no_consecutive`、`format:newline` 这类简单约束通过率 **100%**，而 `format:quotes` 是 **0/8**、`ratio:overlap` 只有 17%、`words:odd_even_syllables` 22%。MathVision 里角度题 5/5 满分，组合计数只有 1/4。RealWorldQA 的错题也全部是"数错个数""左右判反"，而不是"看不懂图"。
 
+**一个具体的失败案例**：IFBench 里有一类题要求"引号套引号再套引号，至少三层，双引号单引号交替"，我们的模型 8 题全挂。看它的回答：
+
+> The Full Moon in Scorpio … It asks: “what feels like ‘a shadow is really “the truth asking to be seen”’.”
+
+语义上完全正确 —— 双引号里套单引号再套双引号，三层，交替。但校验器的实现是一个逐字符的栈：
+
+```python
+for char in value:
+    if levels and char == levels[-1]:
+        levels.pop()
+    elif char == '"' or char == "'":     # 只认 ASCII 直引号
+        levels.append(char)
+```
+
+它只认 ASCII 的 `"` 和 `'`，而模型输出的是弯引号 `“ ” ‘ ’` —— 开关不成对，栈永远不闭合，判 0。
+
+**这就是"精确性损失"的典型形态**：理解对了、结构对了、文字也漂亮，只差一个字符级的选择。官方 BF16 模型在这项上能过，说明低比特量化磨掉的正是这种"字符级精确选择"。
+
 一句话：**量化伤的是精确性，不是理解力。**
 
 **（二）仓库级 agent 任务直接失效**
@@ -115,6 +142,15 @@ RealWorldQA 拿到 90.0，和官方 88.5 在误差范围内持平。视觉编码
 <div class="lang-content lang-en" style="display:none;">
 
 ## 125B MoE on one consumer GPU: what does 2.5-bit quantization really cost?
+
+{% note info %}
+**TL;DR**
+
+- One 24 GB RX 7900 XTX with 64 GB of RAM runs a 2.5-bit 125B MoE (Qwen3.8-Flash-Next) at **89–95 tokens/s**, 256K context, about 116 tokens/s aggregate with three concurrent requests.
+- Against the official BF16 numbers, six benchmarks land at: **vision 102%, knowledge reasoning 94%, instruction following 90%, code generation 87%, visual math 81–86%, repository-level agent tasks ≈ 0%**.
+- In one sentence: **2.5-bit quantization damages precision, not understanding.** The more a task needs character-level, number-level or multi-step accuracy, the more it loses.
+- Good for: reading documents, Q&A, short code snippets, image description. Not for: long autonomous repository-level code editing.
+{% endnote %}
 
 ### 1. Background
 
@@ -169,6 +205,24 @@ Sorted by the kind of ability required, the pattern is striking:
 | Repository-level editing | ~0% | SWE-bench |
 
 The IFBench breakdown makes the same point at constraint level: simple constraints such as `count:numbers`, `words:no_consecutive` and `format:newline` pass at **100%**, while `format:quotes` scores **0/8**, `ratio:overlap` 17% and `words:odd_even_syllables` 22%. In MathVision, angle questions score 5/5 while combinatorics scores 1/4. The RealWorldQA failures are all miscounts and flipped left/right judgements, never "the model did not see the object".
+
+**A concrete failure.** One IFBench constraint asks for "quotes within quotes within quotes, at least three levels deep, alternating between double and single quotes". Our model failed 8 out of 8. Here is one answer:
+
+> The Full Moon in Scorpio … It asks: “what feels like ‘a shadow is really “the truth asking to be seen”’.”
+
+Semantically it is exactly right: double inside single inside double, three levels, alternating. But the verifier is a character-level stack:
+
+```python
+for char in value:
+    if levels and char == levels[-1]:
+        levels.pop()
+    elif char == '"' or char == "'":     # ASCII quotes only
+        levels.append(char)
+```
+
+It only accepts the ASCII `"` and `'`, while the model emitted typographic quotes (`“ ” ‘ ’`). The openers and closers never match, the stack never unwinds, and the item scores zero.
+
+That is what precision loss looks like: correct understanding, correct structure, correct prose, one wrong character class. The BF16 model passes this constraint, so what the low-bit file lost is exactly that character-level choice.
 
 **Quantization damages precision, not understanding.**
 
