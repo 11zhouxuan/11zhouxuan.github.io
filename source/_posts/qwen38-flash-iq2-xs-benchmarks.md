@@ -28,6 +28,7 @@ mathjax: true
 
 - 一张 24 GB 的 RX 7900 XTX + 64 GB 内存，跑 2.5 bit 量化的 125B MoE（Qwen3.8-Flash-Next），解码 **89–95 token/s**，256K 上下文，3 路并发合计约 116 token/s。
 - 和官方 BF16 比，六个榜单的实测结果是：**视觉理解 102%、知识推理 94%、指令遵循 90%、代码生成 87%、看图算数学 81–86%、仓库级 agent 任务 ≈ 0%**。
+- 真实岗位任务（JobBench，15 题）均值 **77.3**，官方 55.7 —— 但我们的评测允许多轮续跑、且排除了最慢的 5 题，数字偏乐观。
 - 一句话结论：**2.5 bit 量化不伤"理解"，只伤"精确性"** —— 越需要逐字符、逐数字、多步累积的任务，掉得越狠。
 - 适合：读文档、问答、写小段代码、看图描述。不适合：长时间自主的仓库级代码修改。
 {% endnote %}
@@ -116,6 +117,42 @@ for char in value:
 
 RealWorldQA 拿到 90.0，和官方 88.5 在误差范围内持平。视觉编码器只有约 0.45B 参数（907 MB BF16），并且是把图片编码成 token 后交给同一个语言模型处理——所以只要"看图"这一步没坏，后面的推理损失就和文本侧一致。
 
+**（四）真实岗位任务：反而没有崩**
+
+前面 SWE-bench 给了 0/4，但那是"仓库级代码修改"。为了看更贴近日常办公的场景，我们跑了 **JobBench**——一套按职业设计的真实交付任务（65 题、35 个岗位），题面会给出原始数据文件，要求交出 Excel 模型、Word 备忘录、审计报告这类东西，再用 rubric 逐条判分。
+
+我们按"每个岗位抽一题"的方式取了 20 题（随机种子 42），其中 15 题在 4 小时内完成并判分：
+
+| 岗位 | 得分 | 岗位 | 得分 |
+|---|---:|---|---:|
+| 数据录入员 | 100.0 | 制片人 | 63.9 |
+| 机械工程技术员 | 100.0 | 记者 | 60.0 |
+| 石油工程师 | 100.0 | 销售代表 | 56.6 |
+| 行政助理 | 100.0 | 供应链经理 | 55.0 |
+| 执照检查员 | 91.7 | IT 支持 | 53.6 |
+| 医疗管理 | 88.4 | 财务经理 | 42.4 |
+| 律师 | 87.5 | | |
+| HR 专员 | 84.4 | | |
+| 社会学教师 | 76.5 | | |
+
+**均值 77.3（标准差 20.2，95% 置信区间 67.1–87.6），官方 BF16 报的是 55.7。**
+
+这和 SWE-bench 的 0/4 并不矛盾：JobBench 的任务是"读给的数据 → 算 → 写成表格/文档"，链路短、中间结果可自查；SWE-bench 要求在陌生仓库里连续多步修改并通过测试，误差会累积。
+
+{% note warning %}
+**这个数字要打折看**
+
+1. **口径更宽**：我们允许每题最多 5 轮"续跑"（模型一旦输出不带工具调用的消息，这一轮就结束，续跑把它拉回来继续干）。官方 agent 评测通常是一轮会话跑到底，我们的做法更宽容，分数偏高。
+2. **样本有偏**：没跑完的 5 题（个人理财、统计学家、法庭书记员、证券销售、生物统计学家）恰好是最慢最复杂的，排除它们会让均值偏高。
+3. **judge 有波动**：同一份交付物两次判分，制片人拿到 86.1 和 63.9；其余多数题目两次一致。
+{% endnote %}
+
+顺带记录三个工程上的坑，它们比分数本身更值得留意：
+
+- **judge 必须能读交付物格式**。评测环境缺 `openpyxl` 时 pandas 会静默吞掉所有 Excel，judge 只看到空白——供应链那题因此被误判 0 分，补上依赖后是 55.0；执照检查员从 41.7 修正到 91.7。
+- **`claude -p` 的回合语义**：模型只要回一条不带工具调用的消息，这一轮就结束，弱模型常"说到一半"就停。需要显式续跑循环，并用目录快照判断是否真有进展。
+- **上下文窗口要自己声明**：Claude Code 不认识的自定义 model id 会被假定为 1M 上下文，不会自动压缩，128K 的引擎在 130K 处直接返回 400。容器里写 `{"autoCompactWindow":100000}` 即可。
+
 ### 5. 方法学说明（以及我们的局限）
 
 - **采样参数**：官方卡片明确推荐思考模式用 temperature 1.0 / top_p 0.95 / top_k 20。我们全程采用这套参数。要注意 IFBench 原论文的协议是 temperature 0，两者不同，因此和论文数字对比时需谨慎。
@@ -130,7 +167,9 @@ RealWorldQA 拿到 90.0，和官方 88.5 在误差范围内持平。视觉编码
 
 代价集中在需要"逐字符、逐数字、多步累积"的任务上：代码生成掉一成多，精确计数和多步计算掉一到两成，仓库级 agent 任务基本不可用。
 
-如果你的场景是"读文档、答问题、写小段代码"，这套方案完全够用；如果你要它做长时间自主的代码修改，就别指望低比特量化。
+值得注意的是，"agent 能力差"并不是全局结论。换成 JobBench 那种"读给定数据、算清楚、写成表格和文档"的岗位任务，15 题均值 77.3（官方 55.7），有 4 题拿到满分。真正崩掉的是**在陌生仓库里连续多步修改**——任务链条越长、中间结果越不可验证，误差放大得越厉害。
+
+如果你的场景是"读文档、答问题、写小段代码、处理表格数据"，这套方案完全够用；如果你要它做长时间自主的代码修改，就别指望低比特量化。
 
 ---
 
@@ -148,6 +187,7 @@ RealWorldQA 拿到 90.0，和官方 88.5 在误差范围内持平。视觉编码
 
 - One 24 GB RX 7900 XTX with 64 GB of RAM runs a 2.5-bit 125B MoE (Qwen3.8-Flash-Next) at **89–95 tokens/s**, 256K context, about 116 tokens/s aggregate with three concurrent requests.
 - Against the official BF16 numbers, six benchmarks land at: **vision 102%, knowledge reasoning 94%, instruction following 90%, code generation 87%, visual math 81–86%, repository-level agent tasks ≈ 0%**.
+- On real job tasks (JobBench, 15 items) the local model averages **77.3** against the official 55.7 — but our protocol allows continuation turns and drops the five slowest tasks, so that number is optimistic.
 - In one sentence: **2.5-bit quantization damages precision, not understanding.** The more a task needs character-level, number-level or multi-step accuracy, the more it loses.
 - Good for: reading documents, Q&A, short code snippets, image description. Not for: long autonomous repository-level code editing.
 {% endnote %}
@@ -236,6 +276,42 @@ That contrasts sharply with 80% on LiveCodeBench: single functions are fine, but
 
 RealWorldQA came in at 90.0 against the official 88.5, inside the noise. The vision encoder is small (about 0.45B parameters, a 907 MB BF16 projection) and simply turns an image into tokens for the same language model, so once seeing is intact the text-side losses dominate.
 
+**Real job tasks hold up better than SWE-bench suggests.**
+
+The 0/4 above is repository-level code editing. To test something closer to daily office work we ran **JobBench**, a benchmark of occupation-specific deliverables (65 tasks across 35 occupations). Each task ships raw data files and asks for an Excel model, a Word memo or an audit report, graded item by item against a rubric.
+
+We sampled 20 tasks, one per occupation (seed 42); 15 finished within the time budget and were graded:
+
+| Occupation | Score | Occupation | Score |
+|---|---:|---|---:|
+| Data entry keyers | 100.0 | Producers | 63.9 |
+| Mechanical engineering technicians | 100.0 | Reporters | 60.0 |
+| Petroleum engineers | 100.0 | Sales representatives | 56.6 |
+| Secretaries and admin assistants | 100.0 | Supply chain managers | 55.0 |
+| Licensing examiners | 91.7 | Computer user support | 53.6 |
+| Medical and health services managers | 88.4 | Financial managers | 42.4 |
+| Lawyers | 87.5 | | |
+| HR specialists | 84.4 | | |
+| Sociology teachers | 76.5 | | |
+
+**Mean 77.3 (SD 20.2, 95% CI 67.1–87.6); the official BF16 number is 55.7.**
+
+That is not at odds with the SWE-bench 0/4: JobBench tasks read supplied data, compute, and write it into a spreadsheet or document — a short chain whose intermediate results can be checked. SWE-bench demands many sequential edits in an unfamiliar repository that must pass tests, where error compounds.
+
+{% note warning %}
+**Discount this number**
+
+1. **Looser protocol.** Each task got up to five continuation turns (a `claude -p` turn ends as soon as the model replies without a tool call, so we resumed it). Official agent evaluations usually run one session to the time limit; ours is more forgiving and scores higher.
+2. **Biased sample.** The five tasks that did not finish (personal financial advisors, statisticians, court clerks, securities sales agents, biostatisticians) were the slowest and most complex; excluding them pushes the mean up.
+3. **Judge variance.** Graded twice, the producers deliverable scored 86.1 and 63.9; most others were stable.
+{% endnote %}
+
+Three engineering lessons worth more than the score:
+
+- **The judge must be able to read every deliverable format.** Without `openpyxl`, pandas silently swallowed every Excel file and the judge saw blanks: the supply-chain task was scored 0.0 and became 55.0 once the dependency was installed; licensing examiners went from 41.7 to 91.7.
+- **`claude -p` turn semantics.** A turn ends as soon as the model emits a message without a tool call, and a weak model stops mid-task. You need an explicit continuation loop with a directory snapshot to check whether work actually advanced.
+- **Declare your context window.** Claude Code assumes 1M tokens for an unknown model id and never compacts; a 128K engine returns 400 at 130K. Writing `{"autoCompactWindow":100000}` inside the container fixes it.
+
 ### 5. Method and limitations
 
 - **Sampling.** The card recommends temperature 1.0 / top_p 0.95 / top_k 20 for thinking mode and that is what we used. The IFBench paper itself evaluates at temperature 0, so comparisons with published IFBench figures need care.
@@ -250,7 +326,9 @@ On a single 24 GB consumer card, a 2.5-bit Qwen3.8-Flash-Next decodes at about 9
 
 The cost lands on tasks that need character-level, number-level or multi-step precision: code generation loses about a tenth, exact counting and multi-step arithmetic lose one to two tenths, and repository-level agent work is effectively out of reach.
 
-If your workload is reading documents, answering questions and writing small pieces of code, this is a very usable setup. If you need autonomous multi-step code editing, low-bit quantization is not the tool.
+Worth noting: "bad at agents" is not a general verdict. On JobBench-style work — read the supplied data, compute, write it into spreadsheets and documents — 15 tasks average 77.3 against the official 55.7, with four perfect scores. What actually collapses is **many sequential edits in an unfamiliar repository**: the longer the chain and the less verifiable each intermediate result, the more error compounds.
+
+If your workload is reading documents, answering questions, writing small pieces of code or processing spreadsheets, this is a very usable setup. If you need autonomous multi-step code editing, low-bit quantization is not the tool.
 
 ---
 
