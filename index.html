@@ -261,7 +261,7 @@
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
 
   
@@ -966,7 +966,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
 
   
@@ -1998,7 +1998,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
 
   
@@ -2430,7 +2430,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
 
   
@@ -2892,7 +2892,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
 
   
@@ -3350,7 +3350,7 @@ switchLang('zh');
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
 
   
@@ -3797,9 +3797,15 @@ switchLang('zh');
         <i class="far fa-calendar"></i>
       </span>
       <span class="post-meta-item-text">Posted on</span>
-      
 
-      <time title="Created: 2026-11-22 10:00:00 / Modified: 09:13:48" itemprop="dateCreated datePublished" datetime="2026-11-22T10:00:00+00:00">2026-11-22</time>
+      <time title="Created: 2026-11-22 10:00:00" itemprop="dateCreated datePublished" datetime="2026-11-22T10:00:00+00:00">2026-11-22</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar-check"></i>
+      </span>
+      <span class="post-meta-item-text">Edited on</span>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -3832,6 +3838,7 @@ switchLang('zh');
 <ul>
 <li>一张 24 GB 的 RX 7900 XTX + 64 GB 内存，跑 2.5 bit 量化的 125B MoE（Qwen3.8-Flash-Next），解码 <strong>89–95 token/s</strong>，256K 上下文，3 路并发合计约 116 token/s。</li>
 <li>和官方 BF16 比，六个榜单的实测结果是：<strong>视觉理解 102%、知识推理 94%、指令遵循 90%、代码生成 87%、看图算数学 81–86%、仓库级 agent 任务 ≈ 0%</strong>。</li>
+<li>真实岗位任务（JobBench，15 题）均值 <strong>77.3</strong>，官方 55.7 —— 但我们的评测允许多轮续跑、且排除了最慢的 5 题，数字偏乐观。</li>
 <li>一句话结论：<strong>2.5 bit 量化不伤&quot;理解&quot;，只伤&quot;精确性&quot;</strong> —— 越需要逐字符、逐数字、多步累积的任务，掉得越狠。</li>
 <li>适合：读文档、问答、写小段代码、看图描述。不适合：长时间自主的仓库级代码修改。</li>
 </ul>
@@ -3997,6 +4004,90 @@ switchLang('zh');
 <p>这和 LiveCodeBench 80% 形成鲜明对比：<strong>写一个函数没问题，做一次仓库级的、多步骤的修改就崩了</strong>。低比特量化在多步累积下，指令偏移会被放大。</p>
 <p><strong>（三）视觉几乎无损</strong></p>
 <p>RealWorldQA 拿到 90.0，和官方 88.5 在误差范围内持平。视觉编码器只有约 0.45B 参数（907 MB BF16），并且是把图片编码成 token 后交给同一个语言模型处理——所以只要&quot;看图&quot;这一步没坏，后面的推理损失就和文本侧一致。</p>
+<p><strong>（四）真实岗位任务：反而没有崩</strong></p>
+<p>前面 SWE-bench 给了 0/4，但那是&quot;仓库级代码修改&quot;。为了看更贴近日常办公的场景，我们跑了 <strong>JobBench</strong>——一套按职业设计的真实交付任务（65 题、35 个岗位），题面会给出原始数据文件，要求交出 Excel 模型、Word 备忘录、审计报告这类东西，再用 rubric 逐条判分。</p>
+<p>我们按&quot;每个岗位抽一题&quot;的方式取了 20 题（随机种子 42），其中 15 题在 4 小时内完成并判分：</p>
+<table>
+<thead>
+<tr>
+<th>岗位</th>
+<th style="text-align:right">得分</th>
+<th>岗位</th>
+<th style="text-align:right">得分</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据录入员</td>
+<td style="text-align:right">100.0</td>
+<td>制片人</td>
+<td style="text-align:right">63.9</td>
+</tr>
+<tr>
+<td>机械工程技术员</td>
+<td style="text-align:right">100.0</td>
+<td>记者</td>
+<td style="text-align:right">60.0</td>
+</tr>
+<tr>
+<td>石油工程师</td>
+<td style="text-align:right">100.0</td>
+<td>销售代表</td>
+<td style="text-align:right">56.6</td>
+</tr>
+<tr>
+<td>行政助理</td>
+<td style="text-align:right">100.0</td>
+<td>供应链经理</td>
+<td style="text-align:right">55.0</td>
+</tr>
+<tr>
+<td>执照检查员</td>
+<td style="text-align:right">91.7</td>
+<td>IT 支持</td>
+<td style="text-align:right">53.6</td>
+</tr>
+<tr>
+<td>医疗管理</td>
+<td style="text-align:right">88.4</td>
+<td>财务经理</td>
+<td style="text-align:right">42.4</td>
+</tr>
+<tr>
+<td>律师</td>
+<td style="text-align:right">87.5</td>
+<td></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td>HR 专员</td>
+<td style="text-align:right">84.4</td>
+<td></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td>社会学教师</td>
+<td style="text-align:right">76.5</td>
+<td></td>
+<td style="text-align:right"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>均值 77.3（标准差 20.2，95% 置信区间 67.1–87.6），官方 BF16 报的是 55.7。</strong></p>
+<p>这和 SWE-bench 的 0/4 并不矛盾：JobBench 的任务是&quot;读给的数据 → 算 → 写成表格/文档&quot;，链路短、中间结果可自查；SWE-bench 要求在陌生仓库里连续多步修改并通过测试，误差会累积。</p>
+<div class="note warning"><p><strong>这个数字要打折看</strong></p>
+<ol>
+<li><strong>口径更宽</strong>：我们允许每题最多 5 轮&quot;续跑&quot;（模型一旦输出不带工具调用的消息，这一轮就结束，续跑把它拉回来继续干）。官方 agent 评测通常是一轮会话跑到底，我们的做法更宽容，分数偏高。</li>
+<li><strong>样本有偏</strong>：没跑完的 5 题（个人理财、统计学家、法庭书记员、证券销售、生物统计学家）恰好是最慢最复杂的，排除它们会让均值偏高。</li>
+<li><strong>judge 有波动</strong>：同一份交付物两次判分，制片人拿到 86.1 和 63.9；其余多数题目两次一致。</li>
+</ol>
+</div>
+<p>顺带记录三个工程上的坑，它们比分数本身更值得留意：</p>
+<ul>
+<li><strong>judge 必须能读交付物格式</strong>。评测环境缺 <code>openpyxl</code> 时 pandas 会静默吞掉所有 Excel，judge 只看到空白——供应链那题因此被误判 0 分，补上依赖后是 55.0；执照检查员从 41.7 修正到 91.7。</li>
+<li><strong><code>claude -p</code> 的回合语义</strong>：模型只要回一条不带工具调用的消息，这一轮就结束，弱模型常&quot;说到一半&quot;就停。需要显式续跑循环，并用目录快照判断是否真有进展。</li>
+<li><strong>上下文窗口要自己声明</strong>：Claude Code 不认识的自定义 model id 会被假定为 1M 上下文，不会自动压缩，128K 的引擎在 130K 处直接返回 400。容器里写 <code>&#123;&quot;autoCompactWindow&quot;:100000&#125;</code> 即可。</li>
+</ul>
 <h3 id="5-方法学说明（以及我们的局限）">5. 方法学说明（以及我们的局限）</h3>
 <ul>
 <li><strong>采样参数</strong>：官方卡片明确推荐思考模式用 temperature 1.0 / top_p 0.95 / top_k 20。我们全程采用这套参数。要注意 IFBench 原论文的协议是 temperature 0，两者不同，因此和论文数字对比时需谨慎。</li>
@@ -4008,7 +4099,8 @@ switchLang('zh');
 <h3 id="6-结论">6. 结论</h3>
 <p>在一个 24 GB 消费级显卡上，2.5 bit 量化的 Qwen3.8-Flash-Next 可以跑到 90 token/s 的解码速度，并且在<strong>知识问答、图片理解、简单指令遵循</strong>上保持了官方 90–100% 的水平。</p>
 <p>代价集中在需要&quot;逐字符、逐数字、多步累积&quot;的任务上：代码生成掉一成多，精确计数和多步计算掉一到两成，仓库级 agent 任务基本不可用。</p>
-<p>如果你的场景是&quot;读文档、答问题、写小段代码&quot;，这套方案完全够用；如果你要它做长时间自主的代码修改，就别指望低比特量化。</p>
+<p>值得注意的是，&quot;agent 能力差&quot;并不是全局结论。换成 JobBench 那种&quot;读给定数据、算清楚、写成表格和文档&quot;的岗位任务，15 题均值 77.3（官方 55.7），有 4 题拿到满分。真正崩掉的是<strong>在陌生仓库里连续多步修改</strong>——任务链条越长、中间结果越不可验证，误差放大得越厉害。</p>
+<p>如果你的场景是&quot;读文档、答问题、写小段代码、处理表格数据&quot;，这套方案完全够用；如果你要它做长时间自主的代码修改，就别指望低比特量化。</p>
 <hr>
 <p><em>评测脚本与配置：Strata RDNA3 分支 + 自编译的 Windows 引擎；评测用 lm-evaluation-harness、IFBench 官方校验器、以及为 chat 接口自写的 MCQ / 代码执行脚本。所有评测数据可在本地复现。</em></p>
 </div>
@@ -4019,6 +4111,7 @@ switchLang('zh');
 <ul>
 <li>One 24 GB RX 7900 XTX with 64 GB of RAM runs a 2.5-bit 125B MoE (Qwen3.8-Flash-Next) at <strong>89–95 tokens/s</strong>, 256K context, about 116 tokens/s aggregate with three concurrent requests.</li>
 <li>Against the official BF16 numbers, six benchmarks land at: <strong>vision 102%, knowledge reasoning 94%, instruction following 90%, code generation 87%, visual math 81–86%, repository-level agent tasks ≈ 0%</strong>.</li>
+<li>On real job tasks (JobBench, 15 items) the local model averages <strong>77.3</strong> against the official 55.7 — but our protocol allows continuation turns and drops the five slowest tasks, so that number is optimistic.</li>
 <li>In one sentence: <strong>2.5-bit quantization damages precision, not understanding.</strong> The more a task needs character-level, number-level or multi-step accuracy, the more it loses.</li>
 <li>Good for: reading documents, Q&amp;A, short code snippets, image description. Not for: long autonomous repository-level code editing.</li>
 </ul>
@@ -4184,6 +4277,90 @@ switchLang('zh');
 <p>That contrasts sharply with 80% on LiveCodeBench: single functions are fine, but a multi-step repository edit is not. Under low-bit quantization, instruction drift compounds across steps.</p>
 <p><strong>Vision is essentially untouched.</strong></p>
 <p>RealWorldQA came in at 90.0 against the official 88.5, inside the noise. The vision encoder is small (about 0.45B parameters, a 907 MB BF16 projection) and simply turns an image into tokens for the same language model, so once seeing is intact the text-side losses dominate.</p>
+<p><strong>Real job tasks hold up better than SWE-bench suggests.</strong></p>
+<p>The 0/4 above is repository-level code editing. To test something closer to daily office work we ran <strong>JobBench</strong>, a benchmark of occupation-specific deliverables (65 tasks across 35 occupations). Each task ships raw data files and asks for an Excel model, a Word memo or an audit report, graded item by item against a rubric.</p>
+<p>We sampled 20 tasks, one per occupation (seed 42); 15 finished within the time budget and were graded:</p>
+<table>
+<thead>
+<tr>
+<th>Occupation</th>
+<th style="text-align:right">Score</th>
+<th>Occupation</th>
+<th style="text-align:right">Score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data entry keyers</td>
+<td style="text-align:right">100.0</td>
+<td>Producers</td>
+<td style="text-align:right">63.9</td>
+</tr>
+<tr>
+<td>Mechanical engineering technicians</td>
+<td style="text-align:right">100.0</td>
+<td>Reporters</td>
+<td style="text-align:right">60.0</td>
+</tr>
+<tr>
+<td>Petroleum engineers</td>
+<td style="text-align:right">100.0</td>
+<td>Sales representatives</td>
+<td style="text-align:right">56.6</td>
+</tr>
+<tr>
+<td>Secretaries and admin assistants</td>
+<td style="text-align:right">100.0</td>
+<td>Supply chain managers</td>
+<td style="text-align:right">55.0</td>
+</tr>
+<tr>
+<td>Licensing examiners</td>
+<td style="text-align:right">91.7</td>
+<td>Computer user support</td>
+<td style="text-align:right">53.6</td>
+</tr>
+<tr>
+<td>Medical and health services managers</td>
+<td style="text-align:right">88.4</td>
+<td>Financial managers</td>
+<td style="text-align:right">42.4</td>
+</tr>
+<tr>
+<td>Lawyers</td>
+<td style="text-align:right">87.5</td>
+<td></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td>HR specialists</td>
+<td style="text-align:right">84.4</td>
+<td></td>
+<td style="text-align:right"></td>
+</tr>
+<tr>
+<td>Sociology teachers</td>
+<td style="text-align:right">76.5</td>
+<td></td>
+<td style="text-align:right"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mean 77.3 (SD 20.2, 95% CI 67.1–87.6); the official BF16 number is 55.7.</strong></p>
+<p>That is not at odds with the SWE-bench 0/4: JobBench tasks read supplied data, compute, and write it into a spreadsheet or document — a short chain whose intermediate results can be checked. SWE-bench demands many sequential edits in an unfamiliar repository that must pass tests, where error compounds.</p>
+<div class="note warning"><p><strong>Discount this number</strong></p>
+<ol>
+<li><strong>Looser protocol.</strong> Each task got up to five continuation turns (a <code>claude -p</code> turn ends as soon as the model replies without a tool call, so we resumed it). Official agent evaluations usually run one session to the time limit; ours is more forgiving and scores higher.</li>
+<li><strong>Biased sample.</strong> The five tasks that did not finish (personal financial advisors, statisticians, court clerks, securities sales agents, biostatisticians) were the slowest and most complex; excluding them pushes the mean up.</li>
+<li><strong>Judge variance.</strong> Graded twice, the producers deliverable scored 86.1 and 63.9; most others were stable.</li>
+</ol>
+</div>
+<p>Three engineering lessons worth more than the score:</p>
+<ul>
+<li><strong>The judge must be able to read every deliverable format.</strong> Without <code>openpyxl</code>, pandas silently swallowed every Excel file and the judge saw blanks: the supply-chain task was scored 0.0 and became 55.0 once the dependency was installed; licensing examiners went from 41.7 to 91.7.</li>
+<li><strong><code>claude -p</code> turn semantics.</strong> A turn ends as soon as the model emits a message without a tool call, and a weak model stops mid-task. You need an explicit continuation loop with a directory snapshot to check whether work actually advanced.</li>
+<li><strong>Declare your context window.</strong> Claude Code assumes 1M tokens for an unknown model id and never compacts; a 128K engine returns 400 at 130K. Writing <code>&#123;&quot;autoCompactWindow&quot;:100000&#125;</code> inside the container fixes it.</li>
+</ul>
 <h3 id="5-Method-and-limitations">5. Method and limitations</h3>
 <ul>
 <li><strong>Sampling.</strong> The card recommends temperature 1.0 / top_p 0.95 / top_k 20 for thinking mode and that is what we used. The IFBench paper itself evaluates at temperature 0, so comparisons with published IFBench figures need care.</li>
@@ -4195,7 +4372,8 @@ switchLang('zh');
 <h3 id="6-Takeaway">6. Takeaway</h3>
 <p>On a single 24 GB consumer card, a 2.5-bit Qwen3.8-Flash-Next decodes at about 90 tokens/s and keeps 90–100% of the official quality on knowledge questions, image understanding and simple instruction following.</p>
 <p>The cost lands on tasks that need character-level, number-level or multi-step precision: code generation loses about a tenth, exact counting and multi-step arithmetic lose one to two tenths, and repository-level agent work is effectively out of reach.</p>
-<p>If your workload is reading documents, answering questions and writing small pieces of code, this is a very usable setup. If you need autonomous multi-step code editing, low-bit quantization is not the tool.</p>
+<p>Worth noting: &quot;bad at agents&quot; is not a general verdict. On JobBench-style work — read the supplied data, compute, write it into spreadsheets and documents — 15 tasks average 77.3 against the official 55.7, with four perfect scores. What actually collapses is <strong>many sequential edits in an unfamiliar repository</strong>: the longer the chain and the less verifiable each intermediate result, the more error compounds.</p>
+<p>If your workload is reading documents, answering questions, writing small pieces of code or processing spreadsheets, this is a very usable setup. If you need autonomous multi-step code editing, low-bit quantization is not the tool.</p>
 <hr>
 <p><em>Evaluation scripts and configuration: the Strata RDNA3 fork with a self-built Windows engine; lm-evaluation-harness, the official IFBench verifier, and custom MCQ and container-executed code runners for the chat API. Everything is reproducible locally.</em></p>
 </div>
@@ -4298,7 +4476,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
 
   
@@ -4963,7 +5141,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
@@ -5060,7 +5238,7 @@ function switchLang(lang) {
         <i class="far fa-calendar-check"></i>
       </span>
       <span class="post-meta-item-text">Edited on</span>
-      <time title="Modified: 2026-11-22 09:13:48" itemprop="dateModified" datetime="2026-11-22T09:13:48+00:00">2026-11-22</time>
+      <time title="Modified: 2026-11-23 14:54:36" itemprop="dateModified" datetime="2026-11-23T14:54:36+00:00">2026-11-23</time>
     </span>
     <span class="post-meta-item">
       <span class="post-meta-item-icon">
